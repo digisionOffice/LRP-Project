@@ -105,10 +105,10 @@
         </div>
     </div>
 
-    <div class="space-y-6">
+    <div class="space-y-6 ">
         <!-- Tab Navigation -->
         <div class="border-b border-gray-200 dark:border-gray-700">
-            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+            <nav class="-mb-px flex space-x-12 justify-center items-center" aria-label="Tabs">
                 <button wire:click="$set('activeTab', 'sales')"
                     class="@if ($activeTab === 'sales') border-primary-500 text-primary-600 @else border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 @endif whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
                     <div class="flex items-center space-x-2">
