@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class District extends Model
 {
+    use SoftDeletes;
     protected $keyType = 'string';
     public $incrementing = false;
 
@@ -27,8 +29,26 @@ class District extends Model
         return $this->belongsTo(Regency::class, 'regency_id');
     }
 
+    public function province()
+    {
+        return $this->hasOneThrough(Province::class, Regency::class, 'id', 'id', 'regency_id', 'province_id');
+    }
+
+    public function subdistricts()
+    {
+        return $this->hasMany(Subdistrict::class, 'district_id');
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get total count of subdistricts
+     */
+    public function getSubdistrictsCountAttribute(): int
+    {
+        return $this->subdistricts()->count();
     }
 }

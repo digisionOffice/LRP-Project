@@ -29,7 +29,33 @@ class AkunResource extends Resource
     {
         return $form
             ->schema([
-                //
+                Forms\Components\Section::make('Account Information')
+                    ->schema([
+                        Forms\Components\TextInput::make('kode_akun')
+                            ->label('Account Code')
+                            ->required()
+                            ->unique(ignoreRecord: true)
+                            ->maxLength(20)
+                            ->placeholder('e.g., 10101'),
+
+                        Forms\Components\TextInput::make('nama_akun')
+                            ->label('Account Name')
+                            ->required()
+                            ->maxLength(100)
+                            ->placeholder('e.g., Kas'),
+
+                        Forms\Components\Select::make('tipe_akun')
+                            ->label('Account Type')
+                            ->options([
+                                'aktiva' => 'Aktiva',
+                                'kewajiban' => 'Kewajiban',
+                                'modal' => 'Modal',
+                                'pendapatan' => 'Pendapatan',
+                                'biaya' => 'Biaya',
+                            ])
+                            ->required(),
+                    ])
+                    ->columns(2),
             ]);
     }
 
@@ -37,7 +63,21 @@ class AkunResource extends Resource
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('kode_akun')
+                    ->label('Account Code')
+                    ->searchable()
+                    ->sortable()
+                    ->copyable()
+                    ->weight('bold'),
+
+                Tables\Columns\TextColumn::make('nama_akun')
+                    ->label('Account Name')
+                    ->searchable()
+                    ->sortable()
+                    ->wrap(),
+
+                Tables\Columns\TextColumn::make('tipe_akun')
+                    ->label('Account Type')
             ])
             ->filters([
                 //

@@ -21,19 +21,43 @@ class ProvinceResource extends Resource
 
     protected static ?string $navigationGroup = 'Data Master';
 
-    protected static ?string $navigationLabel = 'Wilayah';
+    protected static ?string $navigationLabel = 'Administrative Areas';
 
     protected static ?int $navigationSort = 8;
+
+    protected static ?string $recordTitleAttribute = 'name';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('name')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('created_by')
-                    ->numeric(),
+                Forms\Components\Section::make('Province Information')
+                    ->description('Manage province (provinsi) information and administrative hierarchy')
+                    ->icon('heroicon-o-map')
+                    ->schema([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('id')
+                                    ->label('Province ID')
+                                    ->required()
+                                    ->unique(ignoreRecord: true)
+                                    ->maxLength(2)
+                                    ->placeholder('e.g., 14')
+                                    ->helperText('2-digit province code')
+                                    ->disabled(fn($context) => $context === 'edit'),
+
+                                Forms\Components\TextInput::make('name')
+                                    ->label('Province Name')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->placeholder('e.g., Riau')
+                                    ->helperText('Full province name'),
+                            ]),
+
+                        Forms\Components\Hidden::make('created_by')
+                            ->default(fn() => auth()->id()),
+                    ])
+                    ->collapsible(),
             ]);
     }
 
@@ -42,43 +66,87 @@ class ProvinceResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')
-                    ->label('ID')
-                    ->searchable(),
+                    ->label('Province ID')
+                    ->searchable()
+                    ->sortable()
+                    ->copyable()
+                    ->weight('bold')
+                    ->size('sm'),
+
                 Tables\Columns\TextColumn::make('name')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('created_by')
-                    ->numeric()
+                    ->label('Province Name')
+                    ->searchable()
+                    ->sortable()
+                    ->weight('medium')
+                    ->wrap(),
+
+                Tables\Columns\TextColumn::make('regencies_count')
+                    ->label('Regencies')
+                    ->counts('regencies')
+                    ->badge()
+                    ->color('info')
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('districts_count')
+                    ->label('Districts')
+                    ->counts('districts')
+                    ->badge()
+                    ->color('success')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('subdistricts_count')
+                    ->label('Subdistricts')
+                    ->getStateUsing(function ($record) {
+                        return $record->subdistricts()->count();
+                    })
+                    ->badge()
+                    ->color('warning')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('createdBy.name')
+                    ->label('Created By')
+                    ->placeholder('System')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
+                    ->label('Created')
+                    ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
+                    ->label('Updated')
+                    ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->color('info'),
+                Tables\Actions\EditAction::make()
+                    ->color('warning'),
+                Tables\Actions\DeleteAction::make()
+                    ->color('danger'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\ForceDeleteBulkAction::make(),
+                    Tables\Actions\RestoreBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('name')
+            ->striped()
+            ->paginated([10, 25, 50]);
     }
 
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\RegenciesRelationManager::class,
         ];
     }
 
@@ -87,7 +155,26 @@ class ProvinceResource extends Resource
         return [
             'index' => Pages\ListProvinces::route('/'),
             'create' => Pages\CreateProvince::route('/create'),
+            'view' => Pages\ViewProvince::route('/{record}'),
             'edit' => Pages\EditProvince::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'primary';
     }
 }
