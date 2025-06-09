@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Province;
 use App\Models\Regency;
@@ -44,7 +43,7 @@ class MasterDataSeeder extends Seeder
         ];
 
         foreach ($provinces as $province) {
-            Province::create($province);
+            Province::firstOrCreate(['id' => $province['id']], $province);
         }
 
         // Sample Regencies for Jakarta
@@ -58,7 +57,7 @@ class MasterDataSeeder extends Seeder
         ];
 
         foreach ($regencies as $regency) {
-            Regency::create($regency);
+            Regency::firstOrCreate(['id' => $regency['id']], $regency);
         }
 
         // Sample Districts for Jakarta Selatan
@@ -76,7 +75,7 @@ class MasterDataSeeder extends Seeder
         ];
 
         foreach ($districts as $district) {
-            District::create($district);
+            District::firstOrCreate(['id' => $district['id']], $district);
         }
 
         // Sample Subdistricts for Jagakarsa
@@ -90,7 +89,7 @@ class MasterDataSeeder extends Seeder
         ];
 
         foreach ($subdistricts as $subdistrict) {
-            Subdistrict::create($subdistrict);
+            Subdistrict::firstOrCreate(['id' => $subdistrict['id']], $subdistrict);
         }
 
         // Seed Entitas Tipe
@@ -102,7 +101,7 @@ class MasterDataSeeder extends Seeder
         ];
 
         foreach ($entitasTipes as $tipe) {
-            EntitasTipe::create($tipe);
+            EntitasTipe::firstOrCreate(['nama' => $tipe['nama']], $tipe);
         }
 
         // Seed Jabatan
@@ -117,7 +116,7 @@ class MasterDataSeeder extends Seeder
         ];
 
         foreach ($jabatans as $jabatan) {
-            Jabatan::create($jabatan);
+            Jabatan::firstOrCreate(['nama' => $jabatan['nama']], $jabatan);
         }
 
         // Seed Divisi
@@ -132,7 +131,7 @@ class MasterDataSeeder extends Seeder
         ];
 
         foreach ($divisis as $divisi) {
-            Divisi::create($divisi);
+            Divisi::firstOrCreate(['nama' => $divisi['nama']], $divisi);
         }
 
         // Seed Item Kategori
@@ -145,7 +144,7 @@ class MasterDataSeeder extends Seeder
         ];
 
         foreach ($itemKategoris as $kategori) {
-            ItemKategori::create($kategori);
+            ItemKategori::firstOrCreate(['nama' => $kategori['nama']], $kategori);
         }
 
         // Seed Satuan Dasar
@@ -158,7 +157,7 @@ class MasterDataSeeder extends Seeder
         ];
 
         foreach ($satuanDasars as $satuan) {
-            SatuanDasar::create($satuan);
+            SatuanDasar::firstOrCreate(['kode' => $satuan['kode']], $satuan);
         }
 
         // Seed Chart of Accounts
@@ -177,7 +176,7 @@ class MasterDataSeeder extends Seeder
         ];
 
         foreach ($akuns as $akun) {
-            Akun::create($akun);
+            Akun::firstOrCreate(['kode_akun' => $akun['kode_akun']], $akun);
         }
 
         // Seed Roles
@@ -192,7 +191,7 @@ class MasterDataSeeder extends Seeder
         ];
 
         foreach ($roles as $role) {
-            Role::create($role);
+            Role::firstOrCreate(['nama' => $role['nama']], $role);
         }
     }
 }

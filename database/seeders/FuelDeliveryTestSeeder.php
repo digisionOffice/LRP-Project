@@ -10,7 +10,7 @@ use App\Models\PengirimanDriver;
 use App\Models\UangJalan;
 use App\Models\Pelanggan;
 use App\Models\Item;
-use App\Models\Karyawan;
+
 use App\Models\Kendaraan;
 use App\Models\Tbbm;
 use App\Models\User;
@@ -60,17 +60,25 @@ class FuelDeliveryTestSeeder extends Seeder
             ]);
         }
 
+        // Get jabatan and divisi for drivers
+        $driverJabatan = \App\Models\Jabatan::where('nama', 'Driver')->first();
+        $operasionalDivisi = \App\Models\Divisi::where('nama', 'Operasional')->first();
+
         // Create test drivers if they don't exist
         $drivers = [];
         for ($i = 1; $i <= 3; $i++) {
-            $drivers[] = Karyawan::firstOrCreate([
-                'no_induk' => "DRV-{$i}"
+            $drivers[] = User::firstOrCreate([
+                'email' => "driver{$i}@test.com"
             ], [
-                'nama' => "Driver {$i}",
+                'name' => "Driver {$i}",
+                'email_verified_at' => now(),
+                'password' => \Illuminate\Support\Facades\Hash::make('password'),
+                'role' => 'driver',
+                'is_active' => true,
+                'no_induk' => "DRV-{$i}",
                 'hp' => "08123456789{$i}",
-                'email' => "driver{$i}@test.com",
-                'id_jabatan' => 1, // Assuming driver position exists
-                'id_divisi' => 1, // Assuming operations division exists
+                'id_jabatan' => $driverJabatan?->id,
+                'id_divisi' => $operasionalDivisi?->id,
                 'created_by' => $user->id,
             ]);
         }
@@ -123,6 +131,11 @@ class FuelDeliveryTestSeeder extends Seeder
                 'created_by' => $user->id,
             ]);
 
+            // Add attachment to some sales orders (60% chance)
+            if (rand(1, 100) <= 60) {
+                $this->createDummySalesOrderAttachment($salesOrder, $i);
+            }
+
             // Create sales order detail
             PenjualanDetail::create([
                 'id_transaksi_penjualan' => $salesOrder->id,
@@ -136,7 +149,7 @@ class FuelDeliveryTestSeeder extends Seeder
             $deliveryOrder = DeliveryOrder::create([
                 'kode' => 'DO-' . date('Ymd') . '-' . str_pad($i, 4, '0', STR_PAD_LEFT),
                 'id_transaksi' => $salesOrder->id,
-                'id_karyawan' => $driver->id,
+                'id_user' => $driver->id,
                 'id_kendaraan' => $vehicle->id,
                 'tanggal_delivery' => now()->addDays(rand(1, 7)),
                 'no_segel' => 'SEAL-' . str_pad($i, 6, '0', STR_PAD_LEFT),
@@ -180,7 +193,7 @@ class FuelDeliveryTestSeeder extends Seeder
                 'nominal' => rand(100000, 500000),
                 'status_kirim' => ['pending', 'kirim', 'ditolak'][rand(0, 2)],
                 'status_terima' => ['pending', 'terima', 'ditolak'][rand(0, 2)],
-                'id_karyawan' => $driver->id,
+                'id_user' => $driver->id,
                 'created_by' => $user->id,
             ]);
 
@@ -191,6 +204,51 @@ class FuelDeliveryTestSeeder extends Seeder
         }
 
         $this->command->info('Fuel delivery test data created successfully!');
+    }
+
+    /**
+     * Create dummy attachment for sales order
+     */
+    private function createDummySalesOrderAttachment(TransaksiPenjualan $salesOrder, int $sequence): void
+    {
+        // Create directory if it doesn't exist
+        if (!\Illuminate\Support\Facades\Storage::disk('public')->exists('sales-orders')) {
+            \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory('sales-orders');
+        }
+
+        // Random file types for testing
+        $fileTypes = [
+            ['ext' => 'pdf', 'mime' => 'application/pdf', 'content' => 'PDF'],
+            ['ext' => 'docx', 'mime' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'content' => 'DOCX'],
+            ['ext' => 'xlsx', 'mime' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'content' => 'XLSX'],
+            ['ext' => 'jpg', 'mime' => 'image/jpeg', 'content' => 'JPG'],
+            ['ext' => 'png', 'mime' => 'image/png', 'content' => 'PNG'],
+            ['ext' => 'txt', 'mime' => 'text/plain', 'content' => 'TXT'],
+        ];
+
+        $fileType = $fileTypes[array_rand($fileTypes)];
+
+        $content = "DUMMY SALES ORDER ATTACHMENT ({$fileType['content']})\n";
+        $content .= "Sales Order: {$salesOrder->kode}\n";
+        $content .= "Customer: " . ($salesOrder->pelanggan->nama ?? 'Unknown') . "\n";
+        $content .= "PO Number: {$salesOrder->nomor_po}\n";
+        $content .= "Order Date: {$salesOrder->tanggal}\n";
+        $content .= "Created: " . now() . "\n";
+        $content .= "\nThis is a dummy attachment file for testing purposes.\n";
+        $content .= "File Type: {$fileType['ext']}\n";
+        $content .= "MIME Type: {$fileType['mime']}\n";
+
+        $originalName = "SO-{$salesOrder->kode}-attachment-{$sequence}.{$fileType['ext']}";
+        $filename = "sales-orders/{$originalName}";
+
+        \Illuminate\Support\Facades\Storage::disk('public')->put($filename, $content);
+
+        $salesOrder->update([
+            'attachment_path' => $filename,
+            'attachment_original_name' => $originalName,
+            'attachment_mime_type' => $fileType['mime'],
+            'attachment_size' => strlen($content),
+        ]);
     }
 
     /**
@@ -211,7 +269,7 @@ class FuelDeliveryTestSeeder extends Seeder
             $sendingContent = "DUMMY SENDING PROOF\n";
             $sendingContent .= "Allowance ID: {$allowance->id}\n";
             $sendingContent .= "Amount: IDR " . number_format($allowance->nominal) . "\n";
-            $sendingContent .= "Driver: " . ($allowance->karyawan->nama ?? 'Unknown') . "\n";
+            $sendingContent .= "Driver: " . ($allowance->user->name ?? 'Unknown') . "\n";
             $sendingContent .= "Status: {$allowance->status_kirim}\n";
             $sendingContent .= "Created: " . now() . "\n";
             $sendingContent .= "\nThis is a dummy proof file for testing purposes.\n";
@@ -226,7 +284,7 @@ class FuelDeliveryTestSeeder extends Seeder
             $receivingContent = "DUMMY RECEIVING PROOF\n";
             $receivingContent .= "Allowance ID: {$allowance->id}\n";
             $receivingContent .= "Amount: IDR " . number_format($allowance->nominal) . "\n";
-            $receivingContent .= "Driver: " . ($allowance->karyawan->nama ?? 'Unknown') . "\n";
+            $receivingContent .= "Driver: " . ($allowance->user->name ?? 'Unknown') . "\n";
             $receivingContent .= "Status: {$allowance->status_terima}\n";
             $receivingContent .= "Received: " . now() . "\n";
             $receivingContent .= "\nThis is a dummy proof file for testing purposes.\n";

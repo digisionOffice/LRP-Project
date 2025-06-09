@@ -22,9 +22,9 @@ class Divisi extends Model
         'deleted_at' => 'datetime',
     ];
 
-    public function karyawan()
+    public function users()
     {
-        return $this->hasMany(Karyawan::class, 'id_divisi');
+        return $this->hasMany(User::class, 'id_divisi');
     }
 
     public function createdBy()

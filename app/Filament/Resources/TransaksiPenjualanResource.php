@@ -87,6 +87,45 @@ class TransaksiPenjualanResource extends Resource
                             ->suffix('days'),
                     ])
                     ->columns(2),
+
+                Forms\Components\Section::make('Document Attachment')
+                    ->description('Upload supporting documents for this sales order')
+                    ->schema([
+                        Forms\Components\FileUpload::make('attachment_path')
+                            ->label('Attachment')
+                            ->disk('public')
+                            ->directory('sales-orders')
+                            ->acceptedFileTypes([
+                                'application/pdf',
+                                'application/msword',
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                'application/vnd.ms-excel',
+                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                'image/jpeg',
+                                'image/png',
+                                'image/gif',
+                                'text/plain'
+                            ])
+                            ->maxSize(10240) // 10MB
+                            ->helperText('Supported formats: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, TXT. Max size: 10MB')
+                            ->storeFileNamesIn('attachment_original_name')
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                if ($state) {
+                                    $file = $state;
+                                    if (is_object($file) && method_exists($file, 'getMimeType')) {
+                                        $set('attachment_mime_type', $file->getMimeType());
+                                        $set('attachment_size', $file->getSize());
+                                    }
+                                }
+                            }),
+
+                        Forms\Components\Hidden::make('attachment_original_name'),
+                        Forms\Components\Hidden::make('attachment_mime_type'),
+                        Forms\Components\Hidden::make('attachment_size'),
+                    ])
+                    ->collapsible()
+                    ->collapsed(),
             ]);
     }
 
@@ -134,6 +173,18 @@ class TransaksiPenjualanResource extends Resource
                     ->label('TBBM Location')
                     ->placeholder('N/A'),
 
+                Tables\Columns\IconColumn::make('has_attachment')
+                    ->label('Attachment')
+                    ->boolean()
+                    ->getStateUsing(fn($record) => $record->hasAttachment())
+                    ->trueIcon('heroicon-o-paper-clip')
+                    ->falseIcon('heroicon-o-minus')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->tooltip(fn($record) => $record->hasAttachment()
+                        ? 'File: ' . $record->attachment_original_name . ' (' . $record->getFormattedFileSize() . ')'
+                        : 'No attachment'),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime('d M Y H:i')
@@ -159,8 +210,25 @@ class TransaksiPenjualanResource extends Resource
                     ->relationship('tbbm', 'nama')
                     ->searchable()
                     ->preload(),
+
+                Tables\Filters\TernaryFilter::make('has_attachment')
+                    ->label('Has Attachment')
+                    ->placeholder('All Records')
+                    ->trueLabel('With Attachment')
+                    ->falseLabel('Without Attachment')
+                    ->queries(
+                        true: fn($query) => $query->whereNotNull('attachment_path'),
+                        false: fn($query) => $query->whereNull('attachment_path'),
+                    ),
             ])
             ->actions([
+                Tables\Actions\Action::make('download_attachment')
+                    ->label('Download')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('info')
+                    ->url(fn($record) => $record->getAttachmentUrl())
+                    ->openUrlInNewTab()
+                    ->visible(fn($record) => $record->hasAttachment()),
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

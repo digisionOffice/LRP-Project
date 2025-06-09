@@ -11,7 +11,7 @@ class DeliveryOrder extends Model
     protected $fillable = [
         'kode',
         'id_transaksi',
-        'id_karyawan',
+        'id_user',
         'id_kendaraan',
         'tanggal_delivery',
         'no_segel',
@@ -60,9 +60,15 @@ class DeliveryOrder extends Model
         return $this->belongsTo(TransaksiPenjualan::class, 'id_transaksi');
     }
 
-    public function karyawan()
+    public function user()
     {
-        return $this->belongsTo(Karyawan::class, 'id_karyawan');
+        return $this->belongsTo(User::class, 'id_user');
+    }
+
+    // Alias for driver (same as user)
+    public function driver()
+    {
+        return $this->user();
     }
 
     public function kendaraan()

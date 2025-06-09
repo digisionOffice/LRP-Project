@@ -1,7 +1,9 @@
 <x-filament-panels::page>
     <!-- Summary Cards (Optional) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
-    <div class="mt-8 grid grid-cols-4 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+
+    <div class="mt-8 grid grid-cols-5 gap-5 sm:grid-cols-2 lg:grid-cols-5">
         <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
             <div class="p-5">
                 <div class="flex items-center">
@@ -75,6 +77,26 @@
                             </dt>
                             <dd class="text-lg font-medium text-gray-900 dark:text-white">
                                 {{ \App\Models\DeliveryOrder::whereIn('payment_status', ['pending', 'partial', 'overdue'])->count() }}
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <x-heroicon-o-user-group class="h-6 w-6 text-gray-400" />
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                                Active Drivers
+                            </dt>
+                            <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                {{ \App\Models\User::whereHas('jabatan', function ($q) {$q->where('nama', 'like', '%driver%');})->where('is_active', true)->count() }}
                             </dd>
                         </dl>
                     </div>

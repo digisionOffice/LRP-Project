@@ -24,6 +24,10 @@ class TransaksiPenjualan extends Model
         'id_akun_pendapatan',
         'id_akun_piutang',
         'created_by',
+        'attachment_path',
+        'attachment_original_name',
+        'attachment_mime_type',
+        'attachment_size',
     ];
 
     protected $casts = [
@@ -76,5 +80,68 @@ class TransaksiPenjualan extends Model
     public function akunPiutang()
     {
         return $this->belongsTo(Akun::class, 'id_akun_piutang');
+    }
+
+    /**
+     * Check if the sales order has an attachment
+     */
+    public function hasAttachment(): bool
+    {
+        return !empty($this->attachment_path);
+    }
+
+    /**
+     * Get the attachment URL for download
+     */
+    public function getAttachmentUrl(): ?string
+    {
+        if (!$this->hasAttachment()) {
+            return null;
+        }
+
+        return asset('storage/' . $this->attachment_path);
+    }
+
+    /**
+     * Get formatted file size
+     */
+    public function getFormattedFileSize(): ?string
+    {
+        if (!$this->attachment_size) {
+            return null;
+        }
+
+        $bytes = $this->attachment_size;
+        $units = ['B', 'KB', 'MB', 'GB'];
+
+        for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
+            $bytes /= 1024;
+        }
+
+        return round($bytes, 2) . ' ' . $units[$i];
+    }
+
+    /**
+     * Get file extension from mime type
+     */
+    public function getFileExtension(): ?string
+    {
+        if (!$this->attachment_mime_type) {
+            return null;
+        }
+
+        $mimeToExt = [
+            'application/pdf' => 'pdf',
+            'application/msword' => 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+            'application/vnd.ms-excel' => 'xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/gif' => 'gif',
+            'text/plain' => 'txt',
+        ];
+
+        return $mimeToExt[$this->attachment_mime_type] ?? 'file';
     }
 }

@@ -9,7 +9,6 @@ use App\Models\UangJalan;
 use App\Models\FakturPajak;
 use App\Models\Item;
 use App\Models\Pelanggan;
-use App\Models\Karyawan;
 use App\Models\Kendaraan;
 use App\Models\Tbbm;
 use App\Models\User;
@@ -138,6 +137,18 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                     ->label('Order Date')
                     ->date('d M Y')
                     ->sortable(),
+
+                Tables\Columns\IconColumn::make('has_attachment')
+                    ->label('File')
+                    ->boolean()
+                    ->getStateUsing(fn($record) => $record->hasAttachment())
+                    ->trueIcon('heroicon-o-paper-clip')
+                    ->falseIcon('heroicon-o-minus')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->tooltip(fn($record) => $record->hasAttachment()
+                        ? 'Attachment: ' . $record->attachment_original_name
+                        : 'No attachment'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('id_pelanggan')
@@ -213,7 +224,8 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                 DeliveryOrder::query()
                     ->with([
                         'transaksi.pelanggan',
-                        'karyawan',
+                        'user.jabatan',
+                        'user.divisi',
                         'kendaraan'
                     ])
                     ->latest()
@@ -233,10 +245,11 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                     ->formatStateUsing(fn($state) => strtoupper($state))
                     ->placeholder('Not Assigned'),
 
-                Tables\Columns\TextColumn::make('karyawan.nama')
+                Tables\Columns\TextColumn::make('user.name')
                     ->label('Driver Name')
                     ->searchable()
-                    ->placeholder('Not Assigned'),
+                    ->placeholder('Not Assigned')
+                    ->description(fn($record) => $record->user ? 'ID: ' . $record->user->no_induk . ' | ' . $record->user->jabatan?->nama : null),
 
                 Tables\Columns\SelectColumn::make('status_muat')
                     ->label('Loading Status')
@@ -287,11 +300,11 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                         'selesai' => 'Loading Complete',
                     ]),
 
-                Tables\Filters\SelectFilter::make('id_karyawan')
+                Tables\Filters\SelectFilter::make('id_user')
                     ->label('Driver')
-                    ->options(Karyawan::whereHas('jabatan', function ($query) {
+                    ->options(User::whereHas('jabatan', function ($query) {
                         $query->where('nama', 'like', '%driver%');
-                    })->pluck('nama', 'id'))
+                    })->pluck('name', 'id'))
                     ->searchable(),
 
                 Tables\Filters\SelectFilter::make('id_kendaraan')
@@ -344,7 +357,8 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                 DeliveryOrder::query()
                     ->with([
                         'transaksi.pelanggan',
-                        'karyawan'
+                        'user.jabatan',
+                        'user.divisi'
                     ])
                     ->latest()
             )
@@ -449,7 +463,8 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                 PengirimanDriver::query()
                     ->with([
                         'deliveryOrder.transaksi.pelanggan',
-                        'deliveryOrder.karyawan'
+                        'deliveryOrder.user.jabatan',
+                        'deliveryOrder.user.divisi'
                     ])
                     ->latest()
             )

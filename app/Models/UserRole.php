@@ -11,6 +11,8 @@ class UserRole extends Model
     protected $fillable = [
         'id_user',
         'id_role',
+        'id_entitas',
+        'created_by',
     ];
 
     protected $casts = [

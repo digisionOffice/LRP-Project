@@ -44,9 +44,9 @@ class DeliveryOrderResource extends Resource
                             ->preload()
                             ->required(),
 
-                        Forms\Components\Select::make('id_karyawan')
+                        Forms\Components\Select::make('id_user')
                             ->label('Driver')
-                            ->relationship('karyawan', 'nama')
+                            ->relationship('user', 'name')
                             ->searchable()
                             ->preload(),
 
@@ -127,7 +127,7 @@ class DeliveryOrderResource extends Resource
                     ->label('Customer')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('karyawan.nama')
+                Tables\Columns\TextColumn::make('user.name')
                     ->label('Driver')
                     ->searchable()
                     ->placeholder('Not Assigned'),

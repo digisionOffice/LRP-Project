@@ -25,7 +25,7 @@ return new class extends Migration
             $table->index(['status_muat']);
             $table->index(['tanggal_delivery']);
             $table->index(['id_transaksi']);
-            $table->index(['id_karyawan']);
+            $table->index(['id_user']);
             $table->index(['id_kendaraan']);
         });
 
@@ -33,7 +33,7 @@ return new class extends Migration
             $table->index(['status_kirim']);
             $table->index(['status_terima']);
             $table->index(['id_do']);
-            $table->index(['id_karyawan']);
+            $table->index(['id_user']);
         });
 
         Schema::table('pengiriman_driver', function (Blueprint $table) {
@@ -58,11 +58,14 @@ return new class extends Migration
             $table->index(['id_item_jenis']);
         });
 
-        Schema::table('karyawan', function (Blueprint $table) {
+        // Karyawan table removed - employee data now in users table
+        Schema::table('users', function (Blueprint $table) {
             $table->index(['no_induk']);
-            $table->index(['nama']);
+            $table->index(['name']);
+            $table->index(['role']);
             $table->index(['id_jabatan']);
             $table->index(['id_divisi']);
+            $table->index(['is_active']);
         });
 
         Schema::table('kendaraans', function (Blueprint $table) {
@@ -89,7 +92,7 @@ return new class extends Migration
             $table->dropIndex(['status_muat']);
             $table->dropIndex(['tanggal_delivery']);
             $table->dropIndex(['id_transaksi']);
-            $table->dropIndex(['id_karyawan']);
+            $table->dropIndex(['id_user']);
             $table->dropIndex(['id_kendaraan']);
         });
 
@@ -97,7 +100,7 @@ return new class extends Migration
             $table->dropIndex(['status_kirim']);
             $table->dropIndex(['status_terima']);
             $table->dropIndex(['id_do']);
-            $table->dropIndex(['id_karyawan']);
+            $table->dropIndex(['id_user']);
         });
 
         Schema::table('pengiriman_driver', function (Blueprint $table) {
@@ -122,11 +125,13 @@ return new class extends Migration
             $table->dropIndex(['id_item_jenis']);
         });
 
-        Schema::table('karyawan', function (Blueprint $table) {
+        Schema::table('users', function (Blueprint $table) {
             $table->dropIndex(['no_induk']);
-            $table->dropIndex(['nama']);
+            $table->dropIndex(['name']);
+            $table->dropIndex(['role']);
             $table->dropIndex(['id_jabatan']);
             $table->dropIndex(['id_divisi']);
+            $table->dropIndex(['is_active']);
         });
 
         Schema::table('kendaraans', function (Blueprint $table) {

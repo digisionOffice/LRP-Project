@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Item;
 use App\Models\ItemKategori;
@@ -93,7 +92,7 @@ class ItemSeeder extends Seeder
         ];
 
         foreach ($itemData as $item) {
-            Item::create($item);
+            Item::firstOrCreate(['kode' => $item['kode']], $item);
         }
     }
 }

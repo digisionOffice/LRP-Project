@@ -18,7 +18,7 @@ class UangJalan extends Model
         'bukti_kirim',
         'status_terima',
         'bukti_terima',
-        'id_karyawan',
+        'id_user',
         'created_by',
     ];
 
@@ -34,9 +34,15 @@ class UangJalan extends Model
         return $this->belongsTo(DeliveryOrder::class, 'id_do');
     }
 
-    public function karyawan()
+    public function user()
     {
-        return $this->belongsTo(Karyawan::class, 'id_karyawan');
+        return $this->belongsTo(User::class, 'id_user');
+    }
+
+    // Alias for driver (same as user)
+    public function driver()
+    {
+        return $this->user();
     }
 
     public function createdBy()

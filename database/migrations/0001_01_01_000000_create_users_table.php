@@ -17,8 +17,22 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('role')->default('user');
+            $table->boolean('is_active')->default(true);
+
+            // Employee fields (merged from Karyawan)
+            $table->string('no_induk', 100)->nullable()->unique();
+            $table->string('hp', 100)->nullable();
+            $table->unsignedBigInteger('id_jabatan')->nullable();
+            $table->unsignedBigInteger('id_divisi')->nullable();
+            $table->unsignedBigInteger('id_entitas')->nullable();
+            $table->unsignedBigInteger('created_by')->nullable();
+
             $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes();
+
+            // Note: Foreign key constraints will be added later after related tables are created
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

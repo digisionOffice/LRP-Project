@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('bukti_kirim')->nullable();
             $table->enum('status_terima', ['pending', 'terima', 'ditolak'])->default('pending');
             $table->string('bukti_terima')->nullable();
-            $table->unsignedBigInteger('id_karyawan')->nullable();
+            $table->unsignedBigInteger('id_user')->nullable();
             $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamps();
             $table->softDeletes();

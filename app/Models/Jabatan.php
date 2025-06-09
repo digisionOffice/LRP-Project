@@ -22,9 +22,9 @@ class Jabatan extends Model
         'deleted_at' => 'datetime',
     ];
 
-    public function karyawan()
+    public function users()
     {
-        return $this->hasMany(Karyawan::class, 'id_jabatan');
+        return $this->hasMany(User::class, 'id_jabatan');
     }
 
     public function createdBy()

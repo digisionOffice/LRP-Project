@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('kode', 50)->unique();
             $table->unsignedBigInteger('id_transaksi');
-            $table->unsignedBigInteger('id_karyawan')->nullable();
+            $table->unsignedBigInteger('id_user')->nullable();
             $table->unsignedBigInteger('id_kendaraan')->nullable();
             $table->datetime('tanggal_delivery')->nullable();
             $table->string('no_segel', 50)->nullable();
