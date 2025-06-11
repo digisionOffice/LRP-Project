@@ -20,6 +20,11 @@ class DatabaseSeeder extends Seeder
             PelangganSeeder::class,
             SupplierSeeder::class,
             KendaraanSeeder::class,
+            ExpenseRequestSeeder::class,
+            DeliveryOrderSeeder::class,
+            FuelDeliveryTestSeeder::class,
+            SuratSeeder::class,
+            
         ]);
     }
 }

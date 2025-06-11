@@ -50,6 +50,8 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
         $this->resetTable();
     }
 
+   
+
     public function table(Table $table): Table
     {
         return match ($this->activeTab) {

@@ -179,19 +179,19 @@ class MasterDataSeeder extends Seeder
             Akun::firstOrCreate(['kode_akun' => $akun['kode_akun']], $akun);
         }
 
-        // Seed Roles
-        $roles = [
-            ['nama' => 'Super Admin', 'deskripsi' => 'Full access to all modules'],
-            ['nama' => 'Admin', 'deskripsi' => 'Administrative access'],
-            ['nama' => 'Sales', 'deskripsi' => 'Sales module access'],
-            ['nama' => 'Operasional', 'deskripsi' => 'Operational module access'],
-            ['nama' => 'Driver', 'deskripsi' => 'Driver module access'],
-            ['nama' => 'Keuangan', 'deskripsi' => 'Finance module access'],
-            ['nama' => 'Administrasi', 'deskripsi' => 'Administration module access'],
-        ];
+        // // Seed Roles
+        // $roles = [
+        //     ['name' => 'Super Admin', 'deskripsi' => 'Full access to all modules'],
+        //     ['name' => 'Admin', 'deskripsi' => 'Administrative access'],
+        //     ['name' => 'Sales', 'deskripsi' => 'Sales module access'],
+        //     ['name' => 'Operasional', 'deskripsi' => 'Operational module access'],
+        //     ['name' => 'Driver', 'deskripsi' => 'Driver module access'],
+        //     ['name' => 'Keuangan', 'deskripsi' => 'Finance module access'],
+        //     ['name' => 'Administrasi', 'deskripsi' => 'Administration module access'],
+        // ];
 
-        foreach ($roles as $role) {
-            Role::firstOrCreate(['nama' => $role['nama']], $role);
-        }
+        // foreach ($roles as $role) {
+        //     Role::firstOrCreate(['name' => $role['name']], $role);
+        // }
     }
 }

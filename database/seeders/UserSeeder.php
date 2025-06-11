@@ -156,103 +156,103 @@ class UserSeeder extends Seeder
 
         // Assign roles to users using UserRole model
         // Get roles from database
-        $superAdminRole = Role::where('nama', 'Super Admin')->first();
-        $adminRole = Role::where('nama', 'Admin')->first();
-        $salesRole = Role::where('nama', 'Sales')->first();
-        $operationalRole = Role::where('nama', 'Operasional')->first();
-        $driverRole = Role::where('nama', 'Driver')->first();
-        $financeRole = Role::where('nama', 'Keuangan')->first();
-        $administrationRole = Role::where('nama', 'Administrasi')->first();
+        // $superAdminRole = Role::where('name', 'Super Admin')->first();
+        // $adminRole = Role::where('name', 'Admin')->first();
+        // $salesRole = Role::where('name', 'Sales')->first();
+        // $operationalRole = Role::where('name', 'Operasional')->first();
+        // $driverRole = Role::where('name', 'Driver')->first();
+        // $financeRole = Role::where('name', 'Keuangan')->first();
+        // $administrationRole = Role::where('name', 'Administrasi')->first();
 
-        // Create UserRole relationships
-        if ($superAdminRole) {
-            UserRole::firstOrCreate(
-                [
-                    'id_user' => $superAdmin->id,
-                    'id_role' => $superAdminRole->id,
-                ],
-                [
-                    'created_by' => $superAdmin->id,
-                ]
-            );
-        }
+        // // Create UserRole relationships
+        // if ($superAdminRole) {
+        //     UserRole::firstOrCreate(
+        //         [
+        //             'id_user' => $superAdmin->id,
+        //             'id_role' => $superAdminRole->id,
+        //         ],
+        //         [
+        //             'created_by' => $superAdmin->id,
+        //         ]
+        //     );
+        // }
 
-        if ($adminRole) {
-            UserRole::firstOrCreate(
-                [
-                    'id_user' => $admin->id,
-                    'id_role' => $adminRole->id,
-                ],
-                [
-                    'created_by' => $superAdmin->id,
-                ]
-            );
-        }
+        // if ($adminRole) {
+        //     UserRole::firstOrCreate(
+        //         [
+        //             'id_user' => $admin->id,
+        //             'id_role' => $adminRole->id,
+        //         ],
+        //         [
+        //             'created_by' => $superAdmin->id,
+        //         ]
+        //     );
+        // }
 
-        if ($salesRole) {
-            UserRole::firstOrCreate(
-                [
-                    'id_user' => $sales->id,
-                    'id_role' => $salesRole->id,
-                ],
-                [
-                    'created_by' => $superAdmin->id,
-                ]
-            );
-        }
+        // if ($salesRole) {
+        //     UserRole::firstOrCreate(
+        //         [
+        //             'id_user' => $sales->id,
+        //             'id_role' => $salesRole->id,
+        //         ],
+        //         [
+        //             'created_by' => $superAdmin->id,
+        //         ]
+        //     );
+        // }
 
-        if ($operationalRole) {
-            UserRole::firstOrCreate(
-                [
-                    'id_user' => $operational->id,
-                    'id_role' => $operationalRole->id,
-                ],
-                [
-                    'created_by' => $superAdmin->id,
-                ]
-            );
-        }
+        // if ($operationalRole) {
+        //     UserRole::firstOrCreate(
+        //         [
+        //             'id_user' => $operational->id,
+        //             'id_role' => $operationalRole->id,
+        //         ],
+        //         [
+        //             'created_by' => $superAdmin->id,
+        //         ]
+        //     );
+        // }
 
-        if ($driverRole) {
-            UserRole::firstOrCreate(
-                [
-                    'id_user' => $driver->id,
-                    'id_role' => $driverRole->id,
-                ],
-                [
-                    'created_by' => $superAdmin->id,
-                ]
-            );
-        }
+        // if ($driverRole) {
+        //     UserRole::firstOrCreate(
+        //         [
+        //             'id_user' => $driver->id,
+        //             'id_role' => $driverRole->id,
+        //         ],
+        //         [
+        //             'created_by' => $superAdmin->id,
+        //         ]
+        //     );
+        // }
 
-        if ($financeRole) {
-            UserRole::firstOrCreate(
-                [
-                    'id_user' => $finance->id,
-                    'id_role' => $financeRole->id,
-                ],
-                [
-                    'created_by' => $superAdmin->id,
-                ]
-            );
-        }
+        // if ($financeRole) {
+        //     UserRole::firstOrCreate(
+        //         [
+        //             'id_user' => $finance->id,
+        //             'id_role' => $financeRole->id,
+        //         ],
+        //         [
+        //             'created_by' => $superAdmin->id,
+        //         ]
+        //     );
+        // }
 
-        if ($administrationRole) {
-            UserRole::firstOrCreate(
-                [
-                    'id_user' => $administration->id,
-                    'id_role' => $administrationRole->id,
-                ],
-                [
-                    'created_by' => $superAdmin->id,
-                ]
-            );
-        }
+        // if ($administrationRole) {
+        //     UserRole::firstOrCreate(
+        //         [
+        //             'id_user' => $administration->id,
+        //             'id_role' => $administrationRole->id,
+        //         ],
+        //         [
+        //             'created_by' => $superAdmin->id,
+        //         ]
+        //     );
+        // }
 
-        // Create additional test users using factory
-        User::factory(10)->create([
-            'role' => 'user',
-            'is_active' => true,
-        ]);
+        // // Create additional test users using factory
+        // User::factory(10)->create([
+        //     'role' => 'user',
+        //     'is_active' => true,
+        // ]);
     }
 }
