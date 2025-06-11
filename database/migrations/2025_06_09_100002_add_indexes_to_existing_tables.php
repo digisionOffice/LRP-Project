@@ -62,7 +62,6 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->index(['no_induk']);
             $table->index(['name']);
-            $table->index(['role']);
             $table->index(['id_jabatan']);
             $table->index(['id_divisi']);
             $table->index(['is_active']);

@@ -22,13 +22,12 @@ class FuelDeliveryTestSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get or create test user
-        $user = User::firstOrCreate([
-            'email' => 'admin@test.com'
-        ], [
-            'name' => 'Admin Test',
-            'password' => bcrypt('password'),
-        ]);
+        // Use existing admin user from UserSeeder
+        $user = User::where('email', 'admin@lrp.com')->first();
+        if (!$user) {
+            $this->command->error('Admin user not found. Please run UserSeeder first.');
+            return;
+        }
 
         // Create test customers if they don't exist
         $customers = [];
@@ -60,28 +59,15 @@ class FuelDeliveryTestSeeder extends Seeder
             ]);
         }
 
-        // Get jabatan and divisi for drivers
-        $driverJabatan = \App\Models\Jabatan::where('nama', 'Driver')->first();
-        $operasionalDivisi = \App\Models\Divisi::where('nama', 'Operasional')->first();
-
-        // Create test drivers if they don't exist
-        $drivers = [];
-        for ($i = 1; $i <= 3; $i++) {
-            $drivers[] = User::firstOrCreate([
-                'email' => "driver{$i}@test.com"
-            ], [
-                'name' => "Driver {$i}",
-                'email_verified_at' => now(),
-                'password' => \Illuminate\Support\Facades\Hash::make('password'),
-                'role' => 'driver',
-                'is_active' => true,
-                'no_induk' => "DRV-{$i}",
-                'hp' => "08123456789{$i}",
-                'id_jabatan' => $driverJabatan?->id,
-                'id_divisi' => $operasionalDivisi?->id,
-                'created_by' => $user->id,
-            ]);
+        // Use existing driver from UserSeeder
+        $driver = User::where('email', 'driver@lrp.com')->first();
+        if (!$driver) {
+            $this->command->error('Driver user not found. Please run UserSeeder first.');
+            return;
         }
+
+        // Use this driver for all test deliveries
+        $drivers = [$driver, $driver, $driver]; // Reuse the same driver for simplicity
 
         // Create test vehicles if they don't exist
         $vehicles = [];

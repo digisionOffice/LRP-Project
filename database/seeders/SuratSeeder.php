@@ -18,7 +18,7 @@ class SuratSeeder extends Seeder
     {
         // Get or create test user
         $user = User::firstOrCreate([
-            'email' => 'admin@test.com'
+            'email' => 'admin.staff@lrp.com'
         ], [
             'name' => 'Admin Test',
             'password' => bcrypt('password'),
@@ -37,7 +37,7 @@ class SuratSeeder extends Seeder
             $documentType = $documentTypes[array_rand($documentTypes)];
             $status = $statuses[array_rand($statuses)];
             $paymentStatus = $paymentStatuses[array_rand($paymentStatuses)];
-            
+
             // Randomly assign to customer or supplier
             $isCustomerDocument = rand(0, 1);
             $customer = $isCustomerDocument && $customers->count() > 0 ? $customers->random() : null;
@@ -87,16 +87,16 @@ class SuratSeeder extends Seeder
     private function generateDocumentContent(string $type, $customer, $supplier): string
     {
         $partyName = $customer ? $customer->nama : ($supplier ? $supplier->nama : 'Unknown Party');
-        
+
         return match($type) {
             'penawaran' => "Dengan hormat,\n\nBersama ini kami sampaikan penawaran harga untuk kebutuhan BBM kepada {$partyName}.\n\nDemikian penawaran ini kami sampaikan, atas perhatian dan kerjasamanya kami ucapkan terima kasih.\n\nHormat kami,\nManagement",
-            
+
             'kontrak' => "KONTRAK KERJASAMA\n\nPada hari ini telah dibuat dan ditandatangani kontrak kerjasama antara perusahaan dengan {$partyName} untuk pengadaan dan distribusi BBM.\n\nKontrak ini berlaku selama 12 bulan terhitung dari tanggal penandatanganan.\n\nDemikian kontrak ini dibuat untuk dilaksanakan dengan sebaik-baiknya.",
-            
+
             'invoice' => "INVOICE\n\nKepada: {$partyName}\n\nBerdasarkan pengiriman BBM yang telah dilakukan, dengan ini kami sampaikan tagihan sebagai berikut:\n\n- Pengiriman BBM sesuai DO\n- Jumlah yang harus dibayar tercantum dalam lampiran\n\nMohon pembayaran dapat dilakukan sesuai dengan termin yang telah disepakati.\n\nTerima kasih atas kerjasamanya.",
-            
+
             'lainnya' => "Kepada: {$partyName}\n\nDengan hormat,\n\nBersama ini kami sampaikan dokumen terkait dengan kegiatan operasional perusahaan.\n\nMohon untuk dapat diproses sesuai dengan prosedur yang berlaku.\n\nDemikian disampaikan, terima kasih atas perhatiannya.\n\nHormat kami,\nManagement",
-            
+
             default => "Dokumen resmi perusahaan untuk {$partyName}.",
         };
     }

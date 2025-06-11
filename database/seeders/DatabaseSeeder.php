@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             MasterDataSeeder::class,
+            RolePermissionSeeder::class, // Must run before UserSeeder
             UserSeeder::class,
             ItemSeeder::class,
             TbbmSeeder::class,
@@ -24,7 +25,7 @@ class DatabaseSeeder extends Seeder
             DeliveryOrderSeeder::class,
             FuelDeliveryTestSeeder::class,
             SuratSeeder::class,
-            
+
         ]);
     }
 }

@@ -15,6 +15,9 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 
 class UserResource extends Resource
 {
@@ -36,6 +39,18 @@ class UserResource extends Resource
                     ->description('Basic user account settings and authentication details')
                     ->icon('heroicon-o-user-circle')
                     ->schema([
+                        SpatieMediaLibraryFileUpload::make('avatar')
+                            ->label('Profile Picture')
+                            ->collection('avatar')
+                            ->image()
+                            ->imageEditor()
+                            ->imageCropAspectRatio('1:1')
+                            ->imageResizeTargetWidth('300')
+                            ->imageResizeTargetHeight('300')
+                            ->helperText('Upload a profile picture (recommended: square image, max 2MB)')
+                            ->maxSize(2048)
+                            ->columnSpanFull(),
+
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('name')
@@ -75,22 +90,13 @@ class UserResource extends Resource
                                     ->minLength(8)
                                     ->columnSpan(1),
 
-                                Forms\Components\Select::make('role')
+                                Forms\Components\Select::make('roles')
                                     ->label('System Role')
-                                    ->options([
-                                        'super_admin' => 'Super Administrator',
-                                        'admin' => 'Administrator',
-                                        'sales' => 'Sales Manager',
-                                        'operational' => 'Operational Manager',
-                                        'driver' => 'Driver',
-                                        'finance' => 'Finance Manager',
-                                        'administration' => 'Administration Staff',
-                                        'user' => 'Regular User',
-                                    ])
-                                    ->required()
-                                    ->default('user')
+                                    ->relationship('roles', 'name')
+                                    ->multiple()
+                                    ->preload()
                                     ->searchable()
-                                    ->placeholder('Select user role')
+                                    ->placeholder('Select user role(s)')
                                     ->helperText('Determines system permissions and access level')
                                     ->columnSpan(1),
                             ]),
@@ -179,6 +185,15 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
+                SpatieMediaLibraryImageColumn::make('avatar')
+                    ->label('Avatar')
+                    ->collection('avatar')
+                    ->conversion('thumb')
+                    ->circular()
+                    ->size(40)
+                    ->defaultImageUrl(url('/images/default-avatar.png'))
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('no_induk')
                     ->label('Employee ID')
                     ->searchable()
@@ -202,8 +217,8 @@ class UserResource extends Resource
                     ->copyMessage('Email copied!')
                     ->icon('heroicon-m-envelope'),
 
-                Tables\Columns\TextColumn::make('role')
-                    ->label('Role')
+                Tables\Columns\TextColumn::make('roles.name')
+                    ->label('Roles')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'super_admin' => 'danger',
@@ -223,11 +238,11 @@ class UserResource extends Resource
                         'driver' => 'Driver',
                         'finance' => 'Finance Manager',
                         'administration' => 'Administration Staff',
-                        'user' => 'Regular User',
-                        default => ucfirst($state),
+                        default => ucfirst(str_replace('_', ' ', $state)),
                     })
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->separator(', '),
 
                 Tables\Columns\TextColumn::make('jabatan.nama')
                     ->label('Position')
@@ -283,19 +298,12 @@ class UserResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('role')
+                Tables\Filters\SelectFilter::make('roles')
                     ->label('Role')
-                    ->options([
-                        'super_admin' => 'Super Administrator',
-                        'admin' => 'Administrator',
-                        'sales' => 'Sales Manager',
-                        'operational' => 'Operational Manager',
-                        'driver' => 'Driver',
-                        'finance' => 'Finance Manager',
-                        'administration' => 'Administration Staff',
-                        'user' => 'Regular User',
-                    ])
+                    ->relationship('roles', 'name')
                     ->multiple()
+                    ->preload()
+                    ->searchable()
                     ->placeholder('All Roles'),
 
                 Tables\Filters\SelectFilter::make('id_jabatan')

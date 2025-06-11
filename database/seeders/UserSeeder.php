@@ -5,12 +5,11 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\User;
-use App\Models\Role;
-use App\Models\UserRole;
 use App\Models\Jabatan;
 use App\Models\Divisi;
 use App\Models\Entitas;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class UserSeeder extends Seeder
 {
@@ -42,7 +41,6 @@ class UserSeeder extends Seeder
                 'name' => 'Super Administrator',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
-                'role' => 'super_admin',
                 'is_active' => true,
                 'no_induk' => 'SYS001',
                 'hp' => '081234567890',
@@ -59,7 +57,6 @@ class UserSeeder extends Seeder
                 'name' => 'Administrator',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
-                'role' => 'admin',
                 'is_active' => true,
                 'no_induk' => 'SYS002',
                 'hp' => '081234567891',
@@ -76,7 +73,6 @@ class UserSeeder extends Seeder
                 'name' => 'Sales Manager',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
-                'role' => 'sales',
                 'is_active' => true,
                 'no_induk' => 'SYS003',
                 'hp' => '081234567892',
@@ -93,7 +89,6 @@ class UserSeeder extends Seeder
                 'name' => 'Operational Manager',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
-                'role' => 'operational',
                 'is_active' => true,
                 'no_induk' => 'SYS004',
                 'hp' => '081234567893',
@@ -110,7 +105,6 @@ class UserSeeder extends Seeder
                 'name' => 'Driver Test',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
-                'role' => 'driver',
                 'is_active' => true,
                 'no_induk' => 'SYS005',
                 'hp' => '081234567894',
@@ -127,7 +121,6 @@ class UserSeeder extends Seeder
                 'name' => 'Finance Manager',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
-                'role' => 'finance',
                 'is_active' => true,
                 'no_induk' => 'SYS006',
                 'hp' => '081234567895',
@@ -144,7 +137,6 @@ class UserSeeder extends Seeder
                 'name' => 'Administration Staff',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
-                'role' => 'administration',
                 'is_active' => true,
                 'no_induk' => 'SYS007',
                 'hp' => '081234567896',
@@ -154,105 +146,45 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // Assign roles to users using UserRole model
+        // Assign Filament Shield roles to users
         // Get roles from database
-        // $superAdminRole = Role::where('name', 'Super Admin')->first();
-        // $adminRole = Role::where('name', 'Admin')->first();
-        // $salesRole = Role::where('name', 'Sales')->first();
-        // $operationalRole = Role::where('name', 'Operasional')->first();
-        // $driverRole = Role::where('name', 'Driver')->first();
-        // $financeRole = Role::where('name', 'Keuangan')->first();
-        // $administrationRole = Role::where('name', 'Administrasi')->first();
+        $superAdminRole = Role::where('name', 'super_admin')->first();
+        $adminRole = Role::where('name', 'admin')->first();
+        $salesRole = Role::where('name', 'sales')->first();
+        $operationalRole = Role::where('name', 'operational')->first();
+        $driverRole = Role::where('name', 'driver')->first();
+        $financeRole = Role::where('name', 'finance')->first();
+        $administrationRole = Role::where('name', 'administration')->first();
 
-        // // Create UserRole relationships
-        // if ($superAdminRole) {
-        //     UserRole::firstOrCreate(
-        //         [
-        //             'id_user' => $superAdmin->id,
-        //             'id_role' => $superAdminRole->id,
-        //         ],
-        //         [
-        //             'created_by' => $superAdmin->id,
-        //         ]
-        //     );
-        // }
+        // Assign Filament Shield roles to users
+        if ($superAdminRole) {
+            $superAdmin->assignRole($superAdminRole);
+        }
 
-        // if ($adminRole) {
-        //     UserRole::firstOrCreate(
-        //         [
-        //             'id_user' => $admin->id,
-        //             'id_role' => $adminRole->id,
-        //         ],
-        //         [
-        //             'created_by' => $superAdmin->id,
-        //         ]
-        //     );
-        // }
+        if ($adminRole) {
+            $admin->assignRole($adminRole);
+        }
 
-        // if ($salesRole) {
-        //     UserRole::firstOrCreate(
-        //         [
-        //             'id_user' => $sales->id,
-        //             'id_role' => $salesRole->id,
-        //         ],
-        //         [
-        //             'created_by' => $superAdmin->id,
-        //         ]
-        //     );
-        // }
+        if ($salesRole) {
+            $sales->assignRole($salesRole);
+        }
 
-        // if ($operationalRole) {
-        //     UserRole::firstOrCreate(
-        //         [
-        //             'id_user' => $operational->id,
-        //             'id_role' => $operationalRole->id,
-        //         ],
-        //         [
-        //             'created_by' => $superAdmin->id,
-        //         ]
-        //     );
-        // }
+        if ($operationalRole) {
+            $operational->assignRole($operationalRole);
+        }
 
-        // if ($driverRole) {
-        //     UserRole::firstOrCreate(
-        //         [
-        //             'id_user' => $driver->id,
-        //             'id_role' => $driverRole->id,
-        //         ],
-        //         [
-        //             'created_by' => $superAdmin->id,
-        //         ]
-        //     );
-        // }
+        if ($driverRole) {
+            $driver->assignRole($driverRole);
+        }
 
-        // if ($financeRole) {
-        //     UserRole::firstOrCreate(
-        //         [
-        //             'id_user' => $finance->id,
-        //             'id_role' => $financeRole->id,
-        //         ],
-        //         [
-        //             'created_by' => $superAdmin->id,
-        //         ]
-        //     );
-        // }
+        if ($financeRole) {
+            $finance->assignRole($financeRole);
+        }
 
-        // if ($administrationRole) {
-        //     UserRole::firstOrCreate(
-        //         [
-        //             'id_user' => $administration->id,
-        //             'id_role' => $administrationRole->id,
-        //         ],
-        //         [
-        //             'created_by' => $superAdmin->id,
-        //         ]
-        //     );
-        // }
+        if ($administrationRole) {
+            $administration->assignRole($administrationRole);
+        }
 
-        // // Create additional test users using factory
-        // User::factory(10)->create([
-        //     'role' => 'user',
-        //     'is_active' => true,
-        // ]);
+        $this->command->info('Users created and roles assigned successfully!');
     }
 }

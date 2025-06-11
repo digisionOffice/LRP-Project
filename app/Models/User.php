@@ -10,11 +10,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Spatie\Permission\Traits\HasRoles;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, HasMedia
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes, HasRoles;
+    use HasFactory, Notifiable, SoftDeletes, HasRoles, InteractsWithMedia;
 
     /**
      * The attributes that are mass assignable.
@@ -25,7 +28,6 @@ class User extends Authenticatable implements FilamentUser
         'name',
         'email',
         'password',
-        'role',
         'is_active',
         'no_induk',
         'hp',
@@ -95,11 +97,7 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(UangJalan::class, 'id_user');
     }
 
-    // User management relationships
-    public function userRoles()
-    {
-        return $this->hasMany(UserRole::class, 'id_user');
-    }
+
 
     public function createdBy()
     {
@@ -109,5 +107,35 @@ class User extends Authenticatable implements FilamentUser
     public function createdUsers()
     {
         return $this->hasMany(User::class, 'created_by');
+    }
+
+    /**
+     * Register media collections for the User model
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('avatar')
+            ->singleFile()
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+
+        $this->addMediaCollection('documents')
+            ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/png']);
+    }
+
+    /**
+     * Register media conversions for the User model
+     */
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')
+            ->width(150)
+            ->height(150)
+            ->sharpen(10)
+            ->performOnCollections('avatar');
+
+        $this->addMediaConversion('preview')
+            ->width(300)
+            ->height(300)
+            ->performOnCollections('avatar');
     }
 }

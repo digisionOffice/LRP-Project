@@ -14,6 +14,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 
 class ItemResource extends Resource
 {
@@ -70,6 +72,34 @@ class ItemResource extends Resource
                             ->placeholder('Masukkan deskripsi item')
                             ->columnSpanFull(),
                     ]),
+
+                Forms\Components\Section::make('Media & Gambar')
+                    ->schema([
+                        SpatieMediaLibraryFileUpload::make('images')
+                            ->label('Gambar Produk')
+                            ->collection('images')
+                            ->image()
+                            ->multiple()
+                            ->reorderable()
+                            ->maxFiles(5)
+                            ->imageEditor()
+                            ->imageResizeTargetWidth('800')
+                            ->imageResizeTargetHeight('800')
+                            ->helperText('Upload gambar produk (maksimal 5 gambar, ukuran maksimal 2MB per gambar)')
+                            ->maxSize(2048)
+                            ->columnSpanFull(),
+
+                        SpatieMediaLibraryFileUpload::make('documents')
+                            ->label('Dokumen Pendukung')
+                            ->collection('documents')
+                            ->multiple()
+                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                            ->maxFiles(3)
+                            ->helperText('Upload dokumen pendukung seperti spesifikasi, sertifikat, dll. (PDF, JPG, PNG)')
+                            ->maxSize(5120)
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsible(),
             ]);
     }
 
@@ -77,6 +107,14 @@ class ItemResource extends Resource
     {
         return $table
             ->columns([
+                SpatieMediaLibraryImageColumn::make('images')
+                    ->label('Gambar')
+                    ->collection('images')
+                    ->conversion('thumb')
+                    ->size(50)
+                    ->circular(false)
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('kode')
                     ->label('Kode')
                     ->searchable()
