@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\TransaksiPenjualanResource\Pages;
 
 use App\Filament\Resources\TransaksiPenjualanResource;
-use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Auth;
 use Filament\Notifications\Notification;
@@ -22,27 +21,13 @@ class CreateTransaksiPenjualan extends CreateRecord
 
     protected function afterCreate(): void
     {
-        // Validate that we have at least one detail item after creation
+        // Show success notification with item count
         $record = $this->getRecord();
-
-        if ($record->penjualanDetails()->count() === 0) {
-            // Delete the record if no details were created
-            $record->delete();
-
-            Notification::make()
-                ->title('Error')
-                ->body('Minimal harus ada satu item dalam transaksi penjualan.')
-                ->danger()
-                ->send();
-
-            // Redirect back to create page
-            $this->redirect($this->getResource()::getUrl('create'));
-            return;
-        }
+        $itemCount = $record->penjualanDetails()->count();
 
         Notification::make()
             ->title('Berhasil')
-            ->body('Transaksi penjualan berhasil dibuat dengan ' . $record->penjualanDetails()->count() . ' item.')
+            ->body("Transaksi penjualan berhasil dibuat dengan {$itemCount} item.")
             ->success()
             ->send();
     }

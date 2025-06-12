@@ -88,6 +88,98 @@ class TransaksiPenjualanResource extends Resource
                     ])
                     ->columns(2),
 
+                Forms\Components\Section::make('Detail Item Penjualan')
+                    ->description('Tambahkan item-item yang akan dijual dalam transaksi ini')
+                    ->schema([
+                        Forms\Components\Repeater::make('penjualanDetails')
+                            ->label('Item Penjualan')
+                            ->relationship()
+                            ->required()
+                            ->minItems(1)
+                            ->schema([
+                                Forms\Components\Select::make('id_item')
+                                    ->label('Item/Produk')
+                                    ->relationship('item', 'name')
+                                    ->searchable()
+                                    ->preload()
+                                    ->required()
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $set) {
+                                        if ($state) {
+                                            $item = \App\Models\Item::find($state);
+                                            if ($item) {
+                                                // Set item info for display
+                                                $set('item_info', $item->kode . ' - ' . $item->name);
+                                                $set('satuan_info', $item->satuan?->nama ?? '');
+                                            }
+                                        }
+                                    })
+                                    ->columnSpan(2),
+
+                                Forms\Components\TextInput::make('volume_item')
+                                    ->label('Volume/Kuantitas')
+                                    ->required()
+                                    ->numeric()
+                                    ->minValue(0.01)
+                                    ->step(0.01)
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                        $volume = floatval($state ?: 0);
+                                        $harga = floatval($get('harga_jual') ?: 0);
+                                        $subtotal = $volume * $harga;
+                                        $set('subtotal', $subtotal);
+                                    })
+                                    ->suffix(function (callable $get) {
+                                        return $get('satuan_info') ?: 'unit';
+                                    }),
+
+                                Forms\Components\TextInput::make('harga_jual')
+                                    ->label('Harga Jual')
+                                    ->required()
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->prefix('IDR')
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                        $harga = floatval($state ?: 0);
+                                        $volume = floatval($get('volume_item') ?: 0);
+                                        $subtotal = $volume * $harga;
+                                        $set('subtotal', $subtotal);
+                                    }),
+
+                                Forms\Components\TextInput::make('subtotal')
+                                    ->label('Subtotal')
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->prefix('IDR')
+                                    ->numeric()
+                                    ->formatStateUsing(function ($state) {
+                                        return number_format($state ?: 0, 0, ',', '.');
+                                    }),
+
+                                Forms\Components\Hidden::make('item_info'),
+                                Forms\Components\Hidden::make('satuan_info'),
+                            ])
+                            ->columns(4)
+                            ->defaultItems(1)
+                            ->addActionLabel('Tambah Item')
+                            ->deleteAction(
+                                fn($action) => $action->requiresConfirmation()
+                            )
+                            ->reorderable(false)
+                            ->collapsible()
+                            ->itemLabel(function (array $state): ?string {
+                                if (!empty($state['item_info'])) {
+                                    $volume = $state['volume_item'] ?? 0;
+                                    $harga = $state['harga_jual'] ?? 0;
+                                    $subtotal = number_format($volume * $harga, 0, ',', '.');
+                                    return "{$state['item_info']} - {$volume} x IDR " . number_format($harga, 0, ',', '.') . " = IDR {$subtotal}";
+                                }
+                                return 'Item Baru';
+                            }),
+                    ])
+                    ->collapsible(),
+
                 Forms\Components\Section::make('Lampiran Dokumen')
                     ->description('Unggah dokumen pendukung untuk pesanan penjualan ini')
                     ->schema([
@@ -172,6 +264,12 @@ class TransaksiPenjualanResource extends Resource
                 Tables\Columns\TextColumn::make('tbbm.nama')
                     ->label('Lokasi TBBM')
                     ->placeholder('T/A'),
+
+                Tables\Columns\TextColumn::make('penjualan_details_count')
+                    ->label('Jumlah Item')
+                    ->counts('penjualanDetails')
+                    ->badge()
+                    ->color('info'),
 
                 Tables\Columns\IconColumn::make('has_attachment')
                     ->label('Lampiran')
