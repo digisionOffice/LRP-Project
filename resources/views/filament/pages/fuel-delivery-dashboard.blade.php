@@ -1,5 +1,5 @@
 <x-filament-panels::page>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
 
     <div class="space-y-6">
         <!-- Enhanced KPI Cards -->

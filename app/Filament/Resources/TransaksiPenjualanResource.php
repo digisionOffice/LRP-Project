@@ -170,8 +170,8 @@ class TransaksiPenjualanResource extends Resource
                             ->collapsible()
                             ->itemLabel(function (array $state): ?string {
                                 if (!empty($state['item_info'])) {
-                                    $volume = $state['volume_item'] ?? 0;
-                                    $harga = $state['harga_jual'] ?? 0;
+                                    $volume = floatval($state['volume_item'] ?? 0);
+                                    $harga = floatval($state['harga_jual'] ?? 0);
                                     $subtotal = number_format($volume * $harga, 0, ',', '.');
                                     return "{$state['item_info']} - {$volume} x IDR " . number_format($harga, 0, ',', '.') . " = IDR {$subtotal}";
                                 }
