@@ -1,6 +1,4 @@
-@push('styles')
-  <script src="https://cdn.tailwindcss.com"></script>
-@endpush
+
 
 <x-filament-panels::page>
     <div class="space-y-8">
