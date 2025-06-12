@@ -21,7 +21,7 @@ class DeliveryOrderResource extends Resource
 
     protected static ?string $navigationGroup = 'Operasional';
 
-    protected static ?string $navigationLabel = 'Delivery Order';
+    protected static ?string $navigationLabel = 'Surat Perintah Muat';
 
     protected static ?int $navigationSort = 1;
 
@@ -29,79 +29,79 @@ class DeliveryOrderResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Delivery Order Information')
+                Forms\Components\Section::make('Informasi Surat Perintah Muat')
                     ->schema([
                         Forms\Components\TextInput::make('kode')
-                            ->label('DO Number')
+                            ->label('Nomor SPM')
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(50),
 
                         Forms\Components\Select::make('id_transaksi')
-                            ->label('Sales Order')
+                            ->label('Pesanan Penjualan')
                             ->relationship('transaksi', 'kode')
                             ->searchable()
                             ->preload()
                             ->required(),
 
                         Forms\Components\Select::make('id_user')
-                            ->label('Driver')
+                            ->label('Sopir')
                             ->relationship('user', 'name')
                             ->searchable()
                             ->preload(),
 
                         Forms\Components\Select::make('id_kendaraan')
-                            ->label('Vehicle')
+                            ->label('Kendaraan')
                             ->relationship('kendaraan', 'no_pol_kendaraan')
                             ->searchable()
                             ->preload(),
 
                         Forms\Components\DateTimePicker::make('tanggal_delivery')
-                            ->label('Delivery Date'),
+                            ->label('Tanggal Pengiriman'),
 
                         Forms\Components\TextInput::make('no_segel')
-                            ->label('Seal Number')
+                            ->label('Nomor Segel')
                             ->maxLength(50),
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Loading Information')
+                Forms\Components\Section::make('Informasi Muat')
                     ->schema([
                         Forms\Components\Select::make('status_muat')
-                            ->label('Loading Status')
+                            ->label('Status Muat')
                             ->options([
-                                'pending' => 'Load Order Issued',
-                                'muat' => 'Load Confirmed',
-                                'selesai' => 'Loading Complete',
+                                'pending' => 'Perintah Muat Diterbitkan',
+                                'muat' => 'Muat Dikonfirmasi',
+                                'selesai' => 'Muat Selesai',
                             ])
                             ->default('pending'),
 
                         Forms\Components\DateTimePicker::make('waktu_muat')
-                            ->label('Loading Start Time'),
+                            ->label('Waktu Mulai Muat'),
 
                         Forms\Components\DateTimePicker::make('waktu_selesai_muat')
-                            ->label('Loading Complete Time'),
+                            ->label('Waktu Selesai Muat'),
                     ])
                     ->columns(3),
 
-                Forms\Components\Section::make('Administration')
+                Forms\Components\Section::make('Administrasi')
                     ->schema([
                         Forms\Components\TextInput::make('do_signatory_name')
-                            ->label('DO Signatory Name'),
+                            ->label('Nama Penandatangan SPM'),
 
                         Forms\Components\Toggle::make('do_print_status')
-                            ->label('DO Print Status'),
+                            ->label('Status Cetak SPM'),
 
                         Forms\Components\TextInput::make('driver_allowance_amount')
-                            ->label('Driver Allowance Amount')
+                            ->label('Jumlah Uang Jalan Sopir')
                             ->numeric()
                             ->prefix('IDR'),
 
                         Forms\Components\Toggle::make('allowance_receipt_status')
-                            ->label('Allowance Receipt Status'),
+                            ->label('Status Penerimaan Uang Jalan'),
 
                         Forms\Components\Textarea::make('fuel_usage_notes')
-                            ->label('Fuel Usage Notes')
+                            ->label('Catatan Penggunaan BBM')
                             ->rows(3),
                     ])
                     ->columns(2),
@@ -113,32 +113,32 @@ class DeliveryOrderResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('kode')
-                    ->label('DO Number')
+                    ->label('Nomor SPM')
                     ->searchable()
                     ->sortable()
                     ->copyable(),
 
                 Tables\Columns\TextColumn::make('transaksi.kode')
-                    ->label('SO Number')
+                    ->label('Nomor SO')
                     ->searchable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('transaksi.pelanggan.nama')
-                    ->label('Customer')
+                    ->label('Pelanggan')
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Driver')
+                    ->label('Sopir')
                     ->searchable()
-                    ->placeholder('Not Assigned'),
+                    ->placeholder('Belum Ditugaskan'),
 
                 Tables\Columns\TextColumn::make('kendaraan.no_pol_kendaraan')
-                    ->label('Vehicle')
+                    ->label('Kendaraan')
                     ->searchable()
-                    ->placeholder('Not Assigned'),
+                    ->placeholder('Belum Ditugaskan'),
 
                 Tables\Columns\TextColumn::make('status_muat')
-                    ->label('Loading Status')
+                    ->label('Status Muat')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'pending' => 'warning',
@@ -147,19 +147,19 @@ class DeliveryOrderResource extends Resource
                         default => 'gray',
                     })
                     ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'pending' => 'Load Order Issued',
-                        'muat' => 'Load Confirmed',
-                        'selesai' => 'Loading Complete',
+                        'pending' => 'Perintah Muat Diterbitkan',
+                        'muat' => 'Muat Dikonfirmasi',
+                        'selesai' => 'Muat Selesai',
                         default => $state,
                     }),
 
                 Tables\Columns\TextColumn::make('tanggal_delivery')
-                    ->label('Delivery Date')
+                    ->label('Tanggal Pengiriman')
                     ->date('d M Y')
                     ->sortable(),
 
                 Tables\Columns\IconColumn::make('do_print_status')
-                    ->label('DO Printed')
+                    ->label('SPM Dicetak')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
@@ -167,7 +167,7 @@ class DeliveryOrderResource extends Resource
                     ->falseColor('danger'),
 
                 Tables\Columns\TextColumn::make('payment_status')
-                    ->label('Payment Status')
+                    ->label('Status Pembayaran')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'pending' => 'warning',
@@ -176,7 +176,13 @@ class DeliveryOrderResource extends Resource
                         'overdue' => 'danger',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn(string $state): string => ucfirst($state)),
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                        'pending' => 'Tertunda',
+                        'partial' => 'Sebagian',
+                        'paid' => 'Lunas',
+                        'overdue' => 'Terlambat',
+                        default => ucfirst($state),
+                    }),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status_muat')

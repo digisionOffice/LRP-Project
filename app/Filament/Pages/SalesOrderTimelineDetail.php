@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 class SalesOrderTimelineDetail extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-clock';
-    protected static ?string $title = 'Sales Order Timeline Detail';
+    protected static ?string $title = 'Detail Timeline Pesanan Penjualan';
     protected static string $view = 'filament.pages.sales-order-timeline-detail';
     protected static bool $shouldRegisterNavigation = false;
     protected static ?string $slug = 'sales-order-timeline-detail';

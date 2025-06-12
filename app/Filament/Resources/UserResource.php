@@ -27,7 +27,7 @@ class UserResource extends Resource
 
     protected static ?string $navigationGroup = 'Data Master';
 
-    protected static ?string $navigationLabel = 'Users & Employees';
+    protected static ?string $navigationLabel = 'Pengguna & Karyawan';
 
     protected static ?int $navigationSort = 1;
 
@@ -35,140 +35,140 @@ class UserResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Account Information')
-                    ->description('Basic user account settings and authentication details')
+                Forms\Components\Section::make('Informasi Akun')
+                    ->description('Pengaturan dasar akun pengguna dan detail autentikasi')
                     ->icon('heroicon-o-user-circle')
                     ->schema([
                         SpatieMediaLibraryFileUpload::make('avatar')
-                            ->label('Profile Picture')
+                            ->label('Foto Profil')
                             ->collection('avatar')
                             ->image()
                             ->imageEditor()
                             ->imageCropAspectRatio('1:1')
                             ->imageResizeTargetWidth('300')
                             ->imageResizeTargetHeight('300')
-                            ->helperText('Upload a profile picture (recommended: square image, max 2MB)')
+                            ->helperText('Unggah foto profil (disarankan: gambar persegi, maksimal 2MB)')
                             ->maxSize(2048)
                             ->columnSpanFull(),
 
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('name')
-                                    ->label('Full Name')
+                                    ->label('Nama Lengkap')
                                     ->required()
                                     ->maxLength(255)
-                                    ->placeholder('Enter the user\'s full name')
-                                    ->helperText('This will be displayed throughout the system')
+                                    ->placeholder('Masukkan nama lengkap pengguna')
+                                    ->helperText('Nama ini akan ditampilkan di seluruh sistem')
                                     ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('email')
-                                    ->label('Email Address')
+                                    ->label('Alamat Email')
                                     ->email()
                                     ->required()
                                     ->unique(ignoreRecord: true)
                                     ->maxLength(255)
-                                    ->placeholder('user@company.com')
-                                    ->helperText('Used for login and notifications')
+                                    ->placeholder('pengguna@perusahaan.com')
+                                    ->helperText('Digunakan untuk login dan notifikasi')
                                     ->columnSpan(1),
                             ]),
 
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('password')
-                                    ->label('Password')
+                                    ->label('Kata Sandi')
                                     ->password()
                                     ->dehydrateStateUsing(fn($state) => Hash::make($state))
                                     ->dehydrated(fn($state) => filled($state))
                                     ->required(fn(string $context): bool => $context === 'create')
-                                    ->placeholder('Enter secure password')
+                                    ->placeholder('Masukkan kata sandi yang aman')
                                     ->helperText(
                                         fn(string $context): string =>
                                         $context === 'create'
-                                            ? 'Minimum 8 characters recommended'
-                                            : 'Leave blank to keep current password'
+                                            ? 'Disarankan minimal 8 karakter'
+                                            : 'Biarkan kosong untuk mempertahankan kata sandi saat ini'
                                     )
                                     ->minLength(8)
                                     ->columnSpan(1),
 
                                 Forms\Components\Select::make('roles')
-                                    ->label('System Role')
+                                    ->label('Peran Sistem')
                                     ->relationship('roles', 'name')
                                     ->multiple()
                                     ->preload()
                                     ->searchable()
-                                    ->placeholder('Select user role(s)')
-                                    ->helperText('Determines system permissions and access level')
+                                    ->placeholder('Pilih peran pengguna')
+                                    ->helperText('Menentukan izin sistem dan tingkat akses')
                                     ->columnSpan(1),
                             ]),
 
                         Forms\Components\Toggle::make('is_active')
-                            ->label('Account Status')
-                            ->helperText('Enable or disable user access to the system')
+                            ->label('Status Akun')
+                            ->helperText('Aktifkan atau nonaktifkan akses pengguna ke sistem')
                             ->default(true)
                             ->inline(false),
                     ])
                     ->collapsible()
                     ->persistCollapsed(),
 
-                Forms\Components\Section::make('Employee Information')
-                    ->description('Employee details and organizational structure')
+                Forms\Components\Section::make('Informasi Karyawan')
+                    ->description('Detail karyawan dan struktur organisasi')
                     ->icon('heroicon-o-identification')
                     ->schema([
                         Forms\Components\Grid::make(3)
                             ->schema([
                                 Forms\Components\TextInput::make('no_induk')
-                                    ->label('Employee ID')
+                                    ->label('ID Karyawan')
                                     ->unique(ignoreRecord: true)
                                     ->maxLength(100)
-                                    ->placeholder('e.g., EMP001, SYS001')
-                                    ->helperText('Unique identifier for the employee')
+                                    ->placeholder('contoh: EMP001, SYS001')
+                                    ->helperText('Pengenal unik untuk karyawan')
                                     ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('hp')
-                                    ->label('Phone Number')
+                                    ->label('Nomor Telepon')
                                     ->tel()
                                     ->maxLength(100)
-                                    ->placeholder('e.g., +62 812-3456-7890')
-                                    ->helperText('Contact number for the employee')
+                                    ->placeholder('contoh: +62 812-3456-7890')
+                                    ->helperText('Nomor kontak karyawan')
                                     ->columnSpan(1),
 
                                 Forms\Components\Select::make('id_entitas')
-                                    ->label('Entity')
+                                    ->label('Entitas')
                                     ->relationship('entitas', 'nama')
                                     ->searchable()
                                     ->preload()
-                                    ->placeholder('Select entity (optional)')
-                                    ->helperText('Business entity or company branch')
+                                    ->placeholder('Pilih entitas (opsional)')
+                                    ->helperText('Entitas bisnis atau cabang perusahaan')
                                     ->columnSpan(1),
                             ]),
 
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\Select::make('id_jabatan')
-                                    ->label('Position')
+                                    ->label('Jabatan')
                                     ->relationship('jabatan', 'nama')
                                     ->searchable()
                                     ->preload()
-                                    ->placeholder('Select employee position')
-                                    ->helperText('Job title or position in the organization')
+                                    ->placeholder('Pilih jabatan karyawan')
+                                    ->helperText('Gelar pekerjaan atau posisi dalam organisasi')
                                     ->createOptionForm([
                                         Forms\Components\TextInput::make('nama')
-                                            ->label('Position Name')
+                                            ->label('Nama Jabatan')
                                             ->required()
                                             ->maxLength(255),
                                     ])
                                     ->columnSpan(1),
 
                                 Forms\Components\Select::make('id_divisi')
-                                    ->label('Division')
+                                    ->label('Divisi')
                                     ->relationship('divisi', 'nama')
                                     ->searchable()
                                     ->preload()
-                                    ->placeholder('Select division')
-                                    ->helperText('Department or division within the organization')
+                                    ->placeholder('Pilih divisi')
+                                    ->helperText('Departemen atau divisi dalam organisasi')
                                     ->createOptionForm([
                                         Forms\Components\TextInput::make('nama')
-                                            ->label('Division Name')
+                                            ->label('Nama Divisi')
                                             ->required()
                                             ->maxLength(255),
                                     ])
@@ -195,15 +195,15 @@ class UserResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('no_induk')
-                    ->label('Employee ID')
+                    ->label('ID Karyawan')
                     ->searchable()
                     ->sortable()
                     ->copyable()
-                    ->copyMessage('Employee ID copied!')
+                    ->copyMessage('ID Karyawan disalin!')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Full Name')
+                    ->label('Nama Lengkap')
                     ->searchable()
                     ->sortable()
                     ->weight('medium')
@@ -214,11 +214,11 @@ class UserResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->copyable()
-                    ->copyMessage('Email copied!')
+                    ->copyMessage('Email disalin!')
                     ->icon('heroicon-m-envelope'),
 
                 Tables\Columns\TextColumn::make('roles.name')
-                    ->label('Roles')
+                    ->label('Peran')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'super_admin' => 'danger',
@@ -233,11 +233,11 @@ class UserResource extends Resource
                     ->formatStateUsing(fn(string $state): string => match ($state) {
                         'super_admin' => 'Super Admin',
                         'admin' => 'Administrator',
-                        'sales' => 'Sales Manager',
-                        'operational' => 'Operational Manager',
-                        'driver' => 'Driver',
-                        'finance' => 'Finance Manager',
-                        'administration' => 'Administration Staff',
+                        'sales' => 'Manajer Penjualan',
+                        'operational' => 'Manajer Operasional',
+                        'driver' => 'Sopir',
+                        'finance' => 'Manajer Keuangan',
+                        'administration' => 'Staf Administrasi',
                         default => ucfirst(str_replace('_', ' ', $state)),
                     })
                     ->searchable()
@@ -245,28 +245,28 @@ class UserResource extends Resource
                     ->separator(', '),
 
                 Tables\Columns\TextColumn::make('jabatan.nama')
-                    ->label('Position')
+                    ->label('Jabatan')
                     ->sortable()
                     ->badge()
                     ->color('info')
-                    ->placeholder('No Position')
+                    ->placeholder('Tidak Ada Jabatan')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('divisi.nama')
-                    ->label('Division')
+                    ->label('Divisi')
                     ->sortable()
                     ->badge()
                     ->color('success')
-                    ->placeholder('No Division')
+                    ->placeholder('Tidak Ada Divisi')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('hp')
-                    ->label('Phone')
+                    ->label('Telepon')
                     ->searchable()
                     ->copyable()
-                    ->copyMessage('Phone number copied!')
+                    ->copyMessage('Nomor telepon disalin!')
                     ->icon('heroicon-m-phone')
-                    ->placeholder('No Phone')
+                    ->placeholder('Tidak Ada Telepon')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\IconColumn::make('is_active')
@@ -279,62 +279,62 @@ class UserResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('entitas.nama')
-                    ->label('Entity')
+                    ->label('Entitas')
                     ->badge()
                     ->color('warning')
-                    ->placeholder('No Entity')
+                    ->placeholder('Tidak Ada Entitas')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label('Dibuat')
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Updated')
+                    ->label('Diperbarui')
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('roles')
-                    ->label('Role')
+                    ->label('Peran')
                     ->relationship('roles', 'name')
                     ->multiple()
                     ->preload()
                     ->searchable()
-                    ->placeholder('All Roles'),
+                    ->placeholder('Semua Peran'),
 
                 Tables\Filters\SelectFilter::make('id_jabatan')
-                    ->label('Position')
+                    ->label('Jabatan')
                     ->relationship('jabatan', 'nama')
                     ->searchable()
                     ->preload()
                     ->multiple()
-                    ->placeholder('All Positions'),
+                    ->placeholder('Semua Jabatan'),
 
                 Tables\Filters\SelectFilter::make('id_divisi')
-                    ->label('Division')
+                    ->label('Divisi')
                     ->relationship('divisi', 'nama')
                     ->searchable()
                     ->preload()
                     ->multiple()
-                    ->placeholder('All Divisions'),
+                    ->placeholder('Semua Divisi'),
 
                 Tables\Filters\TernaryFilter::make('is_active')
-                    ->label('Account Status')
-                    ->placeholder('All Users')
-                    ->trueLabel('Active Users')
-                    ->falseLabel('Inactive Users'),
+                    ->label('Status Akun')
+                    ->placeholder('Semua Pengguna')
+                    ->trueLabel('Pengguna Aktif')
+                    ->falseLabel('Pengguna Tidak Aktif'),
 
                 Tables\Filters\Filter::make('has_employee_data')
-                    ->label('Has Employee Data')
+                    ->label('Memiliki Data Karyawan')
                     ->query(fn(Builder $query): Builder => $query->whereNotNull('no_induk'))
                     ->toggle(),
 
                 Tables\Filters\TrashedFilter::make()
-                    ->label('Deleted Users'),
+                    ->label('Pengguna Terhapus'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()

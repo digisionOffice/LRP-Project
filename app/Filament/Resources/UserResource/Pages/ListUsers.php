@@ -14,7 +14,7 @@ class ListUsers extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('Create User')
+                ->label('Buat Pengguna')
                 ->icon('heroicon-o-plus')
                 ->color('primary'),
         ];
@@ -22,11 +22,11 @@ class ListUsers extends ListRecords
 
     public function getTitle(): string
     {
-        return 'Users & Employees';
+        return 'Pengguna & Karyawan';
     }
 
     public function getSubheading(): ?string
     {
-        return 'Manage user accounts and employee information';
+        return 'Kelola akun pengguna dan informasi karyawan';
     }
 }

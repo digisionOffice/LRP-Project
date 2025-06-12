@@ -1,9 +1,9 @@
 <x-filament-panels::page>
-        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
     <div class="space-y-6">
         <!-- Media Statistics Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="grid grid-cols-4 md:grid-cols-4 gap-6">
             @php
                 $stats = $this->getMediaStats();
             @endphp
@@ -19,7 +19,7 @@
                                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
                                     Total Media Files
                                 </dt>
-                                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                <dd class="text-lg font-medium text-gray-500 dark:text-white">
                                     {{ $stats['total'] }}
                                 </dd>
                             </dl>
@@ -39,7 +39,7 @@
                                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
                                     Images
                                 </dt>
-                                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                <dd class="text-lg font-medium text-gray-500 dark:text-white">
                                     {{ $stats['images'] }}
                                 </dd>
                             </dl>
@@ -59,7 +59,7 @@
                                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
                                     Documents
                                 </dt>
-                                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                <dd class="text-lg font-medium text-gray-500 dark:text-white">
                                     {{ $stats['documents'] }}
                                 </dd>
                             </dl>
@@ -79,7 +79,7 @@
                                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
                                     Total Storage
                                 </dt>
-                                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                <dd class="text-lg font-medium text-gray-500 dark:text-white">
                                     {{ $stats['size'] }}
                                 </dd>
                             </dl>
@@ -144,7 +144,7 @@
                         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">All Media Files</h3>
+                                    <h3 class="text-lg font-medium text-gray-500 dark:text-white">All Media Files</h3>
                                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                         Manage all media files including images and documents.
                                     </p>
@@ -159,14 +159,14 @@
                             </div>
                         </div>
                         <div class="p-6">
-                            @if ($viewMode === 'grid')
+                            {{-- @if ($viewMode === 'grid')
                                 <div
                                     class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
                                     {{ $this->table }}
                                 </div>
-                            @else
+                            @else --}}
                                 {{ $this->table }}
-                            @endif
+                            {{-- @endif --}}
                         </div>
                     </div>
                 @elseif($activeTab === 'images')
@@ -174,7 +174,7 @@
                         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">Image Files</h3>
+                                    <h3 class="text-lg font-medium text-gray-500 dark:text-white">Image Files</h3>
                                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                         Manage image files including photos, graphics, and other visual content.
                                     </p>
@@ -189,14 +189,14 @@
                             </div>
                         </div>
                         <div class="p-6">
-                            @if ($viewMode === 'grid')
+                            {{-- @if ($viewMode === 'grid')
                                 <div
                                     class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
                                     {{ $this->table }}
                                 </div>
-                            @else
+                            @else --}}
                                 {{ $this->table }}
-                            @endif
+                            {{-- @endif --}}
                         </div>
                     </div>
                 @elseif($activeTab === 'documents')
@@ -204,7 +204,7 @@
                         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">Document Files</h3>
+                                    <h3 class="text-lg font-medium text-gray-500 dark:text-white">Document Files</h3>
                                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                         Manage document files including PDFs and other non-image files.
                                     </p>
@@ -239,7 +239,7 @@
                 <div class="mx-auto h-12 w-12 text-gray-400">
                     <x-heroicon-o-cloud-arrow-up class="h-12 w-12" />
                 </div>
-                <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No media files</h3>
+                <h3 class="mt-2 text-sm font-medium text-gray-500 dark:text-white">No media files</h3>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by uploading your first media file.
                 </p>
                 <div class="mt-6">

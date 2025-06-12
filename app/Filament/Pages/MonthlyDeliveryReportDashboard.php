@@ -17,11 +17,11 @@ class MonthlyDeliveryReportDashboard extends Page implements HasForms
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
-    protected static ?string $navigationLabel = 'Monthly Delivery Report';
-    protected static ?string $title = 'Monthly Delivery Performance Report';
+    protected static ?string $navigationLabel = 'Laporan Pengiriman Bulanan';
+    protected static ?string $title = 'Laporan Kinerja Pengiriman Bulanan';
     protected static string $view = 'filament.pages.monthly-delivery-report-dashboard';
     protected static ?int $navigationSort = 3;
-    protected static ?string $navigationGroup = 'Reports & Analytics';
+    protected static ?string $navigationGroup = 'Operasional';
 
     public ?string $selectedMonth = null;
     public ?string $selectedYear = null;
@@ -39,44 +39,44 @@ class MonthlyDeliveryReportDashboard extends Page implements HasForms
         return $form
             ->schema([
                 Select::make('selectedMonth')
-                    ->label('Month')
+                    ->label('Bulan')
                     ->options([
-                        '01' => 'January',
-                        '02' => 'February',
-                        '03' => 'March',
+                        '01' => 'Januari',
+                        '02' => 'Februari',
+                        '03' => 'Maret',
                         '04' => 'April',
-                        '05' => 'May',
-                        '06' => 'June',
-                        '07' => 'July',
-                        '08' => 'August',
+                        '05' => 'Mei',
+                        '06' => 'Juni',
+                        '07' => 'Juli',
+                        '08' => 'Agustus',
                         '09' => 'September',
-                        '10' => 'October',
+                        '10' => 'Oktober',
                         '11' => 'November',
-                        '12' => 'December',
+                        '12' => 'Desember',
                     ])
                     ->default(now()->format('m'))
                     ->live(),
 
                 Select::make('selectedYear')
-                    ->label('Year')
+                    ->label('Tahun')
                     ->options(collect(range(now()->year - 2, now()->year + 1))->mapWithKeys(fn($year) => [$year => $year]))
                     ->default(now()->format('Y'))
                     ->live(),
 
                 Select::make('selectedDriver')
-                    ->label('Driver (Optional)')
+                    ->label('Sopir (Opsional)')
                     ->options(User::whereHas('jabatan', function ($query) {
                         $query->where('nama', 'like', '%driver%');
                     })->pluck('name', 'id'))
                     ->searchable()
-                    ->placeholder('All Drivers')
+                    ->placeholder('Semua Sopir')
                     ->live(),
 
                 Select::make('selectedVehicle')
-                    ->label('Vehicle (Optional)')
+                    ->label('Kendaraan (Opsional)')
                     ->options(Kendaraan::pluck('no_pol_kendaraan', 'id'))
                     ->searchable()
-                    ->placeholder('All Vehicles')
+                    ->placeholder('Semua Kendaraan')
                     ->live(),
             ])
             ->columns(4);

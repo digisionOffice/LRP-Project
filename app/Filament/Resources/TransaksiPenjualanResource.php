@@ -19,9 +19,9 @@ class TransaksiPenjualanResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
 
-    protected static ?string $navigationGroup = 'Sales';
+    protected static ?string $navigationGroup = 'Penjualan';
 
-    protected static ?string $navigationLabel = 'Sales Order';
+    protected static ?string $navigationLabel = 'Pesanan Penjualan';
 
     protected static ?int $navigationSort = 1;
 
@@ -29,70 +29,70 @@ class TransaksiPenjualanResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Sales Order Information')
+                Forms\Components\Section::make('Informasi Pesanan Penjualan')
                     ->schema([
                         Forms\Components\TextInput::make('kode')
-                            ->label('SO Number')
+                            ->label('Nomor SO')
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(50),
 
                         Forms\Components\Select::make('tipe')
-                            ->label('Type')
+                            ->label('Tipe')
                             ->options([
-                                'dagang' => 'Trade',
-                                'jasa' => 'Service',
+                                'dagang' => 'Dagang',
+                                'jasa' => 'Jasa',
                             ])
                             ->required(),
 
                         Forms\Components\DateTimePicker::make('tanggal')
-                            ->label('Order Date')
+                            ->label('Tanggal Pesanan')
                             ->required()
                             ->default(now()),
 
                         Forms\Components\Select::make('id_pelanggan')
-                            ->label('Customer')
+                            ->label('Pelanggan')
                             ->relationship('pelanggan', 'nama')
                             ->searchable()
                             ->preload()
                             ->required(),
 
                         Forms\Components\Select::make('id_tbbm')
-                            ->label('TBBM Location')
+                            ->label('Lokasi TBBM')
                             ->relationship('tbbm', 'nama')
                             ->searchable()
                             ->preload(),
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Delivery Information')
+                Forms\Components\Section::make('Informasi Pengiriman')
                     ->schema([
                         Forms\Components\Select::make('id_subdistrict')
-                            ->label('Subdistrict')
+                            ->label('Kelurahan')
                             ->relationship('subdistrict', 'name')
                             ->searchable()
                             ->preload(),
 
                         Forms\Components\Textarea::make('alamat')
-                            ->label('Delivery Address')
+                            ->label('Alamat Pengiriman')
                             ->rows(3),
 
                         Forms\Components\TextInput::make('nomor_po')
-                            ->label('PO Number')
+                            ->label('Nomor PO')
                             ->maxLength(50),
 
                         Forms\Components\TextInput::make('top_pembayaran')
-                            ->label('Payment Terms (Days)')
+                            ->label('Termin Pembayaran (Hari)')
                             ->numeric()
-                            ->suffix('days'),
+                            ->suffix('hari'),
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Document Attachment')
-                    ->description('Upload supporting documents for this sales order')
+                Forms\Components\Section::make('Lampiran Dokumen')
+                    ->description('Unggah dokumen pendukung untuk pesanan penjualan ini')
                     ->schema([
                         Forms\Components\FileUpload::make('attachment_path')
-                            ->label('Attachment')
+                            ->label('Lampiran')
                             ->disk('public')
                             ->directory('sales-orders')
                             ->acceptedFileTypes([
@@ -107,7 +107,7 @@ class TransaksiPenjualanResource extends Resource
                                 'text/plain'
                             ])
                             ->maxSize(10240) // 10MB
-                            ->helperText('Supported formats: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, TXT. Max size: 10MB')
+                            ->helperText('Format yang didukung: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, TXT. Ukuran maksimal: 10MB')
                             ->storeFileNamesIn('attachment_original_name')
                             ->reactive()
                             ->afterStateUpdated(function ($state, callable $set) {
@@ -134,18 +134,18 @@ class TransaksiPenjualanResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('kode')
-                    ->label('SO Number')
+                    ->label('Nomor SO')
                     ->searchable()
                     ->sortable()
                     ->copyable(),
 
                 Tables\Columns\TextColumn::make('pelanggan.nama')
-                    ->label('Customer')
+                    ->label('Pelanggan')
                     ->searchable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('tipe')
-                    ->label('Type')
+                    ->label('Tipe')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'dagang' => 'success',
@@ -154,27 +154,27 @@ class TransaksiPenjualanResource extends Resource
                     }),
 
                 Tables\Columns\TextColumn::make('tanggal')
-                    ->label('Order Date')
+                    ->label('Tanggal Pesanan')
                     ->date('d M Y')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('nomor_po')
-                    ->label('PO Number')
+                    ->label('Nomor PO')
                     ->searchable()
-                    ->placeholder('N/A'),
+                    ->placeholder('T/A'),
 
                 Tables\Columns\TextColumn::make('top_pembayaran')
-                    ->label('Payment Terms')
-                    ->formatStateUsing(fn($state) => $state ? "{$state} days" : 'Cash')
+                    ->label('Termin Pembayaran')
+                    ->formatStateUsing(fn($state) => $state ? "{$state} hari" : 'Tunai')
                     ->badge()
                     ->color(fn($state) => $state > 30 ? 'warning' : 'success'),
 
                 Tables\Columns\TextColumn::make('tbbm.nama')
-                    ->label('TBBM Location')
-                    ->placeholder('N/A'),
+                    ->label('Lokasi TBBM')
+                    ->placeholder('T/A'),
 
                 Tables\Columns\IconColumn::make('has_attachment')
-                    ->label('Attachment')
+                    ->label('Lampiran')
                     ->boolean()
                     ->getStateUsing(fn($record) => $record->hasAttachment())
                     ->trueIcon('heroicon-o-paper-clip')
@@ -183,39 +183,39 @@ class TransaksiPenjualanResource extends Resource
                     ->falseColor('gray')
                     ->tooltip(fn($record) => $record->hasAttachment()
                         ? 'File: ' . $record->attachment_original_name . ' (' . $record->getFormattedFileSize() . ')'
-                        : 'No attachment'),
+                        : 'Tidak ada lampiran'),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label('Dibuat')
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('tipe')
-                    ->label('Type')
+                    ->label('Tipe')
                     ->options([
-                        'dagang' => 'Trade',
-                        'jasa' => 'Service',
+                        'dagang' => 'Dagang',
+                        'jasa' => 'Jasa',
                     ]),
 
                 Tables\Filters\SelectFilter::make('id_pelanggan')
-                    ->label('Customer')
+                    ->label('Pelanggan')
                     ->relationship('pelanggan', 'nama')
                     ->searchable()
                     ->preload(),
 
                 Tables\Filters\SelectFilter::make('id_tbbm')
-                    ->label('TBBM Location')
+                    ->label('Lokasi TBBM')
                     ->relationship('tbbm', 'nama')
                     ->searchable()
                     ->preload(),
 
                 Tables\Filters\TernaryFilter::make('has_attachment')
-                    ->label('Has Attachment')
-                    ->placeholder('All Records')
-                    ->trueLabel('With Attachment')
-                    ->falseLabel('Without Attachment')
+                    ->label('Memiliki Lampiran')
+                    ->placeholder('Semua Data')
+                    ->trueLabel('Dengan Lampiran')
+                    ->falseLabel('Tanpa Lampiran')
                     ->queries(
                         true: fn($query) => $query->whereNotNull('attachment_path'),
                         false: fn($query) => $query->whereNull('attachment_path'),
@@ -223,7 +223,7 @@ class TransaksiPenjualanResource extends Resource
             ])
             ->actions([
                 Tables\Actions\Action::make('download_attachment')
-                    ->label('Download')
+                    ->label('Unduh')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('info')
                     ->url(fn($record) => $record->getAttachmentUrl())

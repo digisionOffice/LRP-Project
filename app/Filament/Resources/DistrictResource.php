@@ -20,7 +20,7 @@ class DistrictResource extends Resource
 
     protected static ?string $navigationGroup = 'Data Master';
 
-    protected static ?string $navigationLabel = 'Districts';
+    protected static ?string $navigationLabel = 'Kecamatan';
 
     protected static ?int $navigationSort = 10;
 

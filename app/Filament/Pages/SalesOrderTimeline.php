@@ -19,10 +19,11 @@ class SalesOrderTimeline extends Page implements HasTable, HasForms
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-clock';
-    protected static ?string $navigationLabel = 'Sales Order Timeline';
-    protected static ?string $title = 'Sales Order Timeline';
+    protected static ?string $navigationLabel = 'Timeline Pesanan Penjualan';
+    protected static ?string $title = 'Timeline Pesanan Penjualan';
     protected static string $view = 'filament.pages.sales-order-timeline';
     protected static ?int $navigationSort = 2;
+    // protected static ?string $navigationGroup = 'Manajemen Keuangan';
 
     public function getMaxContentWidth(): MaxWidth
     {
@@ -45,13 +46,13 @@ class SalesOrderTimeline extends Page implements HasTable, HasForms
             )
             ->columns([
                 Tables\Columns\TextColumn::make('pelanggan.nama')
-                    ->label('Customer Name')
+                    ->label('Nama Pelanggan')
                     ->searchable()
                     ->sortable()
                     ->copyable(),
 
                 Tables\Columns\TextColumn::make('penjualanDetails.item.name')
-                    ->label('Fuel Type')
+                    ->label('Jenis BBM')
                     ->badge()
                     ->color('info')
                     ->formatStateUsing(function ($record) {
@@ -59,7 +60,7 @@ class SalesOrderTimeline extends Page implements HasTable, HasForms
                     }),
 
                 Tables\Columns\TextColumn::make('total_volume')
-                    ->label('Fuel Volume')
+                    ->label('Volume BBM')
                     ->numeric(decimalPlaces: 2)
                     ->suffix(' L')
                     ->getStateUsing(function ($record) {
@@ -68,34 +69,34 @@ class SalesOrderTimeline extends Page implements HasTable, HasForms
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('kode')
-                    ->label('SO Number')
+                    ->label('Nomor SO')
                     ->searchable()
                     ->sortable()
                     ->copyable()
                     ->weight('bold'),
 
                 Tables\Columns\TextColumn::make('tbbm.nama')
-                    ->label('TBBM Location')
+                    ->label('Lokasi TBBM')
                     ->searchable()
                     ->placeholder('N/A'),
 
                 Tables\Columns\TextColumn::make('tanggal')
-                    ->label('Order Date')
+                    ->label('Tanggal Pesanan')
                     ->date('d M Y')
                     ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('id_pelanggan')
-                    ->label('Customer')
+                    ->label('Pelanggan')
                     ->options(fn() => \App\Models\Pelanggan::pluck('nama', 'id'))
                     ->searchable(),
 
                 Tables\Filters\Filter::make('tanggal')
                     ->form([
                         \Filament\Forms\Components\DatePicker::make('from')
-                            ->label('From Date'),
+                            ->label('Dari Tanggal'),
                         \Filament\Forms\Components\DatePicker::make('until')
-                            ->label('Until Date'),
+                            ->label('Sampai Tanggal'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -111,7 +112,7 @@ class SalesOrderTimeline extends Page implements HasTable, HasForms
             ])
             ->actions([
                 Tables\Actions\Action::make('view_timeline')
-                    ->label('View Timeline')
+                    ->label('Lihat Timeline')
                     ->icon('heroicon-o-clock')
                     ->url(fn(TransaksiPenjualan $record): string => "/admin/sales-order-timeline-detail?record={$record->id}")
                     ->openUrlInNewTab(false),

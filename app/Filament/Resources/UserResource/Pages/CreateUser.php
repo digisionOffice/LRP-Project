@@ -11,12 +11,12 @@ class CreateUser extends CreateRecord
 
     public function getTitle(): string
     {
-        return 'Create User';
+        return 'Buat Pengguna';
     }
 
     public function getSubheading(): ?string
     {
-        return 'Create a new user account with employee information';
+        return 'Buat akun pengguna baru dengan informasi karyawan';
     }
 
     protected function getRedirectUrl(): string
@@ -26,6 +26,6 @@ class CreateUser extends CreateRecord
 
     protected function getCreatedNotificationTitle(): ?string
     {
-        return 'User created successfully';
+        return 'Pengguna berhasil dibuat';
     }
 }

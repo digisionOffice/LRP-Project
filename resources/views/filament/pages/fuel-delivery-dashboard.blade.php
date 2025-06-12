@@ -13,9 +13,9 @@
                         <div class="ml-5 w-0 flex-1">
                             <dl>
                                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                                    Total Sales Orders
+                                    Total Pesanan Penjualan
                                 </dt>
-                                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                <dd class="text-lg font-medium text-gray-400 dark:text-white">
                                     {{ \App\Models\TransaksiPenjualan::count() }}
                                 </dd>
                             </dl>
@@ -33,9 +33,9 @@
                         <div class="ml-5 w-0 flex-1">
                             <dl>
                                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                                    Active Deliveries
+                                    Pengiriman Aktif
                                 </dt>
-                                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                <dd class="text-lg font-medium text-gray-500 dark:text-white">
                                     {{ \App\Models\DeliveryOrder::whereIn('status_muat', ['pending', 'muat'])->count() }}
                                 </dd>
                             </dl>
@@ -53,9 +53,9 @@
                         <div class="ml-5 w-0 flex-1">
                             <dl>
                                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                                    Completed Deliveries
+                                    Pengiriman Selesai
                                 </dt>
-                                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                <dd class="text-lg font-medium text-gray-500 dark:text-white">
                                     {{ \App\Models\DeliveryOrder::where('status_muat', 'selesai')->count() }}
                                 </dd>
                             </dl>
@@ -73,9 +73,9 @@
                         <div class="ml-5 w-0 flex-1">
                             <dl>
                                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                                    Pending Payments
+                                    Pembayaran Tertunda
                                 </dt>
-                                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                <dd class="text-lg font-medium text-gray-500 dark:text-white">
                                     {{ \App\Models\DeliveryOrder::whereIn('payment_status', ['pending', 'partial', 'overdue'])->count() }}
                                 </dd>
                             </dl>
@@ -93,9 +93,9 @@
                         <div class="ml-5 w-0 flex-1">
                             <dl>
                                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                                    Active Drivers
+                                    Sopir Aktif
                                 </dt>
-                                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                                <dd class="text-lg font-medium text-gray-500 dark:text-white">
                                     {{ \App\Models\User::whereHas('jabatan', function ($q) {$q->where('nama', 'like', '%driver%');})->where('is_active', true)->count() }}
                                 </dd>
                             </dl>
@@ -164,7 +164,7 @@
                         class="@if ($activeTab === 'sales') border-primary-500 text-primary-600 @else border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 @endif whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
                         <div class="flex items-center space-x-2">
                             <x-heroicon-o-shopping-cart class="w-5 h-5" />
-                            <span>Sales</span>
+                            <span>Penjualan</span>
                         </div>
                     </button>
 
@@ -172,7 +172,7 @@
                         class="@if ($activeTab === 'operations') border-primary-500 text-primary-600 @else border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 @endif whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
                         <div class="flex items-center space-x-2">
                             <x-heroicon-o-truck class="w-5 h-5" />
-                            <span>Operations</span>
+                            <span>Operasional</span>
                         </div>
                     </button>
 
@@ -180,7 +180,7 @@
                         class="@if ($activeTab === 'administration') border-primary-500 text-primary-600 @else border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 @endif whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
                         <div class="flex items-center space-x-2">
                             <x-heroicon-o-clipboard-document-list class="w-5 h-5" />
-                            <span>Administration</span>
+                            <span>Administrasi</span>
                         </div>
                     </button>
 
@@ -188,7 +188,7 @@
                         class="@if ($activeTab === 'driver') border-primary-500 text-primary-600 @else border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 @endif whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
                         <div class="flex items-center space-x-2">
                             <x-heroicon-o-user class="w-5 h-5" />
-                            <span>Driver</span>
+                            <span>Sopir</span>
                         </div>
                     </button>
 
@@ -196,7 +196,7 @@
                         class="@if ($activeTab === 'finance') border-primary-500 text-primary-600 @else border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 @endif whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
                         <div class="flex items-center space-x-2">
                             <x-heroicon-o-banknotes class="w-5 h-5" />
-                            <span>Finance</span>
+                            <span>Keuangan</span>
                         </div>
                     </button>
                 </nav>
@@ -207,9 +207,10 @@
                 @if ($activeTab === 'sales')
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
                         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Sales Orders</h3>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Pesanan Penjualan</h3>
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                Manage sales order data with customer information, fuel types, and delivery locations.
+                                Kelola data pesanan penjualan dengan informasi pelanggan, jenis BBM, dan lokasi
+                                pengiriman.
                             </p>
                         </div>
                         <div class="p-6">
@@ -219,9 +220,9 @@
                 @elseif($activeTab === 'operations')
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
                         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Operations</h3>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Operasional</h3>
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                Track operational delivery data including truck assignments and loading status.
+                                Lacak data pengiriman operasional termasuk penugasan truk dan status muat.
                             </p>
                         </div>
                         <div class="p-6">
@@ -231,9 +232,10 @@
                 @elseif($activeTab === 'administration')
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
                         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Administration</h3>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Administrasi</h3>
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                Manage delivery order administrative data including seals, signatories, and allowances.
+                                Kelola data administratif pesanan pengiriman termasuk segel, penandatangan, dan
+                                tunjangan.
                             </p>
                         </div>
                         <div class="p-6">
@@ -243,9 +245,9 @@
                 @elseif($activeTab === 'driver')
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
                         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Driver Activities</h3>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Aktivitas Sopir</h3>
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                Track driver delivery activities including totalizer readings and delivery photos.
+                                Lacak aktivitas pengiriman sopir termasuk pembacaan totalizer dan foto pengiriman.
                             </p>
                         </div>
                         <div class="p-6">
@@ -255,9 +257,9 @@
                 @elseif($activeTab === 'finance')
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
                         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Finance & Invoicing</h3>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Keuangan & Faktur</h3>
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                Manage financial and invoicing data including payment status and invoice tracking.
+                                Kelola data keuangan dan faktur termasuk status pembayaran dan pelacakan faktur.
                             </p>
                         </div>
                         <div class="p-6">

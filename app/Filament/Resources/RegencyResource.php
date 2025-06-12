@@ -20,7 +20,7 @@ class RegencyResource extends Resource
 
     protected static ?string $navigationGroup = 'Data Master';
 
-    protected static ?string $navigationLabel = 'Regencies';
+    protected static ?string $navigationLabel = 'Kabupaten/Kota';
 
     protected static ?int $navigationSort = 9;
 

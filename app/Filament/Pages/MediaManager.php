@@ -32,8 +32,8 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
     use InteractsWithActions;
 
     protected static ?string $navigationIcon = 'heroicon-o-photo';
-    protected static ?string $navigationLabel = 'Media Manager';
-    protected static ?string $title = 'Media Manager';
+    protected static ?string $navigationLabel = 'Pengelola Media';
+    protected static ?string $title = 'Pengelola Media';
     protected static string $view = 'filament.pages.media-manager';
     protected static ?int $navigationSort = 10;
 
@@ -65,30 +65,30 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
     {
         return [
             Action::make('uploadMedia')
-                ->label('Upload Media')
+                ->label('Unggah Media')
                 ->icon('heroicon-o-cloud-arrow-up')
                 ->color('primary')
                 ->form([
                     FileUpload::make('files')
-                        ->label('Select Files')
+                        ->label('Pilih File')
                         ->multiple()
                         ->acceptedFileTypes(['image/*', 'application/pdf'])
                         ->maxSize(10240) // 10MB
-                        ->helperText('Upload images or PDF files (max 10MB each)')
+                        ->helperText('Unggah gambar atau file PDF (maksimal 10MB per file)')
                         ->required(),
 
                     Select::make('model_type')
-                        ->label('Associate with Model')
+                        ->label('Asosiasi dengan Model')
                         ->options([
-                            'none' => 'No Association',
-                            'user' => 'User',
+                            'none' => 'Tanpa Asosiasi',
+                            'user' => 'Pengguna',
                             'item' => 'Item',
                         ])
                         ->default('none')
                         ->reactive(),
 
                     Select::make('model_id')
-                        ->label('Select Model Instance')
+                        ->label('Pilih Instance Model')
                         ->options(function (callable $get) {
                             $modelType = $get('model_type');
                             if ($modelType === 'user') {
@@ -102,18 +102,18 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
                         ->searchable(),
 
                     Select::make('collection')
-                        ->label('Collection')
+                        ->label('Koleksi')
                         ->options(function (callable $get) {
                             $modelType = $get('model_type');
                             if ($modelType === 'user') {
                                 return [
                                     'avatar' => 'Avatar',
-                                    'documents' => 'Documents',
+                                    'documents' => 'Dokumen',
                                 ];
                             } elseif ($modelType === 'item') {
                                 return [
-                                    'images' => 'Product Images',
-                                    'documents' => 'Documents',
+                                    'images' => 'Gambar Produk',
+                                    'documents' => 'Dokumen',
                                 ];
                             }
                             return ['default' => 'Default'];
@@ -122,13 +122,13 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
                         ->visible(fn(callable $get) => $get('model_type') !== 'none'),
 
                     TextInput::make('alt_text')
-                        ->label('Alt Text (for images)')
-                        ->helperText('Describe the image for accessibility'),
+                        ->label('Teks Alt (untuk gambar)')
+                        ->helperText('Deskripsikan gambar untuk aksesibilitas'),
 
                     Textarea::make('description')
-                        ->label('Description')
+                        ->label('Deskripsi')
                         ->rows(3)
-                        ->helperText('Optional description for the media files'),
+                        ->helperText('Deskripsi opsional untuk file media'),
                 ])
                 ->action(function (array $data): void {
                     $this->uploadMediaFiles($data);
@@ -186,16 +186,16 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
             }
 
             Notification::make()
-                ->title('Media uploaded successfully')
-                ->body("{$uploadedCount} file(s) uploaded successfully.")
+                ->title('Media berhasil diunggah')
+                ->body("{$uploadedCount} file berhasil diunggah.")
                 ->success()
                 ->send();
 
             $this->resetTable();
         } catch (\Exception $e) {
             Notification::make()
-                ->title('Upload failed')
-                ->body('An error occurred while uploading files: ' . $e->getMessage())
+                ->title('Unggah gagal')
+                ->body('Terjadi kesalahan saat mengunggah file: ' . $e->getMessage())
                 ->danger()
                 ->send();
         }
@@ -273,7 +273,7 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
                         ->label('')
                         ->getStateUsing(function (Media $record): string {
                             if (str_starts_with($record->mime_type, 'image/')) {
-                                return $record->getUrl('thumb') ?: $record->getUrl();
+                                return $record->getUrl();
                             }
                             return asset('images/file-icon.svg');
                         })
@@ -316,10 +316,10 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
         // List view columns
         return [
             Tables\Columns\ImageColumn::make('url')
-                ->label('Preview')
+                ->label('Pratinjau')
                 ->getStateUsing(function (Media $record): string {
                     if (str_starts_with($record->mime_type, 'image/')) {
-                        return $record->getUrl('thumb') ?: $record->getUrl();
+                        return $record->getUrl();
                     }
                     return asset('images/file-icon.png');
                 })
@@ -327,32 +327,32 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
                 ->square(),
 
             Tables\Columns\TextColumn::make('name')
-                ->label('Name')
+                ->label('Nama')
                 ->searchable()
                 ->sortable()
                 ->copyable()
                 ->description(fn(Media $record): string => $record->file_name),
 
             Tables\Columns\TextColumn::make('mime_type')
-                ->label('Type')
+                ->label('Tipe')
                 ->badge()
                 ->color(fn(string $state): string => str_starts_with($state, 'image/') ? 'success' : 'info')
                 ->formatStateUsing(fn(string $state): string => strtoupper(explode('/', $state)[1] ?? $state)),
 
             Tables\Columns\TextColumn::make('human_readable_size')
-                ->label('Size')
+                ->label('Ukuran')
                 ->sortable(),
 
             Tables\Columns\TextColumn::make('collection_name')
-                ->label('Collection')
+                ->label('Koleksi')
                 ->badge()
                 ->color('gray')
                 ->formatStateUsing(fn(string $state): string => ucfirst($state)),
 
             Tables\Columns\TextColumn::make('model_type')
-                ->label('Associated Model')
+                ->label('Model Terkait')
                 ->formatStateUsing(function (?string $state): string {
-                    if (!$state) return 'None';
+                    if (!$state) return 'Tidak Ada';
                     return class_basename($state);
                 })
                 ->description(function (Media $record): ?string {
@@ -363,7 +363,7 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
                 }),
 
             Tables\Columns\TextColumn::make('created_at')
-                ->label('Uploaded')
+                ->label('Diunggah')
                 ->dateTime('M j, Y H:i')
                 ->sortable()
                 ->since()
@@ -375,7 +375,7 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
     {
         return [
             Tables\Filters\SelectFilter::make('mime_type')
-                ->label('File Type')
+                ->label('Tipe File')
                 ->options([
                     'image/jpeg' => 'JPEG',
                     'image/png' => 'PNG',
@@ -386,20 +386,20 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
                 ->multiple(),
 
             Tables\Filters\SelectFilter::make('collection_name')
-                ->label('Collection')
+                ->label('Koleksi')
                 ->options([
                     'avatar' => 'Avatar',
-                    'images' => 'Product Images',
-                    'documents' => 'Documents',
-                    'standalone' => 'Standalone',
+                    'images' => 'Gambar Produk',
+                    'documents' => 'Dokumen',
+                    'standalone' => 'Mandiri',
                     'default' => 'Default',
                 ])
                 ->multiple(),
 
             Tables\Filters\SelectFilter::make('model_type')
-                ->label('Associated Model')
+                ->label('Model Terkait')
                 ->options([
-                    'App\Models\User' => 'User',
+                    'App\Models\User' => 'Pengguna',
                     'App\Models\Item' => 'Item',
                 ])
                 ->multiple(),
@@ -407,9 +407,9 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
             Tables\Filters\Filter::make('created_at')
                 ->form([
                     \Filament\Forms\Components\DatePicker::make('from')
-                        ->label('From Date'),
+                        ->label('Dari Tanggal'),
                     \Filament\Forms\Components\DatePicker::make('until')
-                        ->label('Until Date'),
+                        ->label('Sampai Tanggal'),
                 ])
                 ->query(function (Builder $query, array $data): Builder {
                     return $query
@@ -426,10 +426,10 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
             Tables\Filters\Filter::make('size')
                 ->form([
                     \Filament\Forms\Components\TextInput::make('min_size')
-                        ->label('Min Size (KB)')
+                        ->label('Ukuran Min (KB)')
                         ->numeric(),
                     \Filament\Forms\Components\TextInput::make('max_size')
-                        ->label('Max Size (KB)')
+                        ->label('Ukuran Maks (KB)')
                         ->numeric(),
                 ])
                 ->query(function (Builder $query, array $data): Builder {
@@ -450,31 +450,31 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
     {
         return [
             Tables\Actions\Action::make('view')
-                ->label('View')
+                ->label('Lihat')
                 ->icon('heroicon-o-eye')
                 ->url(fn(Media $record): string => $record->getUrl())
                 ->openUrlInNewTab(),
 
             Tables\Actions\Action::make('download')
-                ->label('Download')
+                ->label('Unduh')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->url(fn(Media $record): string => $record->getUrl())
                 ->openUrlInNewTab(),
 
             Tables\Actions\Action::make('edit')
-                ->label('Edit Details')
+                ->label('Edit Detail')
                 ->icon('heroicon-o-pencil')
                 ->form([
                     TextInput::make('name')
-                        ->label('Name')
+                        ->label('Nama')
                         ->required(),
 
                     TextInput::make('alt_text')
-                        ->label('Alt Text')
+                        ->label('Teks Alt')
                         ->default(fn(Media $record): string => $record->getCustomProperty('alt_text', '')),
 
                     Textarea::make('description')
-                        ->label('Description')
+                        ->label('Deskripsi')
                         ->rows(3)
                         ->default(fn(Media $record): string => $record->getCustomProperty('description', '')),
                 ])
