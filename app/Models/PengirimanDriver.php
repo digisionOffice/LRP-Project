@@ -16,8 +16,13 @@ class PengirimanDriver extends Model
         'totalisator_awal',
         'totalisator_tiba',
         'waktu_mulai',
+        'waktu_berangkat',
         'waktu_tiba',
+        'waktu_selesai',
+        'volume_terkirim',
         'foto_pengiriman',
+        'foto_totalizer_awal',
+        'foto_totalizer_akhir',
         'totalisator_pool_return',
         'waktu_pool_arrival',
         'created_by',
@@ -28,11 +33,14 @@ class PengirimanDriver extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
         'waktu_mulai' => 'datetime',
+        'waktu_berangkat' => 'datetime',
         'waktu_tiba' => 'datetime',
+        'waktu_selesai' => 'datetime',
         'waktu_pool_arrival' => 'datetime',
         'totalisator_awal' => 'float',
         'totalisator_tiba' => 'float',
         'totalisator_pool_return' => 'float',
+        'volume_terkirim' => 'float',
     ];
 
     public function deliveryOrder()

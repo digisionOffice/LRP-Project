@@ -120,6 +120,9 @@ class User extends Authenticatable implements FilamentUser, HasMedia
 
         $this->addMediaCollection('documents')
             ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/png']);
+
+        $this->addMediaCollection('standalone')
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']);
     }
 
     /**
@@ -131,11 +134,11 @@ class User extends Authenticatable implements FilamentUser, HasMedia
             ->width(150)
             ->height(150)
             ->sharpen(10)
-            ->performOnCollections('avatar');
+            ->performOnCollections('avatar', 'standalone');
 
         $this->addMediaConversion('preview')
             ->width(300)
             ->height(300)
-            ->performOnCollections('avatar');
+            ->performOnCollections('avatar', 'standalone');
     }
 }

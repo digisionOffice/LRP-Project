@@ -70,10 +70,18 @@ return [
 
         'pages' => [
             'Dashboard',
+            'MediaManager',
+            'AccountsReceivableDashboard',
+            'FuelDeliveryDashboard',
+            'MonthlyDeliveryReportDashboard',
+            'MonthlySalesRealizationDashboard',
+            'SalesOrderTimeline',
+            'SalesOrderTimelineDetail'
         ],
 
         'widgets' => [
-            'AccountWidget', 'FilamentInfoWidget',
+            'AccountWidget',
+            'FilamentInfoWidget',
         ],
 
         'resources' => [],
