@@ -76,17 +76,17 @@ class SalesOrderTimelineDetail extends Page
         // Sales Order Created Event
         $events->push([
             'type' => 'sales_order_created',
-            'title' => 'Sales Order Created',
-            'description' => 'Sales order was created and confirmed',
+            'title' => 'Sales Order Dibuat',
+            'description' => 'Sales order dibuat dan dikonfirmasi',
             'timestamp' => $this->record->created_at,
             'icon' => 'heroicon-o-document-plus',
             'color' => 'blue',
             'data' => [
-                'so_number' => $this->record->kode,
-                'customer' => $this->record->pelanggan->nama ?? 'N/A',
-                'fuel_types' => $this->record->penjualanDetails->pluck('item.name')->unique()->join(', '),
-                'total_volume' => number_format($this->record->penjualanDetails->sum('volume_item'), 2) . ' L',
-                'tbbm' => $this->record->tbbm->nama ?? 'N/A',
+                'Nomor SO' => $this->record->kode,
+                'Pelanggan' => $this->record->pelanggan->nama ?? 'N/A',
+                'Jenis BBM' => $this->record->penjualanDetails->pluck('item.name')->unique()->join(', '),
+                'Volume' => number_format($this->record->penjualanDetails->sum('volume_item'), 2) . ' Liter',
+                'TBBM' => $this->record->tbbm->nama ?? 'N/A',
                 'created_by' => $this->record->createdBy->name ?? 'System',
             ]
         ]);
@@ -97,18 +97,18 @@ class SalesOrderTimelineDetail extends Page
             // Delivery Order Created
             $events->push([
                 'type' => 'delivery_order_created',
-                'title' => 'Delivery Order Created',
-                'description' => 'Delivery order was created for this sales order',
+                'title' => 'Delivery Order Dibuat',
+                'description' => 'Delivery order dibuat untuk pesanan penjualan ini',
                 'timestamp' => $do->created_at,
                 'icon' => 'heroicon-o-truck',
                 'color' => 'indigo',
                 'data' => [
-                    'do_number' => $do->kode,
-                    'delivery_date' => $do->tanggal_delivery ? $do->tanggal_delivery->format('d M Y') : 'Not scheduled',
-                    'vehicle' => $do->kendaraan->nomor_polisi ?? 'Not assigned',
-                    'driver' => $do->user->name ?? 'Not assigned',
-                    'seal_number' => $do->no_segel ?? 'Not set',
-                    'status' => $do->status_muat ?? 'pending',
+                    'Nomor DO' => $do->kode,
+                    'Tanggal Pengiriman' => $do->tanggal_delivery ? $do->tanggal_delivery->format('d M Y') : 'Not scheduled',
+                    'Kendaraan' => $do->kendaraan->nomor_polisi ?? 'Not assigned',
+                    'Sopir' => $do->user->name ?? 'Not assigned',
+                    'Nomor Segel' => $do->no_segel ?? 'Not set',
+                    'Status' => $do->status_muat ?? 'pending',
                 ]
             ]);
 
@@ -116,8 +116,8 @@ class SalesOrderTimelineDetail extends Page
             if ($do->waktu_muat) {
                 $events->push([
                     'type' => 'loading_started',
-                    'title' => 'Loading Started',
-                    'description' => 'Fuel loading process has begun',
+                    'title' => 'Muat Dimulai',
+                    'description' => 'Proses muat dimulai',
                     'timestamp' => $do->waktu_muat,
                     'icon' => 'heroicon-o-arrow-down-on-square',
                     'color' => 'yellow',
@@ -131,8 +131,8 @@ class SalesOrderTimelineDetail extends Page
             if ($do->waktu_selesai_muat) {
                 $events->push([
                     'type' => 'loading_completed',
-                    'title' => 'Loading Completed',
-                    'description' => 'Fuel loading process has been completed',
+                    'title' => 'Muat Selesai',
+                    'description' => 'Proses muat selesai',
                     'timestamp' => $do->waktu_selesai_muat,
                     'icon' => 'heroicon-o-check-circle',
                     'color' => 'green',
@@ -149,8 +149,8 @@ class SalesOrderTimelineDetail extends Page
 
                 $events->push([
                     'type' => 'allowance_created',
-                    'title' => 'Driver Allowance Created',
-                    'description' => 'Driver allowance has been prepared',
+                    'title' => 'Uang Jalan Dibuat',
+                    'description' => 'Uang jalan dibuat',
                     'timestamp' => $allowance->created_at,
                     'icon' => 'heroicon-o-banknotes',
                     'color' => 'purple',
@@ -170,15 +170,15 @@ class SalesOrderTimelineDetail extends Page
                 if ($delivery->waktu_berangkat) {
                     $events->push([
                         'type' => 'delivery_departed',
-                        'title' => 'Delivery Departed',
-                        'description' => 'Vehicle has departed for delivery',
+                        'title' => 'Pengiriman Berangkat',
+                        'description' => 'Kendaraan berangkat untuk pengiriman',
                         'timestamp' => $delivery->waktu_berangkat,
                         'icon' => 'heroicon-o-arrow-right',
                         'color' => 'orange',
                         'data' => [
-                            'do_number' => $do->kode,
-                            'vehicle' => $do->kendaraan->nomor_polisi ?? 'N/A',
-                            'driver' => $do->user->name ?? 'N/A',
+                            'Nomor DO' => $do->kode,
+                            'Kendaraan' => $do->kendaraan->nomor_polisi ?? 'N/A',
+                            'Sopir' => $do->user->name ?? 'N/A',
                         ]
                     ]);
                 }
@@ -186,14 +186,14 @@ class SalesOrderTimelineDetail extends Page
                 if ($delivery->waktu_tiba) {
                     $events->push([
                         'type' => 'delivery_arrived',
-                        'title' => 'Delivery Arrived',
-                        'description' => 'Vehicle has arrived at destination',
+                        'title' => 'Pengiriman Tiba',
+                        'description' => 'Kendaraan tiba di lokasi tujuan',
                         'timestamp' => $delivery->waktu_tiba,
                         'icon' => 'heroicon-o-map-pin',
                         'color' => 'teal',
                         'data' => [
-                            'do_number' => $do->kode,
-                            'location' => $delivery->lokasi_tiba ?? 'Customer location',
+                            'Nomor DO' => $do->kode,
+                            'Lokasi Tujuan' => $delivery->lokasi_tiba ?? 'Lokasi Pelanggan',
                         ]
                     ]);
                 }
@@ -201,13 +201,13 @@ class SalesOrderTimelineDetail extends Page
                 if ($delivery->waktu_selesai) {
                     $events->push([
                         'type' => 'delivery_completed',
-                        'title' => 'Delivery Completed',
-                        'description' => 'Fuel delivery has been completed',
+                        'title' => 'Pengiriman Selesai',
+                        'description' => 'Pengiriman selesai',
                         'timestamp' => $delivery->waktu_selesai,
                         'icon' => 'heroicon-o-check-badge',
                         'color' => 'emerald',
                         'data' => [
-                            'do_number' => $do->kode,
+                            'Nomor DO' => $do->kode,
                             'delivered_volume' => $delivery->volume_terkirim ? number_format($delivery->volume_terkirim, 2) . ' L' : 'N/A',
                         ]
                     ]);

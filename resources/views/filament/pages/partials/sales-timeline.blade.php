@@ -20,7 +20,7 @@
                     <div class="min-w-0 flex-1">
                         <div>
                             <div class="text-sm">
-                                <span class="font-medium text-gray-900 dark:text-white">Sales Order Created</span>
+                                <span class="font-medium text-gray-900 dark:text-white">Sales Order Dibuat</span>
                             </div>
                             <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                                 {{ $record->tanggal ? $record->tanggal->format('d M Y H:i') : 'N/A' }}
@@ -28,11 +28,11 @@
                         </div>
                         <div class="mt-2 text-sm text-gray-700 dark:text-gray-300">
                             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                                <p class="font-medium">SO Number: {{ $record->kode }}</p>
-                                <p>Customer: {{ $record->pelanggan->nama ?? 'N/A' }}</p>
-                                <p>Fuel Type: {{ $record->penjualanDetails->pluck('item.name')->unique()->join(', ') }}
+                                <p class="font-medium">Nomor SO: {{ $record->kode }}</p>
+                                <p>Pelanggan: {{ $record->pelanggan->nama ?? 'N/A' }}</p>
+                                <p>Jenis BBM: {{ $record->penjualanDetails->pluck('item.name')->unique()->join(', ') }}
                                 </p>
-                                <p>Volume: {{ number_format($record->penjualanDetails->sum('volume_item'), 2) }} L</p>
+                                <p>Volume: {{ number_format($record->penjualanDetails->sum('volume_item'), 2) }} Liter</p>
                                 <p>TBBM: {{ $record->tbbm->nama ?? 'N/A' }}</p>
                             </div>
                         </div>
@@ -80,8 +80,8 @@
                                     <p>Delivery Date:
                                         {{ $do->tanggal_delivery ? $do->tanggal_delivery->format('d M Y') : 'Not scheduled' }}
                                     </p>
-                                    <p>Vehicle: {{ $do->kendaraan->nomor_polisi ?? 'Not assigned' }}</p>
-                                    <p>Driver: {{ $do->user->name ?? 'Not assigned' }}</p>
+                                    <p>Kendaraan: {{ $do->kendaraan->nomor_polisi ?? 'Not assigned' }}</p>
+                                    <p>Sopir: {{ $do->user->name ?? 'Not assigned' }}</p>
                                     <p>Seal Number: {{ $do->no_segel ?? 'Not set' }}</p>
                                 </div>
                             </div>
@@ -110,7 +110,7 @@
                         <div class="min-w-0 flex-1">
                             <div>
                                 <div class="text-sm">
-                                    <span class="font-medium text-gray-900 dark:text-white">Loading Status</span>
+                                    <span class="font-medium text-gray-900 dark:text-white">Status Muat</span>
                                 </div>
                                 <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                                     {{ $do->waktu_muat ? $do->waktu_muat->format('d M Y H:i') : 'Not started' }}
@@ -126,7 +126,7 @@
                                             : ($do->status_muat === 'muat'
                                                 ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
                                                 : 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100') }}">
-                                            {{ $do->status_muat === 'pending' ? 'Pending' : ($do->status_muat === 'muat' ? 'Loading' : 'Completed') }}
+                                            {{ $do->status_muat === 'pending' ? 'Pending' : ($do->status_muat === 'muat' ? 'Muat' : 'Completed') }}
                                         </span>
                                     </p>
                                     @if ($do->waktu_muat)
@@ -229,7 +229,7 @@
                             <div class="min-w-0 flex-1">
                                 <div>
                                     <div class="text-sm">
-                                        <span class="font-medium text-gray-900 dark:text-white">Delivery Status</span>
+                                        <span class="font-medium text-gray-900 dark:text-white">Status Pengiriman</span>
                                     </div>
                                     <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                                         {{ $pengirimanDriver->waktu_berangkat ? $pengirimanDriver->waktu_berangkat->format('d M Y H:i') : 'Not started' }}

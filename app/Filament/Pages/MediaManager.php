@@ -203,12 +203,21 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
 
     public function table(Table $table): Table
     {
-        return match ($this->activeTab) {
+        $baseTable = match ($this->activeTab) {
             'images' => $this->getImagesTable($table),
             'documents' => $this->getDocumentsTable($table),
             'all' => $this->getAllMediaTable($table),
             default => $this->getAllMediaTable($table),
         };
+
+        if ($this->viewMode === 'grid') {
+            return $baseTable->contentGrid([
+                'md' => 2,
+                // 'lg' => 3,
+            ]);
+        }
+
+        return $baseTable;
     }
 
     protected function getAllMediaTable(Table $table): Table
@@ -268,52 +277,60 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
     {
         if ($this->viewMode === 'grid') {
             return [
-                Tables\Columns\Layout\Stack::make([
-                    Tables\Columns\ImageColumn::make('url')
-                        ->label('')
-                        ->getStateUsing(function (Media $record): string {
-                            if (str_starts_with($record->mime_type, 'image/')) {
-                                return $record->getUrl();
-                            }
-                            return asset('images/file-icon.svg');
-                        })
-                        ->size(150)
-                        ->square(),
+                Tables\Columns\Layout\Grid::make(3)
+                    ->schema([
+                        Tables\Columns\Layout\Stack::make([
+                            Tables\Columns\ImageColumn::make('url')
+                                ->label('')
+                                ->getStateUsing(function (Media $record): string {
+                                    if (str_starts_with($record->mime_type, 'image/')) {
+                                        return $record->getUrl();
+                                    }
+                                    return asset('images/file-icon.svg');
+                                })
+                                ->size(150)
+                                ->square(),
 
-                    Tables\Columns\TextColumn::make('name')
-                        ->label('')
-                        ->weight('bold')
-                        ->limit(20)
-                        ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
-                            return $column->getState();
-                        }),
+                            Tables\Columns\TextColumn::make('name')
+                                ->label('')
+                                ->weight('bold')
+                                ->limit(20)
+                                ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                                    return $column->getState();
+                                }),
 
-                    Tables\Columns\TextColumn::make('file_name')
-                        ->label('')
-                        ->size('sm')
-                        ->color('gray')
-                        ->limit(25)
-                        ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
-                            return $column->getState();
-                        }),
+                            Tables\Columns\TextColumn::make('file_name')
+                                ->label('')
+                                ->size('sm')
+                                ->color('gray')
+                                ->limit(25)
+                                ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                                    return $column->getState();
+                                }),
 
-                    Tables\Columns\Layout\Split::make([
-                        Tables\Columns\TextColumn::make('human_readable_size')
-                            ->label('')
-                            ->size('xs')
-                            ->color('gray'),
+                                Tables\Columns\TextColumn::make('mime_type')
+                                ->label('')
+                                ->size('sm')
+                                ->color('gray')
+                                ->limit(25)
+                                ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                                    return $column->getState();
+                                }),
 
-                        Tables\Columns\TextColumn::make('created_at')
-                            ->label('')
-                            ->since()
-                            ->size('xs')
-                            ->color('gray'),
+                                Tables\Columns\TextColumn::make('human_readable_size')
+                                ->label('')
+                                ->size('sm')
+                                ->color('gray')
+                                ->limit(25)
+                                ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                                    return $column->getState();
+                                }),
+                        ]),
                     ]),
-                ])->space(2),
             ];
         }
 
-        // List view columns
+        // List view columns remain unchanged
         return [
             Tables\Columns\ImageColumn::make('url')
                 ->label('Pratinjau')
@@ -448,6 +465,40 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
 
     protected function getTableActions(): array
     {
+        if ($this->viewMode === 'grid') {
+            return [
+                Tables\Actions\Action::make('view')
+                    ->label('Lihat')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn(Media $record): string => $record->getUrl())
+                    ->openUrlInNewTab(),
+
+                    // edit detail in new tab
+                    Tables\Actions\Action::make('edit')
+                    ->label('Edit Detail')
+                    ->icon('heroicon-o-pencil')
+                    ->form([
+                        TextInput::make('name')
+                            ->label('Nama')
+                            ->required(),
+
+                        TextInput::make('alt_text')
+                            ->label('Teks Alt')
+                            ->default(fn(Media $record): string => $record->getCustomProperty('alt_text', '')),
+
+                        Textarea::make('description')
+                            ->label('Deskripsi')
+                            ->rows(3)
+                            ->default(fn(Media $record): string => $record->getCustomProperty('description', '')),
+                    ])
+                    ->fillForm(fn(Media $record): array => [
+                        'name' => $record->name,
+                        'alt_text' => $record->getCustomProperty('alt_text', ''),
+                        'description' => $record->getCustomProperty('description', ''),
+                    ])
+            ];
+        }
+
         return [
             Tables\Actions\Action::make('view')
                 ->label('Lihat')
@@ -615,3 +666,6 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
         return round($bytes, $precision) . ' ' . $units[$i];
     }
 }
+
+
+

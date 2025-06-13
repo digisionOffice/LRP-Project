@@ -12,6 +12,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Blade;
+
 
 class DeliveryOrderResource extends Resource
 {
@@ -21,7 +24,7 @@ class DeliveryOrderResource extends Resource
 
     protected static ?string $navigationGroup = 'Operasional';
 
-    protected static ?string $navigationLabel = 'Surat Perintah Muat';
+    protected static ?string $navigationLabel = 'Delivery Order';
 
     protected static ?int $navigationSort = 1;
 
@@ -29,46 +32,70 @@ class DeliveryOrderResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi Surat Perintah Muat')
+                Forms\Components\Section::make('Informasi Delivery Order')
                     ->schema([
                         Forms\Components\TextInput::make('kode')
-                            ->label('Nomor SPM')
+                            ->label('Nomor DO')
+                            ->placeholder('DO-MMDDYYYY-0001')
                             ->required()
+                            ->helperText('Contoh: DO-01012024-0001')
                             ->unique(ignoreRecord: true)
                             ->maxLength(50),
 
                         Forms\Components\Select::make('id_transaksi')
-                            ->label('Pesanan Penjualan')
+                            ->label('Nomor SO')
+                            ->placeholder('Pilih Nomor SO')
                             ->relationship('transaksi', 'kode')
                             ->searchable()
+                            ->helperText('Pilih nomor SO yang akan dijadwalkan pengirimannya')
                             ->preload()
                             ->required(),
 
                         Forms\Components\Select::make('id_user')
-                            ->label('Sopir')
-                            ->relationship('user', 'name')
+                            ->label('Supir')
+                            ->required()
+                            ->placeholder('Pilih Supir')
+                            ->helperText('Pilih supir yang akan mengantar barang')
+                            ->relationship(
+                                name: 'user',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: function ($query) {
+                                    $query->whereHas('jabatan', function ($query) {
+                                        $query->where('nama', 'like', '%driver%');
+                                    });
+                                }
+                            )
                             ->searchable()
                             ->preload(),
 
                         Forms\Components\Select::make('id_kendaraan')
                             ->label('Kendaraan')
+                            ->required()
+                            ->placeholder('Pilih Kendaraan')
+                            ->helperText('Pilih kendaraan yang akan mengantar barang')
                             ->relationship('kendaraan', 'no_pol_kendaraan')
                             ->searchable()
                             ->preload(),
 
                         Forms\Components\DateTimePicker::make('tanggal_delivery')
-                            ->label('Tanggal Pengiriman'),
+                            ->label('Tanggal Pengiriman')
+                            ->helperText('Pilih tanggal pengiriman barang'),
 
                         Forms\Components\TextInput::make('no_segel')
                             ->label('Nomor Segel')
+                            ->placeholder('Contoh: SGL-000001')
+                            ->helperText('Nomor segel untuk penandaan barang, dapat diisi setelah barang dikirim')
                             ->maxLength(50),
                     ])
                     ->columns(2),
 
                 Forms\Components\Section::make('Informasi Muat')
+                    ->description('Informasi ini akan diisi oleh supir setelah barang dikirim')
                     ->schema([
                         Forms\Components\Select::make('status_muat')
                             ->label('Status Muat')
+                            ->disabled()
+                            ->helperText('Status ini akan diisi oleh supir setiap perubahan status muat')
                             ->options([
                                 'pending' => 'Perintah Muat Diterbitkan',
                                 'muat' => 'Muat Dikonfirmasi',
@@ -77,9 +104,13 @@ class DeliveryOrderResource extends Resource
                             ->default('pending'),
 
                         Forms\Components\DateTimePicker::make('waktu_muat')
+                            ->disabled()
+                            ->helperText('Waktu mulai muat akan automatis terisi oleh supir setelah barang dikirim')
                             ->label('Waktu Mulai Muat'),
 
                         Forms\Components\DateTimePicker::make('waktu_selesai_muat')
+                            ->disabled()
+                            ->helperText('Waktu selesai muat akan automatis terisi oleh supir setelah barang dikirim')
                             ->label('Waktu Selesai Muat'),
                     ])
                     ->columns(3),
@@ -87,10 +118,13 @@ class DeliveryOrderResource extends Resource
                 Forms\Components\Section::make('Administrasi')
                     ->schema([
                         Forms\Components\TextInput::make('do_signatory_name')
-                            ->label('Nama Penandatangan SPM'),
+                            ->placeholder('Nama Penandatangan DO')
+                            ->helperText('Nama penandatangan DO akan otomatis terisi oleh supir setelah barang dikirim')
+                            ->label('Nama Penandatangan DO'),
 
                         Forms\Components\Toggle::make('do_print_status')
-                            ->label('Status Cetak SPM'),
+                            ->helperText('Status cetak DO akan otomatis terisi setelah DO dicetak')
+                            ->label('Status Cetak DO'),
 
                         Forms\Components\TextInput::make('driver_allowance_amount')
                             ->label('Jumlah Uang Jalan Sopir')
@@ -103,6 +137,8 @@ class DeliveryOrderResource extends Resource
                         Forms\Components\Textarea::make('fuel_usage_notes')
                             ->label('Catatan Penggunaan BBM')
                             ->rows(3),
+
+
                     ])
                     ->columns(2),
             ]);
@@ -113,7 +149,8 @@ class DeliveryOrderResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('kode')
-                    ->label('Nomor SPM')
+                    ->label('Nomor DO')
+
                     ->searchable()
                     ->sortable()
                     ->copyable(),
@@ -159,7 +196,7 @@ class DeliveryOrderResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\IconColumn::make('do_print_status')
-                    ->label('SPM Dicetak')
+                    ->label('DO Dicetak')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
@@ -212,6 +249,17 @@ class DeliveryOrderResource extends Resource
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
+                Tables\Actions\Action::make('pdf')
+                    ->label('Download PDF')
+                    ->color('success')
+                    ->action(function (DeliveryOrder $record) {
+                        return response()->streamDownload(function () use ($record) {
+                            echo Pdf::loadHtml(
+                                Blade::render('pdf', ['record' => $record])
+                            )->stream();
+                        }, $record->number . '.pdf');
+                    }),
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
