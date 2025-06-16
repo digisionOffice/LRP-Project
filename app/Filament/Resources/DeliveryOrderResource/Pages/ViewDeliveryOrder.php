@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\DeliveryOrderResource\Pages;
 
 use App\Filament\Resources\DeliveryOrderResource;
+use App\Models\DeliveryOrder;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -54,7 +55,7 @@ class ViewDeliveryOrder extends ViewRecord
                         TextEntry::make('transaksi.pelanggan.nama')
                             ->icon('heroicon-o-building-office')
                             ->state(function ($record) {
-                                return $record->transaksi->pelanggan->nama . ' - ' .   $record->transaksi->pelanggan->pic_nama . ' (PIC)' . ' | ' . $record->transaksi->pelanggan->type ;
+                                return $record->transaksi->pelanggan->nama . ' - ' .   $record->transaksi->pelanggan->pic_nama . ' (PIC)' . ' | ' . $record->transaksi->pelanggan->type;
                             })
                             ->label('Nama Pelanggan'),
 
@@ -185,18 +186,24 @@ class ViewDeliveryOrder extends ViewRecord
                         TextEntry::make('pengirimanDriver.totalisator_awal')
                             ->label('Totalisator Awal')
                             ->suffix(' L')
+                            // icon
+                            ->icon('heroicon-o-chart-bar')
                             ->numeric()
                             ->placeholder('Belum Diisi'),
 
                         TextEntry::make('pengirimanDriver.totalisator_tiba')
                             ->label('Totalisator Tiba')
                             ->suffix(' L')
+                            // icon
+                            ->icon('heroicon-o-chart-bar')
                             ->numeric()
                             ->placeholder('Belum Diisi'),
 
                         TextEntry::make('pengirimanDriver.totalisator_pool_return')
                             ->label('Totalisator Kembali Pool')
                             ->suffix(' L')
+                            // icon
+                            ->icon('heroicon-o-chart-bar')
                             ->numeric()
                             ->placeholder('Belum Diisi'),
 
@@ -223,16 +230,32 @@ class ViewDeliveryOrder extends ViewRecord
                 ->visible(fn($record) => $record->transaksi !== null)
                 ->openUrlInNewTab(false),
             Actions\Action::make('print')
-                ->label('Print')
+                ->label('Print DO')
                 ->icon('heroicon-o-printer')
                 ->action(function ($record) {
                     try {
+                        // Load the record with all necessary relationships
+                        $deliveryOrder = DeliveryOrder::with([
+                            'transaksi.pelanggan',
+                            'transaksi.alamatPelanggan',
+                            'transaksi.penjualanDetails.item.satuan',
+                            'kendaraan',
+                            'user',
+                            'uangJalan',
+                            'pengirimanDriver'
+                        ])->find($record->id);
+
                         // Generate dynamic filename
-                        $filename = 'delivery_order_' . $record->id . '_' . now()->format('Ymd_His') . '.pdf';
+                        $filename = 'DO_' . $deliveryOrder->kode . '_' . now()->format('Ymd_His') . '.pdf';
 
                         // Load the PDF view with the record data
-                        $pdf = Pdf::loadView('pdf.delivery_order', ['record' => $record])
-                            ->setPaper('a4', 'portrait');
+                        $pdf = Pdf::loadView('pdf.delivery_order', ['record' => $deliveryOrder])
+                            ->setPaper('a4', 'portrait')
+                            ->setOptions([
+                                'isHtml5ParserEnabled' => true,
+                                'isPhpEnabled' => true,
+                                'defaultFont' => 'Arial'
+                            ]);
 
                         // Stream the PDF as a download
                         return response()->streamDownload(function () use ($pdf) {
@@ -241,19 +264,25 @@ class ViewDeliveryOrder extends ViewRecord
                     } catch (\Exception $e) {
                         // Log the error for debugging
                         Log::error('Failed to generate PDF: ' . $e->getMessage());
+                        Log::error('PDF Error Stack Trace: ' . $e->getTraceAsString());
 
-                        // Notify the user of the error
-                        // $this->notify('error', 'Failed to generate PDF. Please try again.');
+                        // Show notification to user
+                        \Filament\Notifications\Notification::make()
+                            ->title('Error generating PDF')
+                            ->body('Failed to generate PDF. Please try again or contact administrator.')
+                            ->danger()
+                            ->send();
+
                         return;
                     }
                 }),
             Actions\Action::make('createAllowance')
-                ->label('Create Driver Allowance')
+                ->label('Buat Uang Jalan')
                 ->icon('heroicon-o-banknotes')
                 ->url(fn($record) => route('filament.admin.resources.uang-jalans.create', ['id_do' => $record->id]))
                 ->visible(fn($record) => !$record->uangJalan),
             Actions\Action::make('editAllowance')
-                ->label('Edit Driver Allowance')
+                ->label('Edit Uang Jalan')
                 ->icon('heroicon-o-banknotes')
                 ->url(fn($record) => $record->uangJalan ? route('filament.admin.resources.uang-jalans.edit', ['record' => $record->uangJalan->id]) : null)
                 ->visible(fn($record) => $record->uangJalan),
@@ -264,15 +293,22 @@ class ViewDeliveryOrder extends ViewRecord
                 ->visible(fn($record) => !$record->pengirimanDriver),
             // view
             Actions\Action::make('viewDelivery')
-                ->label('View Driver Delivery')
+                ->label('Status Pengiriman')
                 ->icon('heroicon-o-truck')
                 ->url(fn($record) => $record->pengirimanDriver ? route('filament.admin.resources.pengiriman-drivers.view', ['record' => $record->pengirimanDriver->id]) : null)
-                ->visible(fn($record) => $record->pengirimanDriver)
+                ->visible(fn($record) => $record->pengirimanDriver),
             // Actions\Action::make('editDelivery')
             //     ->label('Edit Driver Delivery')
             //     ->icon('heroicon-o-truck')
             //     ->url(fn($record) => $record->pengirimanDriver ? route('filament.admin.resources.pengiriman-drivers.edit', ['record' => $record->pengirimanDriver->id]) : null)
             //     ->visible(fn($record) => $record->pengirimanDriver),
+
+            // jika ada informasi totalisator, maka tampilkan tombol buat invoice
+            Actions\Action::make('createInvoice')
+                ->label('Buat Invoice')
+                ->icon('heroicon-o-document-text')
+                ->url(fn($record) => route('filament.admin.resources.invoices.create', ['id_do' => $record->id]))
+                ->visible(fn($record) => $record->pengirimanDriver && !$record->invoice),
         ];
     }
 }
