@@ -12,6 +12,7 @@ class ItemKategori extends Model
     protected $table = 'item_kategori';
 
     protected $fillable = [
+        'kode',
         'nama',
         'deskripsi',
         'created_by',

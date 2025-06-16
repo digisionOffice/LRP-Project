@@ -40,7 +40,6 @@ class SalesOrderTimeline extends Page implements HasTable, HasForms
                         'penjualanDetails.item.kategori',
                         'penjualanDetails.item.satuan',
                         'tbbm',
-                        'subdistrict.district.regency.province'
                     ])
                     ->latest()
             )

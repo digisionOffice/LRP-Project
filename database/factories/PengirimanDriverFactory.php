@@ -22,7 +22,8 @@ class PengirimanDriverFactory extends Factory
     public function definition(): array
     {
         $startTime = $this->faker->dateTimeBetween('-7 days', 'now');
-        $arrivalTime = $this->faker->dateTimeBetween($startTime, $startTime->format('Y-m-d H:i:s') . ' +6 hours');
+        $departureTime = $this->faker->dateTimeBetween($startTime, $startTime->format('Y-m-d H:i:s') . ' +2 hours');
+        $arrivalTime = $this->faker->dateTimeBetween($departureTime, $departureTime->format('Y-m-d H:i:s') . ' +6 hours');
         $completionTime = $this->faker->dateTimeBetween($arrivalTime, $arrivalTime->format('Y-m-d H:i:s') . ' +2 hours');
 
         return [
@@ -30,6 +31,7 @@ class PengirimanDriverFactory extends Factory
             'totalisator_awal' => $this->faker->numberBetween(10000, 50000),
             'totalisator_tiba' => $this->faker->numberBetween(15000, 55000),
             'waktu_mulai' => $startTime,
+            'waktu_berangkat' => $departureTime,
             'waktu_tiba' => $arrivalTime,
             'waktu_selesai' => $completionTime,
             'volume_terkirim' => $this->faker->numberBetween(500, 5000),

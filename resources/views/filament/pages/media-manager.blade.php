@@ -243,7 +243,7 @@
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by uploading your first media file.
                 </p>
                 <div class="mt-6">
-                    {{ ($this->uploadMediaAction)(['size' => 'lg']) }}
+                    {{-- {{ ($this->uploadMediaAction)(['size' => 'lg']) }} --}}
                 </div>
             </div>
         @endif

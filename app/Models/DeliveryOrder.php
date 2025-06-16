@@ -76,14 +76,20 @@ class DeliveryOrder extends Model
         return $this->belongsTo(Kendaraan::class, 'id_kendaraan');
     }
 
+    /**
+     * Get the uang jalan (driver allowance) associated with the delivery order.
+     */
     public function uangJalan()
     {
-        return $this->hasOne(UangJalan::class, 'id_do');
+        return $this->hasOne(\App\Models\UangJalan::class, 'id_do');
     }
 
+    /**
+     * Get the pengiriman driver (driver delivery) associated with the delivery order.
+     */
     public function pengirimanDriver()
     {
-        return $this->hasOne(PengirimanDriver::class, 'id_do');
+        return $this->hasOne(\App\Models\PengirimanDriver::class, 'id_do');
     }
 
     public function createdBy()

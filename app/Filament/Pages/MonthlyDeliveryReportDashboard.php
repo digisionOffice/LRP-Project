@@ -2,8 +2,6 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\User;
-use App\Models\Kendaraan;
 use Filament\Pages\Page;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -25,8 +23,6 @@ class MonthlyDeliveryReportDashboard extends Page implements HasForms
 
     public ?string $selectedMonth = null;
     public ?string $selectedYear = null;
-    public ?string $selectedDriver = null;
-    public ?string $selectedVehicle = null;
 
     public function mount(): void
     {
@@ -55,31 +51,17 @@ class MonthlyDeliveryReportDashboard extends Page implements HasForms
                         '12' => 'Desember',
                     ])
                     ->default(now()->format('m'))
-                    ->live(),
+                    ->live()
+                    ->required(),
 
                 Select::make('selectedYear')
                     ->label('Tahun')
                     ->options(collect(range(now()->year - 2, now()->year + 1))->mapWithKeys(fn($year) => [$year => $year]))
                     ->default(now()->format('Y'))
-                    ->live(),
-
-                Select::make('selectedDriver')
-                    ->label('Sopir (Opsional)')
-                    ->options(User::whereHas('jabatan', function ($query) {
-                        $query->where('nama', 'like', '%driver%');
-                    })->pluck('name', 'id'))
-                    ->searchable()
-                    ->placeholder('Semua Sopir')
-                    ->live(),
-
-                Select::make('selectedVehicle')
-                    ->label('Kendaraan (Opsional)')
-                    ->options(Kendaraan::pluck('no_pol_kendaraan', 'id'))
-                    ->searchable()
-                    ->placeholder('Semua Kendaraan')
-                    ->live(),
+                    ->live()
+                    ->required(),
             ])
-            ->columns(4);
+            ->columns(2);
     }
 
     public function getDeliveryKpiData(): array
@@ -88,14 +70,6 @@ class MonthlyDeliveryReportDashboard extends Page implements HasForms
         $endDate = $startDate->copy()->endOfMonth();
 
         $baseQuery = DB::table('delivery_order')->whereBetween('tanggal_delivery', [$startDate, $endDate]);
-
-        if ($this->selectedDriver) {
-            $baseQuery->where('id_user', $this->selectedDriver);
-        }
-
-        if ($this->selectedVehicle) {
-            $baseQuery->where('id_kendaraan', $this->selectedVehicle);
-        }
 
         $totalDeliveries = $baseQuery->count();
         $completedDeliveries = (clone $baseQuery)->where('status_muat', 'selesai')->count();
@@ -179,21 +153,30 @@ class MonthlyDeliveryReportDashboard extends Page implements HasForms
         $startDate = Carbon::createFromFormat('Y-m-d', "{$this->selectedYear}-{$this->selectedMonth}-01")->startOfMonth();
         $endDate = $startDate->copy()->endOfMonth();
 
+        // Get all delivery data for the month in one query for better performance
+        $monthlyDeliveries = DB::table('delivery_order')
+            ->whereBetween('tanggal_delivery', [$startDate, $endDate])
+            ->select([
+                DB::raw('DATE(tanggal_delivery) as delivery_date'),
+                DB::raw('COUNT(*) as total_deliveries'),
+                DB::raw('COUNT(CASE WHEN status_muat = "selesai" THEN 1 END) as completed_deliveries')
+            ])
+            ->groupBy(DB::raw('DATE(tanggal_delivery)'))
+            ->get()
+            ->keyBy('delivery_date');
+
         $dailyData = [];
         $current = $startDate->copy();
 
         while ($current <= $endDate) {
-            $dayDeliveries = DB::table('delivery_order')->whereDate('tanggal_delivery', $current)->count();
-            $dayCompleted = DB::table('delivery_order')
-                ->whereDate('tanggal_delivery', $current)
-                ->where('status_muat', 'selesai')
-                ->count();
+            $dateKey = $current->format('Y-m-d');
+            $dayData = $monthlyDeliveries->get($dateKey);
 
             $dailyData[] = [
-                'date' => $current->format('Y-m-d'),
+                'date' => $dateKey,
                 'day' => $current->format('d'),
-                'total_deliveries' => $dayDeliveries,
-                'completed_deliveries' => $dayCompleted,
+                'total_deliveries' => $dayData ? (int)$dayData->total_deliveries : 0,
+                'completed_deliveries' => $dayData ? (int)$dayData->completed_deliveries : 0,
             ];
 
             $current->addDay();
@@ -207,20 +190,12 @@ class MonthlyDeliveryReportDashboard extends Page implements HasForms
         $startDate = Carbon::createFromFormat('Y-m-d', "{$this->selectedYear}-{$this->selectedMonth}-01")->startOfMonth();
         $endDate = $startDate->copy()->endOfMonth();
 
-        $query = DB::table('delivery_order')->whereBetween('tanggal_delivery', [$startDate, $endDate]);
-
-        if ($this->selectedDriver) {
-            $query->where('id_user', $this->selectedDriver);
-        }
-
-        if ($this->selectedVehicle) {
-            $query->where('id_kendaraan', $this->selectedVehicle);
-        }
-
-        $results = $query->select([
-            'status_muat',
-            DB::raw('COUNT(*) as count')
-        ])
+        $results = DB::table('delivery_order')
+            ->whereBetween('tanggal_delivery', [$startDate, $endDate])
+            ->select([
+                'status_muat',
+                DB::raw('COUNT(*) as count')
+            ])
             ->groupBy('status_muat')
             ->get();
 
@@ -236,27 +211,5 @@ class MonthlyDeliveryReportDashboard extends Page implements HasForms
         }
 
         return $distribution;
-    }
-
-    public function getGeographicalDistribution(): array
-    {
-        $startDate = Carbon::createFromFormat('Y-m-d', "{$this->selectedYear}-{$this->selectedMonth}-01")->startOfMonth();
-        $endDate = $startDate->copy()->endOfMonth();
-
-        return DB::table('delivery_order')
-            ->join('transaksi_penjualan', 'delivery_order.id_transaksi', '=', 'transaksi_penjualan.id')
-            ->leftJoin('subdistricts', 'transaksi_penjualan.id_subdistrict', '=', 'subdistricts.id')
-            ->leftJoin('districts', 'subdistricts.district_id', '=', 'districts.id')
-            ->leftJoin('regencies', 'districts.regency_id', '=', 'regencies.id')
-            ->whereBetween('delivery_order.tanggal_delivery', [$startDate, $endDate])
-            ->select([
-                DB::raw('COALESCE(regencies.name, "Unknown") as area'),
-                DB::raw('COUNT(delivery_order.id) as delivery_count')
-            ])
-            ->groupBy('regencies.name')
-            ->orderBy('delivery_count', 'desc')
-            ->limit(10)
-            ->get()
-            ->toArray();
     }
 }

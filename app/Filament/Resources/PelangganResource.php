@@ -13,6 +13,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Afsakar\LeafletMapPicker\LeafletMapPicker;
+use Filament\Notifications\Notification;
 
 class PelangganResource extends Resource
 {
@@ -68,32 +70,106 @@ class PelangganResource extends Resource
                             ->tel()
                             ->maxLength(15)
                             ->placeholder('Contoh: 021-5551234'),
+
+                        Forms\Components\TextInput::make('npwp')
+                            ->label('NPWP')
+                            ->maxLength(20)
+                            ->placeholder('Contoh: 01.234.567.8-901.000'),
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Alamat')
+                Forms\Components\Section::make('Alamat Pelanggan')
+                    ->description('Kelola alamat-alamat pelanggan dengan lokasi peta')
+                    ->icon('heroicon-o-map-pin')
                     ->schema([
-                        Forms\Components\Select::make('id_subdistrict')
-                            ->label('Kelurahan')
-                            ->options(Subdistrict::with('district.regency.province')
-                                ->get()
-                                ->mapWithKeys(function ($subdistrict) {
-                                    return [
-                                        $subdistrict->id => $subdistrict->name .
-                                            ' - ' . $subdistrict->district->name .
-                                            ', ' . $subdistrict->district->regency->name .
-                                            ', ' . $subdistrict->district->regency->province->name
-                                    ];
-                                }))
-                            ->searchable()
-                            ->placeholder('Pilih kelurahan'),
+                        Forms\Components\Repeater::make('alamatPelanggan')
+                            ->relationship('alamatPelanggan')
+                            ->schema([
+                                Forms\Components\Grid::make(2)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('alamat')
+                                            ->label('Alamat Lengkap')
+                                            ->placeholder('Masukkan alamat lengkap...')
+                                            ->required()
+                                            ->columnSpan(1),
 
-                        Forms\Components\Textarea::make('alamat')
-                            ->label('Alamat Lengkap')
-                            ->rows(3)
-                            ->placeholder('Masukkan alamat lengkap')
+                                        Forms\Components\Toggle::make('is_primary')
+                                            ->label('Alamat Utama')
+                                            ->helperText('Jadikan alamat ini sebagai alamat utama')
+                                            ->default(false)
+                                            ->reactive()
+                                            ->afterStateUpdated(function ($state) {
+                                                if ($state) {
+                                                    Notification::make()
+                                                        ->title('Alamat Utama')
+                                                        ->body('Alamat ini akan menjadi alamat utama. Alamat utama lainnya akan dinonaktifkan.')
+                                                        ->info()
+                                                        ->send();
+                                                }
+                                            })
+                                            ->columnSpan(1),
+                                    ]),
+
+                                LeafletMapPicker::make('location')
+                                    ->label('Lokasi di Peta')
+                                    ->height('300px')
+                                    ->defaultLocation([0.5394419,101.451907]) // Jakarta default
+                                    ->defaultZoom(15)
+                                    ->draggable(true)
+                                    ->clickable(true)
+                                    ->tileProvider('openstreetmap')
+                                    ->columnSpanFull(),
+
+                            ])
+                            ->defaultItems(1)
+                            ->addActionLabel('Tambah Alamat')
+                            ->deleteAction(
+                                fn($action) => $action->requiresConfirmation()
+                                    ->modalHeading('Hapus Alamat')
+                                    ->modalDescription('Apakah Anda yakin ingin menghapus alamat ini?')
+                                    ->modalSubmitActionLabel('Ya, Hapus')
+                            )
+                            ->reorderable(false)
+                            ->collapsible()
+                            ->itemLabel(function (array $state): ?string {
+                                if (!empty($state['alamat'])) {
+                                    $primary = $state['is_primary'] ?? false;
+                                    $label = $state['alamat'];
+                                    if (strlen($label) > 50) {
+                                        $label = substr($label, 0, 50) . '...';
+                                    }
+                                    return ($primary ? '⭐ ' : '') . $label;
+                                }
+                                return 'Alamat Baru';
+                            })
                             ->columnSpanFull(),
-                    ]),
+                    ])
+                    ->collapsible()
+                    ->collapsed(false),
+
+                // Forms\Components\Section::make('Alamat')
+                //     ->schema([
+                //         Forms\Components\Select::make('id_subdistrict')
+                //             ->label('Kelurahan')
+                //             ->options(Subdistrict::with('district.regency.province')
+                //                 ->get()
+                //                 ->mapWithKeys(function ($subdistrict) {
+                //                     return [
+                //                         $subdistrict->id => $subdistrict->name .
+                //                             ' - ' . $subdistrict->district->name .
+                //                             ', ' . $subdistrict->district->regency->name .
+                //                             ', ' . $subdistrict->district->regency->province->name
+                //                     ];
+                //                 }))
+                //             ->searchable()
+                //             ->placeholder('Pilih kelurahan'),
+
+                //         Forms\Components\Textarea::make('alamat')
+                //             ->label('Alamat Lengkap')
+                //             ->rows(3)
+                //             ->placeholder('Masukkan alamat lengkap')
+                //             ->columnSpanFull(),
+                //     ]),
             ]);
     }
 
@@ -131,6 +207,39 @@ class PelangganResource extends Resource
                     ->label('Telepon')
                     ->searchable()
                     ->copyable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('npwp')
+                    ->label('NPWP')
+                    ->searchable()
+                    ->copyable()
+                    ->placeholder('T/A')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('alamat_pelanggan_count')
+                    ->label('Jumlah Alamat')
+                    ->counts('alamatPelanggan')
+                    ->badge()
+                    ->color('info')
+                    ->icon('heroicon-m-map-pin'),
+
+                Tables\Columns\TextColumn::make('primary_address')
+                    ->label('Alamat Utama')
+                    ->getStateUsing(function ($record) {
+                        $primaryAddress = $record->alamatPelanggan()->where('is_primary', true)->first();
+                        if ($primaryAddress) {
+                            return strlen($primaryAddress->alamat) > 40
+                                ? substr($primaryAddress->alamat, 0, 40) . '...'
+                                : $primaryAddress->alamat;
+                        }
+                        return 'Belum ada alamat utama';
+                    })
+                    ->tooltip(function ($record) {
+                        $primaryAddress = $record->alamatPelanggan()->where('is_primary', true)->first();
+                        return $primaryAddress ? $primaryAddress->alamat : null;
+                    })
+                    ->icon('heroicon-m-star')
+                    ->color(fn($record) => $record->alamatPelanggan()->where('is_primary', true)->exists() ? 'warning' : 'gray')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('subdistrict.name')

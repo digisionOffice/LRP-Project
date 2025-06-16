@@ -89,6 +89,92 @@ class DeliveryOrderResource extends Resource
                     ])
                     ->columns(2),
 
+                Forms\Components\Section::make('Driver Allowance Information')
+                    ->schema([
+                        Forms\Components\Fieldset::make('Existing Allowance')
+                            ->schema([
+                                Forms\Components\TextInput::make('uangJalan.nominal')
+                                    ->label('Allowance Amount')
+                                    ->numeric()
+                                    ->prefix('IDR')
+                                    ->minValue(0),
+
+                                Forms\Components\Toggle::make('uangJalan.status_kirim')
+                                    ->label('Sending Status')
+                                    ->helperText('Toggle on if allowance has been sent to driver'),
+
+                                Forms\Components\DatePicker::make('uangJalan.tanggal_kirim')
+                                    ->label('Sending Date'),
+
+                                Forms\Components\Toggle::make('uangJalan.status_terima')
+                                    ->label('Receipt Status')
+                                    ->helperText('Toggle on if allowance receipt has been confirmed'),
+
+                                Forms\Components\DatePicker::make('uangJalan.tanggal_terima')
+                                    ->label('Receipt Date'),
+
+                                Forms\Components\FileUpload::make('uangJalan.bukti_kirim')
+                                    ->label('Sending Proof')
+                                    ->directory('allowance-proofs')
+                                    ->visibility('private')
+                                    ->downloadable(),
+
+                                Forms\Components\FileUpload::make('uangJalan.bukti_terima')
+                                    ->label('Receipt Proof')
+                                    ->directory('allowance-proofs')
+                                    ->visibility('private')
+                                    ->downloadable(),
+                            ])
+                            ->columns(2)
+                            ->visible(fn ($record) => $record && $record->uangJalan),
+
+                        Forms\Components\Placeholder::make('create_allowance_placeholder')
+                            ->label('No Driver Allowance Record')
+                            ->content('Save this delivery order first, then you can create a driver allowance record.')
+                            ->visible(fn ($record) => $record && !$record->uangJalan),
+                    ])
+                    ->collapsible(),
+
+                Forms\Components\Section::make('Driver Delivery Information')
+                    ->schema([
+                        Forms\Components\Fieldset::make('Delivery Progress')
+                            ->schema([
+                                Forms\Components\DateTimePicker::make('pengirimanDriver.waktu_berangkat')
+                                    ->label('Departure Time'),
+
+                                Forms\Components\DateTimePicker::make('pengirimanDriver.waktu_tiba')
+                                    ->label('Arrival Time'),
+
+                                Forms\Components\DateTimePicker::make('pengirimanDriver.waktu_selesai')
+                                    ->label('Completion Time'),
+
+                                Forms\Components\TextInput::make('pengirimanDriver.volume_terkirim')
+                                    ->label('Delivered Volume')
+                                    ->numeric(),
+
+                                Forms\Components\Textarea::make('pengirimanDriver.catatan_pengiriman')
+                                    ->label('Delivery Notes')
+                                    ->rows(3)
+                                    ->columnSpanFull(),
+
+                                Forms\Components\FileUpload::make('pengirimanDriver.foto_pengiriman')
+                                    ->label('Delivery Photos')
+                                    ->directory('delivery-photos')
+                                    ->visibility('private')
+                                    ->multiple()
+                                    ->downloadable()
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(2)
+                            ->visible(fn ($record) => $record && $record->pengirimanDriver),
+
+                        Forms\Components\Placeholder::make('create_delivery_placeholder')
+                            ->label('No Driver Delivery Record')
+                            ->content('Save this delivery order first, then you can create a driver delivery record.')
+                            ->visible(fn ($record) => $record && !$record->pengirimanDriver),
+                    ])
+                    ->collapsible(),
+
                 Forms\Components\Section::make('Informasi Muat')
                     ->description('Informasi ini akan diisi oleh supir setelah barang dikirim')
                     ->schema([
@@ -286,3 +372,4 @@ class DeliveryOrderResource extends Resource
         ];
     }
 }
+

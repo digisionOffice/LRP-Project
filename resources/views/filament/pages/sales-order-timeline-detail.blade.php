@@ -277,6 +277,8 @@
                                                             <h4
                                                                 class="text-lg font-semibold text-gray-900 dark:text-white">
                                                                 {{ $event['title'] }}</h4>
+                                                                {{-- link for detail --}}
+                                                                <a href="{{ $event['link'] }}">Lihat detail</a>
                                                             <div class="flex items-center gap-2 mt-1">
                                                                 <svg class="w-4 h-4 text-gray-400" fill="none"
                                                                     stroke="currentColor" viewBox="0 0 24 24">

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('kode_akun', 20)->unique();
             $table->string('nama_akun', 100);
-            $table->enum('tipe_akun', ['aktiva', 'kewajiban', 'modal', 'pendapatan', 'biaya']);
+            $table->enum('tipe_akun', ['Aktiva', 'Kewajiban', 'Modal', 'Pendapatan', 'Beban']);
             $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamps();
             $table->softDeletes();

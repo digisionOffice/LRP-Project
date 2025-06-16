@@ -17,6 +17,7 @@ class Pelanggan extends Model
         'nama',
         'pic_nama',
         'pic_phone',
+        'npwp',
         'id_subdistrict',
         'alamat',
         'created_by',
@@ -33,9 +34,14 @@ class Pelanggan extends Model
         return $this->belongsTo(Subdistrict::class, 'id_subdistrict');
     }
 
-    public function alamatKirim()
+    public function alamatUtama()
     {
-        return $this->hasMany(PelangganAlamatKirim::class, 'id_pelanggan');
+        return $this->hasOne(AlamatPelanggan::class, 'id_pelanggan')->where('is_primary', true);
+    }
+
+    public function alamatPelanggan()
+    {
+        return $this->hasMany(AlamatPelanggan::class, 'id_pelanggan');
     }
 
     public function details()

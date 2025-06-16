@@ -74,7 +74,6 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                         'penjualanDetails.item.kategori',
                         'penjualanDetails.item.satuan',
                         'tbbm',
-                        'subdistrict.district.regency.province'
                     ])
                     ->latest()
             )
@@ -102,7 +101,7 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                     })
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('alamat')
+                Tables\Columns\TextColumn::make('alamatPelanggan.alamat')
                     ->label('Lokasi Pengiriman')
                     ->limit(30)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
@@ -140,17 +139,7 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                     ->date('d M Y')
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('has_attachment')
-                    ->label('File')
-                    ->boolean()
-                    ->getStateUsing(fn($record) => $record->hasAttachment())
-                    ->trueIcon('heroicon-o-paper-clip')
-                    ->falseIcon('heroicon-o-minus')
-                    ->trueColor('success')
-                    ->falseColor('gray')
-                    ->tooltip(fn($record) => $record->hasAttachment()
-                        ? 'Lampiran: ' . $record->attachment_original_name
-                        : 'Tidak ada lampiran'),
+
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('id_pelanggan')

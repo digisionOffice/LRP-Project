@@ -13,19 +13,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            MasterDataSeeder::class,
-            RolePermissionSeeder::class, // Must run before UserSeeder
-            UserSeeder::class,
-            ItemSeeder::class,
-            TbbmSeeder::class,
-            PelangganSeeder::class,
-            SupplierSeeder::class,
-            KendaraanSeeder::class,
-            ExpenseRequestSeeder::class,
-            DeliveryOrderSeeder::class,
-            FuelDeliveryTestSeeder::class,
-            SuratSeeder::class,
-
+            ComprehensiveSeeder::class,
         ]);
     }
 }

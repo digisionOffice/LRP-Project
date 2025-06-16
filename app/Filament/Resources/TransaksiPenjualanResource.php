@@ -12,6 +12,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 
 class TransaksiPenjualanResource extends Resource
 {
@@ -37,18 +39,85 @@ class TransaksiPenjualanResource extends Resource
                             ->unique(ignoreRecord: true)
                             ->maxLength(50),
 
-                        Forms\Components\Select::make('tipe')
-                            ->label('Tipe')
-                            ->options([
-                                'dagang' => 'Dagang',
-                                'jasa' => 'Jasa',
+                        // media upload sales order
+                        SpatieMediaLibraryFileUpload::make('dokumen_so')
+                            ->label('Dokumen SO')
+                            ->collection('dokumen_so')
+                            ->acceptedFileTypes([
+                                'application/pdf',
+                                'application/msword',
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                'image/jpeg',
+                                'image/png'
                             ])
-                            ->required(),
+                            ->maxSize(10240),
+
+                        // Forms\Components\Select::make('tipe')
+                        //     ->label('Tipe')
+                        //     ->options([
+                        //         'dagang' => 'Dagang',
+                        //         'jasa' => 'Jasa',
+                        //     ])
+                        //     ->required(),
 
                         Forms\Components\DateTimePicker::make('tanggal')
                             ->label('Tanggal Pesanan')
                             ->required()
                             ->default(now()),
+
+
+
+                        Forms\Components\Select::make('id_tbbm')
+                            ->label('Lokasi TBBM')
+                            ->relationship('tbbm', 'nama')
+                            ->searchable()
+                            ->required()
+                            ->preload(),
+
+                        Forms\Components\TextInput::make('nomor_po')
+                            ->label('Nomor PO')
+                            ->required()
+                            ->maxLength(50),
+
+                        // media upload sales order
+                        SpatieMediaLibraryFileUpload::make('dokumen_po')
+                            ->label('Dokumen PO')
+                            ->collection('dokumen_po')
+                            ->acceptedFileTypes([
+                                'application/pdf',
+                                'application/msword',
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                'image/jpeg',
+                                'image/png'
+                            ])
+                            ->maxSize(10240),
+                        Forms\Components\TextInput::make('nomor_sph')
+                            ->label('Nomor SPH')
+                            ->required()
+                            ->maxLength(50),
+
+                        // media upload sales order
+                        SpatieMediaLibraryFileUpload::make('dokumen_sph')
+                            ->label('Dokumen SPH')
+                            ->collection('dokumen_sph')
+                            ->acceptedFileTypes([
+                                'application/pdf',
+                                'application/msword',
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                'image/jpeg',
+                                'image/png'
+                            ])
+                            ->maxSize(10240),
+                    ])
+                    ->columns(2),
+
+                Forms\Components\Section::make('Informasi Pengiriman')
+                    ->schema([
+                        // Forms\Components\Select::make('id_subdistrict')
+                        //     ->label('Kelurahan')
+                        //     ->relationship('subdistrict', 'name')
+                        //     ->searchable()
+                        //     ->preload(),
 
                         Forms\Components\Select::make('id_pelanggan')
                             ->label('Pelanggan')
@@ -56,30 +125,28 @@ class TransaksiPenjualanResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required(),
-
-                        Forms\Components\Select::make('id_tbbm')
-                            ->label('Lokasi TBBM')
-                            ->relationship('tbbm', 'nama')
-                            ->searchable()
-                            ->preload(),
-                    ])
-                    ->columns(2),
-
-                Forms\Components\Section::make('Informasi Pengiriman')
-                    ->schema([
-                        Forms\Components\Select::make('id_subdistrict')
-                            ->label('Kelurahan')
-                            ->relationship('subdistrict', 'name')
-                            ->searchable()
-                            ->preload(),
-
-                        Forms\Components\Textarea::make('alamat')
+                        Forms\Components\Select::make('id_alamat_pelanggan')
                             ->label('Alamat Pengiriman')
-                            ->rows(3),
+                            ->required()
+                            ->relationship(
+                                'alamatPelanggan',
+                                'alamat',
+                                fn(Builder $query, $get) =>
+                                $query->where('id_pelanggan', $get('id_pelanggan'))
+                            )
+                            ->searchable()
+                            ->preload()
+                            ->disabled(fn($get) => !$get('id_pelanggan')),
 
-                        Forms\Components\TextInput::make('nomor_po')
-                            ->label('Nomor PO')
-                            ->maxLength(50),
+
+
+
+
+                        Forms\Components\TextInput::make('data_dp')
+                            ->label('Data DP')
+                            ->numeric()
+                            ->prefix('IDR')
+                            ->step(0.01),
 
                         Forms\Components\TextInput::make('top_pembayaran')
                             ->label('Termin Pembayaran (Hari)')
@@ -180,44 +247,6 @@ class TransaksiPenjualanResource extends Resource
                     ])
                     ->collapsible(),
 
-                Forms\Components\Section::make('Lampiran Dokumen')
-                    ->description('Unggah dokumen pendukung untuk pesanan penjualan ini')
-                    ->schema([
-                        Forms\Components\FileUpload::make('attachment_path')
-                            ->label('Lampiran')
-                            ->disk('public')
-                            ->directory('sales-orders')
-                            ->acceptedFileTypes([
-                                'application/pdf',
-                                'application/msword',
-                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                                'application/vnd.ms-excel',
-                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                                'image/jpeg',
-                                'image/png',
-                                'image/gif',
-                                'text/plain'
-                            ])
-                            ->maxSize(10240) // 10MB
-                            ->helperText('Format yang didukung: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, TXT. Ukuran maksimal: 10MB')
-                            ->storeFileNamesIn('attachment_original_name')
-                            ->reactive()
-                            ->afterStateUpdated(function ($state, callable $set) {
-                                if ($state) {
-                                    $file = $state;
-                                    if (is_object($file) && method_exists($file, 'getMimeType')) {
-                                        $set('attachment_mime_type', $file->getMimeType());
-                                        $set('attachment_size', $file->getSize());
-                                    }
-                                }
-                            }),
-
-                        Forms\Components\Hidden::make('attachment_original_name'),
-                        Forms\Components\Hidden::make('attachment_mime_type'),
-                        Forms\Components\Hidden::make('attachment_size'),
-                    ])
-                    ->collapsible()
-                    ->collapsed(),
             ]);
     }
 
@@ -255,6 +284,18 @@ class TransaksiPenjualanResource extends Resource
                     ->searchable()
                     ->placeholder('T/A'),
 
+                Tables\Columns\TextColumn::make('nomor_sph')
+                    ->label('Nomor SPH')
+                    ->searchable()
+                    ->placeholder('T/A')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('data_dp')
+                    ->label('Data DP')
+                    ->money('IDR')
+                    ->placeholder('T/A')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('top_pembayaran')
                     ->label('Termin Pembayaran')
                     ->formatStateUsing(fn($state) => $state ? "{$state} hari" : 'Tunai')
@@ -271,17 +312,29 @@ class TransaksiPenjualanResource extends Resource
                     ->badge()
                     ->color('info'),
 
-                Tables\Columns\IconColumn::make('has_attachment')
-                    ->label('Lampiran')
+                Tables\Columns\IconColumn::make('has_dokumen_sph')
+                    ->label('Dokumen SPH')
                     ->boolean()
-                    ->getStateUsing(fn($record) => $record->hasAttachment())
-                    ->trueIcon('heroicon-o-paper-clip')
+                    ->getStateUsing(fn($record) => $record->getMedia('dokumen_sph')->count() > 0)
+                    ->trueIcon('heroicon-o-document-text')
                     ->falseIcon('heroicon-o-minus')
                     ->trueColor('success')
                     ->falseColor('gray')
-                    ->tooltip(fn($record) => $record->hasAttachment()
-                        ? 'File: ' . $record->attachment_original_name . ' (' . $record->getFormattedFileSize() . ')'
-                        : 'Tidak ada lampiran'),
+                    ->tooltip(fn($record) => $record->getMedia('dokumen_sph')->count() > 0
+                        ? $record->getMedia('dokumen_sph')->count() . ' dokumen SPH'
+                        : 'Tidak ada dokumen SPH'),
+
+                Tables\Columns\IconColumn::make('has_dokumen_dp')
+                    ->label('Dokumen DP')
+                    ->boolean()
+                    ->getStateUsing(fn($record) => $record->getMedia('dokumen_dp')->count() > 0)
+                    ->trueIcon('heroicon-o-document-text')
+                    ->falseIcon('heroicon-o-minus')
+                    ->trueColor('info')
+                    ->falseColor('gray')
+                    ->tooltip(fn($record) => $record->getMedia('dokumen_dp')->count() > 0
+                        ? $record->getMedia('dokumen_dp')->count() . ' dokumen DP'
+                        : 'Tidak ada dokumen DP'),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
@@ -309,26 +362,44 @@ class TransaksiPenjualanResource extends Resource
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\TernaryFilter::make('has_attachment')
-                    ->label('Memiliki Lampiran')
+                Tables\Filters\TernaryFilter::make('has_dokumen_sph')
+                    ->label('Memiliki Dokumen SPH')
                     ->placeholder('Semua Data')
-                    ->trueLabel('Dengan Lampiran')
-                    ->falseLabel('Tanpa Lampiran')
+                    ->trueLabel('Dengan Dokumen SPH')
+                    ->falseLabel('Tanpa Dokumen SPH')
                     ->queries(
-                        true: fn($query) => $query->whereNotNull('attachment_path'),
-                        false: fn($query) => $query->whereNull('attachment_path'),
+                        true: fn($query) => $query->whereHas('media', function ($q) {
+                            $q->where('collection_name', 'dokumen_sph');
+                        }),
+                        false: fn($query) => $query->whereDoesntHave('media', function ($q) {
+                            $q->where('collection_name', 'dokumen_sph');
+                        }),
+                    ),
+
+                Tables\Filters\TernaryFilter::make('has_dokumen_dp')
+                    ->label('Memiliki Dokumen DP')
+                    ->placeholder('Semua Data')
+                    ->trueLabel('Dengan Dokumen DP')
+                    ->falseLabel('Tanpa Dokumen DP')
+                    ->queries(
+                        true: fn($query) => $query->whereHas('media', function ($q) {
+                            $q->where('collection_name', 'dokumen_dp');
+                        }),
+                        false: fn($query) => $query->whereDoesntHave('media', function ($q) {
+                            $q->where('collection_name', 'dokumen_dp');
+                        }),
                     ),
             ])
             ->actions([
-                Tables\Actions\Action::make('download_attachment')
-                    ->label('Unduh')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('info')
-                    ->url(fn($record) => $record->getAttachmentUrl())
-                    ->openUrlInNewTab()
-                    ->visible(fn($record) => $record->hasAttachment()),
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                // lihat timeline
+                Tables\Actions\Action::make('view_timeline')
+                    ->label('Lihat Timeline')
+                    ->icon('heroicon-o-clock')
+                    ->url(fn(TransaksiPenjualan $record): string => "/admin/sales-order-timeline-detail?record={$record->id}")
+                    ->openUrlInNewTab(false),
+
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([

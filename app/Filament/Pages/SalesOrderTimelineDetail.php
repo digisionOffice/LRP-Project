@@ -5,7 +5,6 @@ namespace App\Filament\Pages;
 use App\Models\TransaksiPenjualan;
 use App\Models\DeliveryOrder;
 use App\Models\PengirimanDriver;
-use App\Models\UangJalan;
 use Filament\Pages\Page;
 use Filament\Support\Enums\MaxWidth;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -35,7 +34,6 @@ class SalesOrderTimelineDetail extends Page
                 'penjualanDetails.item.kategori',
                 'penjualanDetails.item.satuan',
                 'tbbm',
-                'subdistrict.district.regency.province',
                 'createdBy'
             ])->findOrFail($recordId);
         } catch (ModelNotFoundException) {
@@ -77,6 +75,7 @@ class SalesOrderTimelineDetail extends Page
         $events->push([
             'type' => 'sales_order_created',
             'title' => 'Sales Order Dibuat',
+            'link' => route('filament.admin.resources.transaksi-penjualans.view', ['record' => $this->record->id]),
             'description' => 'Sales order dibuat dan dikonfirmasi',
             'timestamp' => $this->record->created_at,
             'icon' => 'heroicon-o-document-plus',
@@ -98,6 +97,7 @@ class SalesOrderTimelineDetail extends Page
             $events->push([
                 'type' => 'delivery_order_created',
                 'title' => 'Delivery Order Dibuat',
+                'link' => route('filament.admin.resources.delivery-orders.view', ['record' => $do->id]),
                 'description' => 'Delivery order dibuat untuk pesanan penjualan ini',
                 'timestamp' => $do->created_at,
                 'icon' => 'heroicon-o-truck',
@@ -117,6 +117,7 @@ class SalesOrderTimelineDetail extends Page
                 $events->push([
                     'type' => 'loading_started',
                     'title' => 'Muat Dimulai',
+                    'link' => route('filament.admin.resources.delivery-orders.view', ['record' => $do->id]),
                     'description' => 'Proses muat dimulai',
                     'timestamp' => $do->waktu_muat,
                     'icon' => 'heroicon-o-arrow-down-on-square',
@@ -132,6 +133,7 @@ class SalesOrderTimelineDetail extends Page
                 $events->push([
                     'type' => 'loading_completed',
                     'title' => 'Muat Selesai',
+                    'link' => route('filament.admin.resources.delivery-orders.view', ['record' => $do->id]),
                     'description' => 'Proses muat selesai',
                     'timestamp' => $do->waktu_selesai_muat,
                     'icon' => 'heroicon-o-check-circle',
@@ -150,6 +152,7 @@ class SalesOrderTimelineDetail extends Page
                 $events->push([
                     'type' => 'allowance_created',
                     'title' => 'Uang Jalan Dibuat',
+                    'link' => route('filament.admin.resources.uang-jalans.view', ['record' => $allowance->id]),
                     'description' => 'Uang jalan dibuat',
                     'timestamp' => $allowance->created_at,
                     'icon' => 'heroicon-o-banknotes',
@@ -171,6 +174,7 @@ class SalesOrderTimelineDetail extends Page
                     $events->push([
                         'type' => 'delivery_departed',
                         'title' => 'Pengiriman Berangkat',
+                        'link' => route('filament.admin.resources.pengiriman-drivers.view', ['record' => $delivery->id]),
                         'description' => 'Kendaraan berangkat untuk pengiriman',
                         'timestamp' => $delivery->waktu_berangkat,
                         'icon' => 'heroicon-o-arrow-right',
@@ -187,6 +191,7 @@ class SalesOrderTimelineDetail extends Page
                     $events->push([
                         'type' => 'delivery_arrived',
                         'title' => 'Pengiriman Tiba',
+                        'link' => route('filament.admin.resources.pengiriman-drivers.view', ['record' => $delivery->id]),
                         'description' => 'Kendaraan tiba di lokasi tujuan',
                         'timestamp' => $delivery->waktu_tiba,
                         'icon' => 'heroicon-o-map-pin',
@@ -202,6 +207,7 @@ class SalesOrderTimelineDetail extends Page
                     $events->push([
                         'type' => 'delivery_completed',
                         'title' => 'Pengiriman Selesai',
+                        'link' => route('filament.admin.resources.pengiriman-drivers.view', ['record' => $delivery->id]),
                         'description' => 'Pengiriman selesai',
                         'timestamp' => $delivery->waktu_selesai,
                         'icon' => 'heroicon-o-check-badge',

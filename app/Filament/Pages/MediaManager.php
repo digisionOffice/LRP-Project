@@ -61,80 +61,80 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
         $this->resetTable();
     }
 
-    protected function getHeaderActions(): array
-    {
-        return [
-            Action::make('uploadMedia')
-                ->label('Unggah Media')
-                ->icon('heroicon-o-cloud-arrow-up')
-                ->color('primary')
-                ->form([
-                    FileUpload::make('files')
-                        ->label('Pilih File')
-                        ->multiple()
-                        ->acceptedFileTypes(['image/*', 'application/pdf'])
-                        ->maxSize(10240) // 10MB
-                        ->helperText('Unggah gambar atau file PDF (maksimal 10MB per file)')
-                        ->required(),
+    // protected function getHeaderActions(): array
+    // {
+    //     return [
+    //         Action::make('uploadMedia')
+    //             ->label('Unggah Media')
+    //             ->icon('heroicon-o-cloud-arrow-up')
+    //             ->color('primary')
+    //             ->form([
+    //                 FileUpload::make('files')
+    //                     ->label('Pilih File')
+    //                     ->multiple()
+    //                     ->acceptedFileTypes(['image/*', 'application/pdf'])
+    //                     ->maxSize(10240) // 10MB
+    //                     ->helperText('Unggah gambar atau file PDF (maksimal 10MB per file)')
+    //                     ->required(),
 
-                    Select::make('model_type')
-                        ->label('Asosiasi dengan Model')
-                        ->options([
-                            'none' => 'Tanpa Asosiasi',
-                            'user' => 'Pengguna',
-                            'item' => 'Item',
-                        ])
-                        ->default('none')
-                        ->reactive(),
+    //                 Select::make('model_type')
+    //                     ->label('Asosiasi dengan Model')
+    //                     ->options([
+    //                         'none' => 'Tanpa Asosiasi',
+    //                         'user' => 'Pengguna',
+    //                         'item' => 'Item',
+    //                     ])
+    //                     ->default('none')
+    //                     ->reactive(),
 
-                    Select::make('model_id')
-                        ->label('Pilih Instance Model')
-                        ->options(function (callable $get) {
-                            $modelType = $get('model_type');
-                            if ($modelType === 'user') {
-                                return User::pluck('name', 'id');
-                            } elseif ($modelType === 'item') {
-                                return Item::pluck('name', 'id');
-                            }
-                            return [];
-                        })
-                        ->visible(fn(callable $get) => $get('model_type') !== 'none')
-                        ->searchable(),
+    //                 Select::make('model_id')
+    //                     ->label('Pilih Instance Model')
+    //                     ->options(function (callable $get) {
+    //                         $modelType = $get('model_type');
+    //                         if ($modelType === 'user') {
+    //                             return User::pluck('name', 'id');
+    //                         } elseif ($modelType === 'item') {
+    //                             return Item::pluck('name', 'id');
+    //                         }
+    //                         return [];
+    //                     })
+    //                     ->visible(fn(callable $get) => $get('model_type') !== 'none')
+    //                     ->searchable(),
 
-                    Select::make('collection')
-                        ->label('Koleksi')
-                        ->options(function (callable $get) {
-                            $modelType = $get('model_type');
-                            if ($modelType === 'user') {
-                                return [
-                                    'avatar' => 'Avatar',
-                                    'documents' => 'Dokumen',
-                                ];
-                            } elseif ($modelType === 'item') {
-                                return [
-                                    'images' => 'Gambar Produk',
-                                    'documents' => 'Dokumen',
-                                ];
-                            }
-                            return ['default' => 'Default'];
-                        })
-                        ->default('default')
-                        ->visible(fn(callable $get) => $get('model_type') !== 'none'),
+    //                 Select::make('collection')
+    //                     ->label('Koleksi')
+    //                     ->options(function (callable $get) {
+    //                         $modelType = $get('model_type');
+    //                         if ($modelType === 'user') {
+    //                             return [
+    //                                 'avatar' => 'Avatar',
+    //                                 'documents' => 'Dokumen',
+    //                             ];
+    //                         } elseif ($modelType === 'item') {
+    //                             return [
+    //                                 'images' => 'Gambar Produk',
+    //                                 'documents' => 'Dokumen',
+    //                             ];
+    //                         }
+    //                         return ['default' => 'Default'];
+    //                     })
+    //                     ->default('default')
+    //                     ->visible(fn(callable $get) => $get('model_type') !== 'none'),
 
-                    TextInput::make('alt_text')
-                        ->label('Teks Alt (untuk gambar)')
-                        ->helperText('Deskripsikan gambar untuk aksesibilitas'),
+    //                 TextInput::make('alt_text')
+    //                     ->label('Teks Alt (untuk gambar)')
+    //                     ->helperText('Deskripsikan gambar untuk aksesibilitas'),
 
-                    Textarea::make('description')
-                        ->label('Deskripsi')
-                        ->rows(3)
-                        ->helperText('Deskripsi opsional untuk file media'),
-                ])
-                ->action(function (array $data): void {
-                    $this->uploadMediaFiles($data);
-                }),
-        ];
-    }
+    //                 Textarea::make('description')
+    //                     ->label('Deskripsi')
+    //                     ->rows(3)
+    //                     ->helperText('Deskripsi opsional untuk file media'),
+    //             ])
+    //             ->action(function (array $data): void {
+    //                 $this->uploadMediaFiles($data);
+    //             }),
+    //     ];
+    // }
 
     protected function uploadMediaFiles(array $data): void
     {

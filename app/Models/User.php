@@ -97,6 +97,10 @@ class User extends Authenticatable implements FilamentUser, HasMedia
         return $this->hasMany(UangJalan::class, 'id_user');
     }
 
+    public function expenseRequests()
+    {
+        return $this->hasMany(ExpenseRequest::class, 'user_id');
+    }
 
 
     public function createdBy()
@@ -140,5 +144,17 @@ class User extends Authenticatable implements FilamentUser, HasMedia
             ->width(300)
             ->height(300)
             ->performOnCollections('avatar', 'standalone');
+    }
+
+    // role
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('super_admin');
+    }
+
+    // get role from  spatie
+    public function getRoleNameAttribute()
+    {
+        return $this->roles->first()->name ?? '';
     }
 }
