@@ -26,26 +26,10 @@ class ViewDeliveryOrder extends ViewRecord
                 Section::make('Informasi Delivery Order')
                     ->schema([
                         TextEntry::make('kode')
+                            ->icon('heroicon-o-document-text')
+                            ->color('primary')
+                            ->weight('bold')
                             ->label('Nomor DO'),
-
-                        TextEntry::make('transaksi.kode')
-                            ->label('Nomor SO'),
-
-                        TextEntry::make('kendaraan.nomor_polisi')
-                            ->label('Nomor Kendaraan'),
-
-                        TextEntry::make('user.name')
-                            ->label('Nama Supir'),
-
-                        TextEntry::make('tanggal_delivery')
-                            ->label('Tanggal Delivery')
-                            ->date(),
-                    ])
-                    ->columns(2)
-                    ->collapsible(),
-                // informasi so
-                Section::make('Sales Order Information')
-                    ->schema([
                         TextEntry::make('transaksi.kode')
                             ->label('Nomor SO'),
 
@@ -53,46 +37,65 @@ class ViewDeliveryOrder extends ViewRecord
                             ->label('Tanggal SO')
                             ->date(),
 
+
+                        TextEntry::make('kendaraan.no_pol_kendaraan')
+                            ->icon('heroicon-o-truck')
+                            ->label('Plat Nomor Truk'),
+
+                        TextEntry::make('user.name')
+                            ->icon('heroicon-o-user')
+                            ->label('Sopir'),
+
+                        TextEntry::make('tanggal_delivery')
+                            ->icon('heroicon-o-calendar')
+                            ->label('Tanggal Pengiriman')
+                            ->datetime(),
+
                         TextEntry::make('transaksi.pelanggan.nama')
+                            ->icon('heroicon-o-building-office')
                             ->label('Nama Pelanggan'),
 
                         TextEntry::make('transaksi.alamatPelanggan.alamat')
+                            ->icon('heroicon-o-map-pin')
                             ->label('Alamat Pelanggan'),
 
                         // use leafleat to show the map
                         LeafletMapPickerEntry::make('transaksi.alamatPelanggan.location')
                             ->label('Lokasi di Peta')
                             ->height('400px')
-                            ->tileProvider('openstreetmap')
+                            ->tileProvider('google')
                             ->columnSpanFull(),
 
                     ])
                     ->columns(2)
                     ->collapsible(),
-                Section::make('Driver Allowance Information')
+                // informasi so
+
+                // informasi uang jalan
+                Section::make('Informasi Uang Jalan')
                     ->schema([
                         TextEntry::make('uangJalan.nominal')
-                            ->label('Allowance Amount')
+                            ->label('Jumlah Uang Jalan')
                             ->money('IDR')
                             ->placeholder('No allowance record'),
 
                         IconEntry::make('uangJalan.status_kirim')
-                            ->label('Sending Status')
+                            ->label('Status Pengiriman')
                             ->boolean()
                             ->placeholder('Not recorded'),
 
                         TextEntry::make('uangJalan.tanggal_kirim')
-                            ->label('Sending Date')
+                            ->label('Tanggal Pengiriman')
                             ->date()
                             ->placeholder('Not recorded'),
 
                         IconEntry::make('uangJalan.status_terima')
-                            ->label('Receipt Status')
+                            ->label('Status Penerimaan')
                             ->boolean()
                             ->placeholder('Not recorded'),
 
                         TextEntry::make('uangJalan.tanggal_terima')
-                            ->label('Receipt Date')
+                            ->label('Tanggal Penerimaan')
                             ->date()
                             ->placeholder('Not recorded'),
                     ])
@@ -100,34 +103,62 @@ class ViewDeliveryOrder extends ViewRecord
                     ->visible(fn($record) => $record->uangJalan)
                     ->collapsible(),
 
-
-                Section::make('Driver Delivery Information')
+                // informasi muat
+                Section::make('Informasi Muat')
                     ->schema([
-                        TextEntry::make('pengirimanDriver.waktu_berangkat')
-                            ->label('Departure Time')
+                        TextEntry::make('waktu_muat')
+                            ->label('Waktu Mulai Muat')
                             ->dateTime()
                             ->placeholder('Not recorded'),
 
-                        TextEntry::make('pengirimanDriver.waktu_tiba')
-                            ->label('Arrival Time')
+                        TextEntry::make('waktu_selesai_muat')
+                            ->label('Waktu Selesai Muat')
                             ->dateTime()
                             ->placeholder('Not recorded'),
-
-                        TextEntry::make('pengirimanDriver.waktu_selesai')
-                            ->label('Completion Time')
-                            ->dateTime()
-                            ->placeholder('Not recorded'),
-
-                        TextEntry::make('pengirimanDriver.volume_terkirim')
-                            ->label('Delivered Volume')
-                            ->placeholder('Not recorded'),
-
-                        TextEntry::make('pengirimanDriver.catatan_pengiriman')
-                            ->label('Delivery Notes')
-                            ->placeholder('No notes')
-                            ->columnSpanFull(),
                     ])
                     ->columns(2)
+                    ->collapsible(),
+
+                // informasi pengiriman
+                Section::make('Informasi Pengiriman Driver')
+                    ->schema([
+                        TextEntry::make('pengirimanDriver.waktu_mulai')
+                            ->label('Waktu Mulai')
+                            ->dateTime()
+                            ->placeholder('Not recorded'),
+                        TextEntry::make('pengirimanDriver.waktu_tiba')
+                            ->label('Waktu Tiba')
+                            ->dateTime()
+                            ->placeholder('Not recorded'),
+
+                        TextEntry::make('pengirimanDriver.waktu_pool_arrival')
+                            ->label('Waktu Kembali Pool')
+                            ->dateTime()
+                            ->placeholder('Not recorded'),
+
+                        // informasi totalisator
+                        TextEntry::make('pengirimanDriver.totalisator_awal')
+                            ->label('Totalisator Awal')
+                            ->suffix(' L')
+                            ->placeholder('Belum Diisi'),
+
+                        TextEntry::make('pengirimanDriver.totalisator_tiba')
+                            ->label('Totalisator Tiba')
+                            ->suffix(' L')
+                            ->placeholder('Belum Diisi'),
+
+                            TextEntry::make('pengirimanDriver.totalisator_pool_return')
+                            ->label('Totalisator Kembali Pool')
+                            ->suffix(' L')
+                            ->placeholder('Belum Diisi'),
+
+
+                        // TextEntry::make('pengirimanDriver.catatan_pengiriman')
+                        //     ->label('Catatan Pengiriman')
+                        //     ->placeholder('No notes')
+                        //     ->columnSpanFull(),
+                    ])
+                    ->columns(3)
                     ->collapsible(),
             ]);
     }
@@ -183,11 +214,17 @@ class ViewDeliveryOrder extends ViewRecord
                 ->icon('heroicon-o-truck')
                 ->url(fn($record) => route('filament.admin.resources.pengiriman-drivers.create', ['id_do' => $record->id]))
                 ->visible(fn($record) => !$record->pengirimanDriver),
-            Actions\Action::make('editDelivery')
-                ->label('Edit Driver Delivery')
+            // view
+            Actions\Action::make('viewDelivery')
+                ->label('View Driver Delivery')
                 ->icon('heroicon-o-truck')
-                ->url(fn($record) => $record->pengirimanDriver ? route('filament.admin.resources.pengiriman-drivers.edit', ['record' => $record->pengirimanDriver->id]) : null)
-                ->visible(fn($record) => $record->pengirimanDriver),
+                ->url(fn($record) => $record->pengirimanDriver ? route('filament.admin.resources.pengiriman-drivers.view', ['record' => $record->pengirimanDriver->id]) : null)
+                ->visible(fn($record) => $record->pengirimanDriver)
+            // Actions\Action::make('editDelivery')
+            //     ->label('Edit Driver Delivery')
+            //     ->icon('heroicon-o-truck')
+            //     ->url(fn($record) => $record->pengirimanDriver ? route('filament.admin.resources.pengiriman-drivers.edit', ['record' => $record->pengirimanDriver->id]) : null)
+            //     ->visible(fn($record) => $record->pengirimanDriver),
         ];
     }
 }

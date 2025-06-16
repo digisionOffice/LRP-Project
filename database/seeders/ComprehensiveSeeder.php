@@ -85,7 +85,7 @@ class ComprehensiveSeeder extends Seeder
 
 
         // 12. Test Data for specific features
-        $this->seedTestData();
+        // $this->seedTestData();
 
         $this->command->info('Comprehensive database seeding completed successfully!');
     }
@@ -876,7 +876,10 @@ class ComprehensiveSeeder extends Seeder
                 AlamatPelanggan::create([
                     'id_pelanggan' => $pelanggan->id,
                     'alamat' => $pelanggan->alamat . ($i > 0 ? " - Cabang {$i}" : ''),
-                    'location' => [-6.2 + (rand(-100, 100) / 1000), 106.8 + (rand(-100, 100) / 1000)],
+                    'location' => [
+                        'lat' => -3.076628168185517 + (rand(-100, 100) / 1000000),
+                        'lng' => 104.35318394703464 + (rand(-100, 100) / 1000000),
+                    ],
                     'is_primary' => $i === 0, // First address is primary
                 ]);
             }
@@ -896,13 +899,19 @@ class ComprehensiveSeeder extends Seeder
             [
                 'id_pelanggan' => $testCustomer->id,
                 'alamat' => 'Jl. MH Thamrin No. 1, Jakarta Pusat',
-                'location' => [-6.1944, 106.8229],
+                'location' => [
+                    "lat" => -6.1944,
+                    "lng" => 106.8229,
+                ],
                 'is_primary' => true,
             ],
             [
                 'id_pelanggan' => $testCustomer->id,
                 'alamat' => 'Jl. Sudirman No. 52-53, Jakarta Selatan',
-                'location' => [-6.2088, 106.8456],
+                'location' => [
+                    'lat' => -6.2088,
+                    'lng' => 106.8456,
+                ],
                 'is_primary' => false,
             ],
         ];
@@ -1501,6 +1510,5 @@ class ComprehensiveSeeder extends Seeder
         ]);
         $this->command->info('Test data seeding completed.');
         $this->command->info('Comprehensive database seeding completed successfully!');
-
     }
 }

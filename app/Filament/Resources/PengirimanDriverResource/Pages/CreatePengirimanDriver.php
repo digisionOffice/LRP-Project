@@ -9,4 +9,14 @@ use Filament\Resources\Pages\CreateRecord;
 class CreatePengirimanDriver extends CreateRecord
 {
     protected static string $resource = PengirimanDriverResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\ViewAction::make()
+                ->color('info'),
+            Actions\DeleteAction::make()
+                ->color('danger'),
+        ];
+    }
 }

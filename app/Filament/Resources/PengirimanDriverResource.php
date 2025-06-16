@@ -11,6 +11,8 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Afsakar\LeafletMapPicker\LeafletMapPicker;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 
 class PengirimanDriverResource extends Resource
 {
@@ -20,7 +22,7 @@ class PengirimanDriverResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
 
-    protected static ?string $navigationLabel = 'Pengiriman Driver';
+    protected static ?string $navigationLabel = 'Status Pengiriman';
 
     protected static ?int $navigationSort = 3;
 
@@ -36,6 +38,10 @@ class PengirimanDriverResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required()
+                            ->default(function () {
+                                // Autofill from URL parameter
+                                return request()->query('id_do', null);
+                            })
                             ->helperText('Pilih Delivery Order yang akan diproses'),
 
                         Forms\Components\Placeholder::make('delivery_info')
@@ -51,10 +57,24 @@ class PengirimanDriverResource extends Resource
 
                                 return "Pelanggan: " . ($do->transaksi->pelanggan->nama ?? 'N/A') .
                                     " | Sopir: " . ($do->user->name ?? 'N/A') .
-                                    " | Kendaraan: " . ($do->kendaraan->nomor_polisi ?? 'N/A');
+                                    " | Kendaraan: " . ($do->kendaraan->no_pol_kendaraan ?? 'N/A');
                             }),
+
+                        // map
+                        LeafletMapPicker::make('deliveryOrder.transaksi.alamatPelanggan.location')
+                            ->label('Lokasi di Peta')
+                            ->height('400px')
+                            ->defaultLocation([0.5394419,101.451907]) // lrp
+                            ->defaultZoom(15)
+                            ->draggable(true)
+                            ->clickable(true)
+                            ->myLocationButtonLabel('Lokasi Saya')
+                            ->tileProvider('openstreetmap')
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
+
+
 
                 Forms\Components\Section::make('Data Totalisator')
                     ->schema([
@@ -76,13 +96,13 @@ class PengirimanDriverResource extends Resource
                             ->suffix('L')
                             ->helperText('Volume saat kembali ke pool'),
 
-                        Forms\Components\TextInput::make('volume_terkirim')
-                            ->label('Volume Terkirim')
-                            ->numeric()
-                            ->suffix('L')
-                            ->helperText('Volume yang berhasil dikirim'),
+                        // Forms\Components\TextInput::make('volume_terkirim')
+                        //     ->label('Volume Terkirim')
+                        //     ->numeric()
+                        //     ->suffix('L')
+                        //     ->helperText('Volume yang berhasil dikirim'),
                     ])
-                    ->columns(2),
+                    ->columns(3),
 
                 Forms\Components\Section::make('Waktu Pengiriman')
                     ->schema([
@@ -90,41 +110,56 @@ class PengirimanDriverResource extends Resource
                             ->label('Waktu Mulai')
                             ->helperText('Waktu mulai persiapan pengiriman'),
 
-                        Forms\Components\DateTimePicker::make('waktu_berangkat')
-                            ->label('Waktu Berangkat')
-                            ->helperText('Waktu berangkat dari depot'),
-
                         Forms\Components\DateTimePicker::make('waktu_tiba')
                             ->label('Waktu Tiba')
                             ->helperText('Waktu tiba di lokasi tujuan'),
-
-                        Forms\Components\DateTimePicker::make('waktu_selesai')
-                            ->label('Waktu Selesai')
-                            ->helperText('Waktu selesai pengiriman'),
 
                         Forms\Components\DateTimePicker::make('waktu_pool_arrival')
                             ->label('Waktu Kembali Pool')
                             ->helperText('Waktu kembali ke pool'),
                     ])
-                    ->columns(2),
+                    ->columns(3),
 
                 Forms\Components\Section::make('Dokumentasi')
                     ->schema([
-                        Forms\Components\FileUpload::make('foto_pengiriman')
+                        // Forms\Components\FileUpload::make('foto_pengiriman')
+                        //     ->label('Foto Pengiriman')
+                        //     ->image()
+                        //     ->multiple()
+                        //     ->helperText('Upload foto dokumentasi pengiriman'),
+
+                        // Forms\Components\FileUpload::make('foto_totalizer_awal')
+                        //     ->label('Foto Totalizer Awal')
+                        //     ->image()
+                        //     ->helperText('Foto totalizer sebelum berangkat'),
+
+                        // Forms\Components\FileUpload::make('foto_totalizer_akhir')
+                        //     ->label('Foto Totalizer Akhir')
+                        //     ->image()
+                        //     ->helperText('Foto totalizer setelah pengiriman'),
+                        // media
+                        SpatieMediaLibraryFileUpload::make('foto_pengiriman')
                             ->label('Foto Pengiriman')
-                            ->image()
                             ->multiple()
+                            ->image()
+                            ->collection('foto_pengiriman')
+                            ->acceptedFileTypes(['image/jpeg', 'image/png'])
+                            ->maxSize(10240)
                             ->helperText('Upload foto dokumentasi pengiriman'),
 
-                        Forms\Components\FileUpload::make('foto_totalizer_awal')
+                        SpatieMediaLibraryFileUpload::make('foto_totalizer_awal')
                             ->label('Foto Totalizer Awal')
-                            ->image()
-                            ->helperText('Foto totalizer sebelum berangkat'),
+                            ->collection('foto_totalizer_awal')
+                            ->acceptedFileTypes(['image/jpeg', 'image/png'])
+                            ->maxSize(10240)
+                            ->helperText('Upload foto totalizer sebelum berangkat'),
 
-                        Forms\Components\FileUpload::make('foto_totalizer_akhir')
+                        SpatieMediaLibraryFileUpload::make('foto_totalizer_akhir')
                             ->label('Foto Totalizer Akhir')
-                            ->image()
-                            ->helperText('Foto totalizer setelah pengiriman'),
+                            ->collection('foto_totalizer_akhir')
+                            ->acceptedFileTypes(['image/jpeg', 'image/png'])
+                            ->maxSize(10240)
+                            ->helperText('Upload foto totalizer setelah pengiriman'),
                     ])
                     ->columns(1),
             ]);
@@ -166,7 +201,7 @@ class PengirimanDriverResource extends Resource
                     ->icon('heroicon-o-user')
                     ->placeholder('Belum Ditugaskan'),
 
-                Tables\Columns\TextColumn::make('deliveryOrder.kendaraan.nomor_polisi')
+                Tables\Columns\TextColumn::make('deliveryOrder.kendaraan.no_pol_kendaraan')
                     ->label('Kendaraan')
                     ->searchable()
                     ->icon('heroicon-o-truck')
@@ -264,9 +299,9 @@ class PengirimanDriverResource extends Resource
                         );
                     }),
 
-                Tables\Filters\Filter::make('has_volume')
-                    ->label('Sudah Ada Volume Terkirim')
-                    ->query(fn(Builder $query): Builder => $query->whereNotNull('volume_terkirim')),
+                // Tables\Filters\Filter::make('has_volume')
+                //     ->label('Sudah Ada Volume Terkirim')
+                //     ->query(fn(Builder $query): Builder => $query->whereNotNull('volume_terkirim')),
 
                 Tables\Filters\Filter::make('today')
                     ->label('Hari Ini')

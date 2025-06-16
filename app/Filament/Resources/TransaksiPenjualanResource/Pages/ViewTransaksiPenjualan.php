@@ -48,7 +48,6 @@ class ViewTransaksiPenjualan extends ViewRecord
                 'harga_jual' => $detail->harga_jual,
                 'item_info' => $detail->item ? $detail->item->kode . ' - ' . $detail->item->name : '',
                 'satuan_info' => $detail->item?->satuan?->nama ?? '',
-                'subtotal' => $detail->volume_item * $detail->harga_jual,
             ];
         })->toArray();
 

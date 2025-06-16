@@ -238,8 +238,8 @@ class AlamatPelangganResource extends Resource
                     ->trueLabel('Dengan koordinat')
                     ->falseLabel('Tanpa koordinat')
                     ->queries(
-                        true: fn($query) => $query->whereNotNull('latitude')->whereNotNull('longitude'),
-                        false: fn($query) => $query->whereNull('latitude')->orWhereNull('longitude'),
+                        true: fn($query) => $query->whereNotNull('location'),
+                        false: fn($query) => $query->whereNull('location'),
                     ),
             ])
             ->actions([
@@ -248,7 +248,7 @@ class AlamatPelangganResource extends Resource
                     ->icon('heroicon-o-map')
                     ->color('info')
                     ->url(fn($record) => $record->hasCoordinates()
-                        ? "https://www.google.com/maps?q={$record->latitude},{$record->longitude}"
+                        ? "https://www.google.com/maps?q={$record->formatted_coordinates}"
                         : null)
                     ->openUrlInNewTab()
                     ->visible(fn($record) => $record->hasCoordinates()),

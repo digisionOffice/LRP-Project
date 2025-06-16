@@ -59,6 +59,8 @@ class AlamatPelanggan extends Model
         return !is_null($this->location);
     }
 
+    // get location
+
     /**
      * Get the location attribute for Leaflet Map Picker integration
      * Returns coordinates in [lat, lng] format as expected by the plugin
@@ -76,19 +78,31 @@ class AlamatPelanggan extends Model
         return null;
     }
 
-    /**
-     * Set the location attribute for Leaflet Map Picker integration
-     * Accepts coordinates in [lat, lng] format from the plugin
-     */
-    public function setLocationAttribute(?array $value): void
-    {
-        if (is_array($value) && count($value) >= 2) {
-            // Store in the location column as JSON (plugin format)
-            $this->attributes['location'] = json_encode($value);
+    // /**
+    //  * Set the location attribute for Leaflet Map Picker integration
+    //  * Accepts coordinates in [lat, lng] format from the plugin
+    //  */
+    // public function setLocationAttribute(?array $value): void
+    // {
+    //     if (is_array($value) && count($value) >= 2) {
+    //         // Store in the location column as JSON (plugin format)
+    //         $this->attributes['location'] = json_encode($value);
 
-        } elseif (is_null($value)) {
-            // Clear all location data
-            $this->attributes['location'] = null;
+    //     } elseif (is_null($value)) {
+    //         // Clear all location data
+    //         $this->attributes['location'] = null;
+    //     }
+    // }
+
+    // formatted coordinates
+    // this is the data [-6.139,106.865]
+    public function getFormattedCoordinatesAttribute(): ?string
+    {
+        if ($this->hasCoordinates()) {
+            // dd($this->location);
+            return implode(', ', $this->location);
         }
+
+        return null;
     }
 }

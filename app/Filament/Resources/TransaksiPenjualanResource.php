@@ -119,23 +119,29 @@ class TransaksiPenjualanResource extends Resource
                         //     ->searchable()
                         //     ->preload(),
 
+                        
+
                         Forms\Components\Select::make('id_pelanggan')
                             ->label('Pelanggan')
                             ->relationship('pelanggan', 'nama')
                             ->searchable()
                             ->preload()
-                            ->required(),
+                            ->required()
+                            ->reactive(), // Tambahkan ini untuk membuat field reaktif
+
                         Forms\Components\Select::make('id_alamat_pelanggan')
                             ->label('Alamat Pengiriman')
                             ->required()
                             ->relationship(
-                                'alamatPelanggan',
-                                'alamat',
-                                fn(Builder $query, $get) =>
+                                name: 'alamatPelanggan',
+                                titleAttribute: 'alamat',
+                                modifyQueryUsing: fn(Builder $query, $get) =>
                                 $query->where('id_pelanggan', $get('id_pelanggan'))
                             )
+                            ->getOptionLabelFromRecordUsing(fn($record) => $record->alamat ?? 'Alamat tidak tersedia')
                             ->searchable()
                             ->preload()
+                            ->reactive() // Tambahkan ini untuk memastikan pembaruan dinamis
                             ->disabled(fn($get) => !$get('id_pelanggan')),
 
 
@@ -190,12 +196,6 @@ class TransaksiPenjualanResource extends Resource
                                     ->minValue(0.01)
                                     ->step(0.01)
                                     ->reactive()
-                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                        $volume = floatval($state ?: 0);
-                                        $harga = floatval($get('harga_jual') ?: 0);
-                                        $subtotal = $volume * $harga;
-                                        $set('subtotal', $subtotal);
-                                    })
                                     ->suffix(function (callable $get) {
                                         return $get('satuan_info') ?: 'unit';
                                     }),
@@ -206,23 +206,8 @@ class TransaksiPenjualanResource extends Resource
                                     ->numeric()
                                     ->minValue(0)
                                     ->prefix('IDR')
-                                    ->reactive()
-                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                        $harga = floatval($state ?: 0);
-                                        $volume = floatval($get('volume_item') ?: 0);
-                                        $subtotal = $volume * $harga;
-                                        $set('subtotal', $subtotal);
-                                    }),
+                                    ->reactive(),
 
-                                Forms\Components\TextInput::make('subtotal')
-                                    ->label('Subtotal')
-                                    ->disabled()
-                                    ->dehydrated(false)
-                                    ->prefix('IDR')
-                                    ->numeric()
-                                    ->formatStateUsing(function ($state) {
-                                        return number_format($state ?: 0, 0, ',', '.');
-                                    }),
 
                                 Forms\Components\Hidden::make('item_info'),
                                 Forms\Components\Hidden::make('satuan_info'),

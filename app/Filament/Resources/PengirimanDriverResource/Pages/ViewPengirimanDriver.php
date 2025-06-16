@@ -9,6 +9,7 @@ use Filament\Infolists\Infolist;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ImageEntry;
+use Afsakar\LeafletMapPicker\LeafletMapPickerEntry;
 
 class ViewPengirimanDriver extends ViewRecord
 {
@@ -39,7 +40,7 @@ class ViewPengirimanDriver extends ViewRecord
                             ->icon('heroicon-o-user')
                             ->placeholder('Belum Ditugaskan'),
 
-                        TextEntry::make('deliveryOrder.kendaraan.nomor_polisi')
+                        TextEntry::make('deliveryOrder.kendaraan.no_pol_kendaraan')
                             ->label('Kendaraan')
                             ->icon('heroicon-o-truck')
                             ->placeholder('Belum Ditugaskan'),
@@ -48,6 +49,13 @@ class ViewPengirimanDriver extends ViewRecord
                             ->label('Tanggal Pengiriman')
                             ->date('d M Y')
                             ->icon('heroicon-o-calendar'),
+
+                        // map
+                        LeafletMapPickerEntry::make('deliveryOrder.transaksi.alamatPelanggan.location')
+                            ->label('Lokasi di Peta')
+                            ->height('400px')
+                            ->tileProvider('google')
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
 
@@ -68,13 +76,13 @@ class ViewPengirimanDriver extends ViewRecord
                             ->suffix(' L')
                             ->placeholder('Belum Diisi'),
 
-                        TextEntry::make('volume_terkirim')
-                            ->label('Volume Terkirim')
-                            ->suffix(' L')
-                            ->placeholder('Belum Diisi')
-                            ->color(fn($state) => $state ? 'success' : 'gray'),
+                        // TextEntry::make('volume_terkirim')
+                        //     ->label('Volume Terkirim')
+                        //     ->suffix(' L')
+                        //     ->placeholder('Belum Diisi')
+                        //     ->color(fn($state) => $state ? 'success' : 'gray'),
                     ])
-                    ->columns(2),
+                    ->columns(3),
 
                 Section::make('Timeline Pengiriman')
                     ->schema([
@@ -84,23 +92,12 @@ class ViewPengirimanDriver extends ViewRecord
                             ->placeholder('Belum Mulai')
                             ->icon('heroicon-o-play'),
 
-                        TextEntry::make('waktu_berangkat')
-                            ->label('Waktu Berangkat')
-                            ->dateTime('d M Y H:i')
-                            ->placeholder('Belum Berangkat')
-                            ->icon('heroicon-o-arrow-right'),
-
                         TextEntry::make('waktu_tiba')
                             ->label('Waktu Tiba')
                             ->dateTime('d M Y H:i')
                             ->placeholder('Belum Tiba')
                             ->icon('heroicon-o-map-pin'),
 
-                        TextEntry::make('waktu_selesai')
-                            ->label('Waktu Selesai')
-                            ->dateTime('d M Y H:i')
-                            ->placeholder('Belum Selesai')
-                            ->icon('heroicon-o-check-badge'),
 
                         TextEntry::make('waktu_pool_arrival')
                             ->label('Waktu Kembali Pool')
@@ -108,7 +105,7 @@ class ViewPengirimanDriver extends ViewRecord
                             ->placeholder('Belum Kembali')
                             ->icon('heroicon-o-home'),
                     ])
-                    ->columns(2),
+                    ->columns(3),
 
                 Section::make('Dokumentasi')
                     ->schema([
@@ -125,6 +122,8 @@ class ViewPengirimanDriver extends ViewRecord
                             ->placeholder('Belum Ada Foto'),
                     ])
                     ->columns(3),
+
+                // action
             ]);
     }
 
