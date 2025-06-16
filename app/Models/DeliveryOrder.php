@@ -65,6 +65,10 @@ class DeliveryOrder extends Model
         return $this->belongsTo(User::class, 'id_user');
     }
 
+    // on update
+
+    // if status => selesai, update status_muat to selesai
+
     // Alias for driver (same as user)
     public function driver()
     {

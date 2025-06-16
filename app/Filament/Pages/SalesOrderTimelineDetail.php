@@ -222,6 +222,6 @@ class SalesOrderTimelineDetail extends Page
         }
 
         // Sort events by timestamp
-        return $events->sortBy('timestamp');
+        return $events->sortBy('timestamp', null, true);
     }
 }

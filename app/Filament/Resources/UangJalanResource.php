@@ -36,12 +36,24 @@ class UangJalanResource extends Resource
                             ->relationship('deliveryOrder', 'kode')
                             ->searchable()
                             ->preload()
+                            ->default(function () {
+                                // Autofill from URL parameter
+                                return request()->query('id_do', null);
+                            })
+                            ->disabled()
                             ->required(),
 
                         Forms\Components\Select::make('id_user')
                             ->label('Driver')
-                            ->relationship('user', 'name')
-                            ->searchable()
+                            ->relationship(
+                                name: 'user',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: function ($query) {
+                                    $query->whereHas('jabatan', function ($query) {
+                                        $query->where('nama', 'like', '%driver%');
+                                    });
+                                }
+                            )
                             ->preload(),
 
                         Forms\Components\TextInput::make('nominal')
@@ -53,10 +65,10 @@ class UangJalanResource extends Resource
                     ])
                     ->columns(3),
 
-                Forms\Components\Section::make('Sending Information')
+                Forms\Components\Section::make('Status Uang Jalan')
                     ->schema([
                         Forms\Components\Select::make('status_kirim')
-                            ->label('Sending Status')
+                            ->label('Status kirim')
                             ->options([
                                 'pending' => 'Pending',
                                 'kirim' => 'Sent',
@@ -66,7 +78,7 @@ class UangJalanResource extends Resource
                             ->required(),
 
                         Forms\Components\FileUpload::make('bukti_kirim')
-                            ->label('Sending Proof')
+                            ->label('Bukti Kirim')
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'application/pdf'])
                             ->maxSize(5120) // 5MB
                             ->directory('allowance-proofs/sending')
@@ -78,10 +90,10 @@ class UangJalanResource extends Resource
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Receiving Information')
+                Forms\Components\Section::make('Informasi Penerimaan Uang jalan')
                     ->schema([
                         Forms\Components\Select::make('status_terima')
-                            ->label('Receiving Status')
+                            ->label('Status Terima')
                             ->options([
                                 'pending' => 'Pending',
                                 'terima' => 'Received',
@@ -91,7 +103,7 @@ class UangJalanResource extends Resource
                             ->required(),
 
                         Forms\Components\FileUpload::make('bukti_terima')
-                            ->label('Receiving Proof')
+                            ->label('Bukti Terima')
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'application/pdf'])
                             ->maxSize(5120) // 5MB
                             ->directory('allowance-proofs/receiving')

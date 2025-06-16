@@ -24,6 +24,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use App\Models\Item;
+// gate
+use Illuminate\Support\Facades\Gate;
 
 class MediaManager extends Page implements HasTable, HasForms, HasActions
 {
@@ -39,6 +41,9 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
 
     public string $activeTab = 'all';
     public string $viewMode = 'grid';
+
+    protected static bool $shouldRegisterNavigation = true;
+
 
     public function getMaxContentWidth(): MaxWidth
     {
@@ -308,7 +313,7 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
                                     return $column->getState();
                                 }),
 
-                                Tables\Columns\TextColumn::make('mime_type')
+                            Tables\Columns\TextColumn::make('mime_type')
                                 ->label('')
                                 ->size('sm')
                                 ->color('gray')
@@ -317,7 +322,7 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
                                     return $column->getState();
                                 }),
 
-                                Tables\Columns\TextColumn::make('human_readable_size')
+                            Tables\Columns\TextColumn::make('human_readable_size')
                                 ->label('')
                                 ->size('sm')
                                 ->color('gray')
@@ -473,8 +478,8 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
                     ->url(fn(Media $record): string => $record->getUrl())
                     ->openUrlInNewTab(),
 
-                    // edit detail in new tab
-                    Tables\Actions\Action::make('edit')
+                // edit detail in new tab
+                Tables\Actions\Action::make('edit')
                     ->label('Edit Detail')
                     ->icon('heroicon-o-pencil')
                     ->form([
@@ -666,6 +671,3 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
         return round($bytes, $precision) . ' ' . $units[$i];
     }
 }
-
-
-

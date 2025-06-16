@@ -76,7 +76,7 @@ return [
             'MonthlyDeliveryReportDashboard',
             'MonthlySalesRealizationDashboard',
             'SalesOrderTimeline',
-            'SalesOrderTimelineDetail'
+            'SalesOrderTimelineDetail',
         ],
 
         'widgets' => [
@@ -88,9 +88,9 @@ return [
     ],
 
     'discovery' => [
-        'discover_all_resources' => false,
-        'discover_all_widgets' => false,
-        'discover_all_pages' => false,
+        'discover_all_resources' => true,
+        'discover_all_widgets' => true,
+        'discover_all_pages' => true,
     ],
 
     'register_role_policy' => [

@@ -40,6 +40,7 @@ class DeliveryOrderResource extends Resource
                             ->required()
                             ->helperText('Contoh: DO-01012024-0001')
                             ->unique(ignoreRecord: true)
+
                             ->maxLength(50),
 
                         Forms\Components\Select::make('id_transaksi')
@@ -49,6 +50,10 @@ class DeliveryOrderResource extends Resource
                             ->searchable()
                             ->helperText('Pilih nomor SO yang akan dijadwalkan pengirimannya')
                             ->preload()
+                            ->default(function () {
+                                // Autofill from URL parameter
+                                return request()->query('id_transaksi', null);
+                            })
                             ->required(),
 
                         Forms\Components\Select::make('id_user')
@@ -68,6 +73,7 @@ class DeliveryOrderResource extends Resource
                             ->searchable()
                             ->preload(),
 
+                        // !todo : tambah keterangan nama kendaraan
                         Forms\Components\Select::make('id_kendaraan')
                             ->label('Kendaraan')
                             ->required()
@@ -126,12 +132,12 @@ class DeliveryOrderResource extends Resource
                                     ->downloadable(),
                             ])
                             ->columns(2)
-                            ->visible(fn ($record) => $record && $record->uangJalan),
+                            ->visible(fn($record) => $record && $record->uangJalan),
 
                         Forms\Components\Placeholder::make('create_allowance_placeholder')
                             ->label('No Driver Allowance Record')
                             ->content('Save this delivery order first, then you can create a driver allowance record.')
-                            ->visible(fn ($record) => $record && !$record->uangJalan),
+                            ->visible(fn($record) => $record && !$record->uangJalan),
                     ])
                     ->collapsible(),
 
@@ -166,12 +172,12 @@ class DeliveryOrderResource extends Resource
                                     ->columnSpanFull(),
                             ])
                             ->columns(2)
-                            ->visible(fn ($record) => $record && $record->pengirimanDriver),
+                            ->visible(fn($record) => $record && $record->pengirimanDriver),
 
                         Forms\Components\Placeholder::make('create_delivery_placeholder')
                             ->label('No Driver Delivery Record')
                             ->content('Save this delivery order first, then you can create a driver delivery record.')
-                            ->visible(fn ($record) => $record && !$record->pengirimanDriver),
+                            ->visible(fn($record) => $record && !$record->pengirimanDriver),
                     ])
                     ->collapsible(),
 
@@ -372,4 +378,3 @@ class DeliveryOrderResource extends Resource
         ];
     }
 }
-
