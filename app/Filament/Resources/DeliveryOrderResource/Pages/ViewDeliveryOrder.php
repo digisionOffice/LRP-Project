@@ -53,6 +53,9 @@ class ViewDeliveryOrder extends ViewRecord
 
                         TextEntry::make('transaksi.pelanggan.nama')
                             ->icon('heroicon-o-building-office')
+                            ->state(function ($record) {
+                                return $record->transaksi->pelanggan->nama . ' - ' .   $record->transaksi->pelanggan->pic_nama . ' (PIC)' . ' | ' . $record->transaksi->pelanggan->type ;
+                            })
                             ->label('Nama Pelanggan'),
 
                         TextEntry::make('transaksi.alamatPelanggan.alamat')
@@ -72,6 +75,8 @@ class ViewDeliveryOrder extends ViewRecord
                             ->getStateUsing(function ($record) {
                                 return $record->transaksi->penjualanDetails->sum('volume_item');
                             })
+                            ->badge()
+                            // ->color('info')
                             ->label('Jumlah BBM')
                             ->numeric(decimalPlaces: 2)
                             ->suffix(' Liter'),
