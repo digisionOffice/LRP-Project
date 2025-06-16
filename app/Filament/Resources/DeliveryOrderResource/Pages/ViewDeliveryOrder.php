@@ -59,6 +59,23 @@ class ViewDeliveryOrder extends ViewRecord
                             ->icon('heroicon-o-map-pin')
                             ->label('Alamat Pelanggan'),
 
+                        // jenis bbm dan berapa liternya
+                        TextEntry::make('transaksi.penjualanDetails.item.name')
+                            ->badge()
+                            ->color('info')
+                            ->formatStateUsing(function ($record) {
+                                return $record->transaksi->penjualanDetails->pluck('item.name')->unique()->join(', ');
+                            })
+                            ->label('Jenis BBM'),
+
+                        TextEntry::make('transaksi.penjualanDetails.volume_item')
+                            ->getStateUsing(function ($record) {
+                                return $record->transaksi->penjualanDetails->sum('volume_item');
+                            })
+                            ->label('Jumlah BBM')
+                            ->numeric(decimalPlaces: 2)
+                            ->suffix(' Liter'),
+
                         // use leafleat to show the map
                         LeafletMapPickerEntry::make('transaksi.alamatPelanggan.location')
                             ->label('Lokasi di Peta')
@@ -71,52 +88,72 @@ class ViewDeliveryOrder extends ViewRecord
                     ->collapsible(),
                 // informasi so
 
+
+
+                // informasi muat
+                Section::make('Informasi Muat')
+                    ->schema([
+                        // status
+                        TextEntry::make('status_muat')
+                            ->label('Status Muat')
+                            ->badge()
+                            ->color(fn(string $state): string => match ($state) {
+                                'pending' => 'warning',
+                                'muat' => 'info',
+                                'selesai' => 'success',
+                                default => 'gray',
+                            })
+                            ->formatStateUsing(fn(string $state): string => match ($state) {
+                                'pending' => 'Perintah Muat Diterbitkan',
+                                'muat' => 'Muat Dikonfirmasi',
+                                'selesai' => 'Muat Selesai',
+                                default => $state,
+                            }),
+                        TextEntry::make('waktu_muat')
+                            ->label('Waktu Mulai Muat')
+                            ->dateTime()
+                            ->icon('heroicon-o-clock')
+                            ->placeholder('Belum dilaksanakan'),
+
+                        TextEntry::make('waktu_selesai_muat')
+                            ->label('Waktu Selesai Muat')
+                            ->dateTime()
+                            ->icon('heroicon-o-clock')
+                            ->placeholder('Belum dilaksanakan'),
+                    ])
+                    ->columns(3)
+                    ->collapsible(),
+
                 // informasi uang jalan
                 Section::make('Informasi Uang Jalan')
                     ->schema([
                         TextEntry::make('uangJalan.nominal')
                             ->label('Jumlah Uang Jalan')
                             ->money('IDR')
-                            ->placeholder('No allowance record'),
+                            ->placeholder('Belum Dibuat'),
 
                         IconEntry::make('uangJalan.status_kirim')
                             ->label('Status Pengiriman')
                             ->boolean()
-                            ->placeholder('Not recorded'),
+                            ->placeholder('Belum Dibuat'),
 
                         TextEntry::make('uangJalan.tanggal_kirim')
                             ->label('Tanggal Pengiriman')
                             ->date()
-                            ->placeholder('Not recorded'),
+                            ->placeholder('Belum Dibuat'),
 
                         IconEntry::make('uangJalan.status_terima')
                             ->label('Status Penerimaan')
                             ->boolean()
-                            ->placeholder('Not recorded'),
+                            ->placeholder('Belum Dibuat'),
 
                         TextEntry::make('uangJalan.tanggal_terima')
                             ->label('Tanggal Penerimaan')
                             ->date()
-                            ->placeholder('Not recorded'),
+                            ->placeholder('Belum Dibuat'),
                     ])
-                    ->columns(2)
-                    ->visible(fn($record) => $record->uangJalan)
-                    ->collapsible(),
-
-                // informasi muat
-                Section::make('Informasi Muat')
-                    ->schema([
-                        TextEntry::make('waktu_muat')
-                            ->label('Waktu Mulai Muat')
-                            ->dateTime()
-                            ->placeholder('Not recorded'),
-
-                        TextEntry::make('waktu_selesai_muat')
-                            ->label('Waktu Selesai Muat')
-                            ->dateTime()
-                            ->placeholder('Not recorded'),
-                    ])
-                    ->columns(2)
+                    ->columns(3)
+                    // ->visible(fn($record) => $record->uangJalan)
                     ->collapsible(),
 
                 // informasi pengiriman
@@ -125,31 +162,37 @@ class ViewDeliveryOrder extends ViewRecord
                         TextEntry::make('pengirimanDriver.waktu_mulai')
                             ->label('Waktu Mulai')
                             ->dateTime()
-                            ->placeholder('Not recorded'),
+                            ->icon('heroicon-o-clock')
+                            ->placeholder('Belum dilaksanakan'),
                         TextEntry::make('pengirimanDriver.waktu_tiba')
                             ->label('Waktu Tiba')
                             ->dateTime()
-                            ->placeholder('Not recorded'),
+                            ->icon('heroicon-o-clock')
+                            ->placeholder('Belum dilaksanakan'),
 
                         TextEntry::make('pengirimanDriver.waktu_pool_arrival')
                             ->label('Waktu Kembali Pool')
                             ->dateTime()
-                            ->placeholder('Not recorded'),
+                            ->icon('heroicon-o-clock')
+                            ->placeholder('Belum dilaksanakan'),
 
                         // informasi totalisator
                         TextEntry::make('pengirimanDriver.totalisator_awal')
                             ->label('Totalisator Awal')
                             ->suffix(' L')
+                            ->numeric()
                             ->placeholder('Belum Diisi'),
 
                         TextEntry::make('pengirimanDriver.totalisator_tiba')
                             ->label('Totalisator Tiba')
                             ->suffix(' L')
+                            ->numeric()
                             ->placeholder('Belum Diisi'),
 
-                            TextEntry::make('pengirimanDriver.totalisator_pool_return')
+                        TextEntry::make('pengirimanDriver.totalisator_pool_return')
                             ->label('Totalisator Kembali Pool')
                             ->suffix(' L')
+                            ->numeric()
                             ->placeholder('Belum Diisi'),
 
 

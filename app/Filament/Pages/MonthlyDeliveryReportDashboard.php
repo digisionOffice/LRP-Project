@@ -9,6 +9,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class MonthlyDeliveryReportDashboard extends Page implements HasForms
 {
@@ -23,6 +24,11 @@ class MonthlyDeliveryReportDashboard extends Page implements HasForms
 
     public ?string $selectedMonth = null;
     public ?string $selectedYear = null;
+
+    public static function canAccess(): bool
+    {
+        return Auth::user()?->can('page_MonthlyDeliveryReportDashboard') ?? false;
+    }
 
     public function mount(): void
     {

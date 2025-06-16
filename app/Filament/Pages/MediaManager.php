@@ -26,6 +26,7 @@ use App\Models\User;
 use App\Models\Item;
 // gate
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Auth;
 
 class MediaManager extends Page implements HasTable, HasForms, HasActions
 {
@@ -44,6 +45,10 @@ class MediaManager extends Page implements HasTable, HasForms, HasActions
 
     protected static bool $shouldRegisterNavigation = true;
 
+    public static function canAccess(): bool
+    {
+        return Auth::user()?->can('page_MediaManager') ?? false;
+    }
 
     public function getMaxContentWidth(): MaxWidth
     {

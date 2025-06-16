@@ -71,12 +71,6 @@ return [
         'pages' => [
             'Dashboard',
             'MediaManager',
-            'AccountsReceivableDashboard',
-            'FuelDeliveryDashboard',
-            'MonthlyDeliveryReportDashboard',
-            'MonthlySalesRealizationDashboard',
-            'SalesOrderTimeline',
-            'SalesOrderTimelineDetail',
         ],
 
         'widgets' => [

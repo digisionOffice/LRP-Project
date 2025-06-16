@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class DeliveryOrder extends Model
 {
@@ -85,7 +87,7 @@ class DeliveryOrder extends Model
      */
     public function uangJalan()
     {
-        return $this->hasOne(\App\Models\UangJalan::class, 'id_do');
+        return $this->hasOne(UangJalan::class, 'id_do');
     }
 
     /**
@@ -93,7 +95,7 @@ class DeliveryOrder extends Model
      */
     public function pengirimanDriver()
     {
-        return $this->hasOne(\App\Models\PengirimanDriver::class, 'id_do');
+        return $this->hasOne(PengirimanDriver::class, 'id_do');
     }
 
     public function createdBy()

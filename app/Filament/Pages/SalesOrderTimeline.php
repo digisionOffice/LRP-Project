@@ -12,6 +12,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Support\Enums\MaxWidth;
+use Illuminate\Support\Facades\Auth;
 
 class SalesOrderTimeline extends Page implements HasTable, HasForms
 {
@@ -24,6 +25,11 @@ class SalesOrderTimeline extends Page implements HasTable, HasForms
     protected static string $view = 'filament.pages.sales-order-timeline';
     protected static ?int $navigationSort = 2;
     // protected static ?string $navigationGroup = 'Manajemen Keuangan';
+
+    public static function canAccess(): bool
+    {
+        return Auth::user()?->can('page_SalesOrderTimeline') ?? false;
+    }
 
     public function getMaxContentWidth(): MaxWidth
     {

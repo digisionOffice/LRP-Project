@@ -13,6 +13,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class MonthlySalesRealizationDashboard extends Page implements HasForms
 {
@@ -29,6 +30,11 @@ class MonthlySalesRealizationDashboard extends Page implements HasForms
     public ?string $selectedYear = null;
     public ?string $selectedCustomer = null;
     public ?string $selectedProduct = null;
+
+    public static function canAccess(): bool
+    {
+        return Auth::user()?->can('page_MonthlySalesRealizationDashboard') ?? false;
+    }
 
     public function mount(): void
     {

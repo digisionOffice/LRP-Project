@@ -131,7 +131,7 @@ class ViewPengirimanDriver extends ViewRecord
     {
         return [
             Actions\Action::make('view_do')
-                ->label('Lihat Delivery Order')
+                ->label('Lihat DO')
                 ->icon('heroicon-o-document-text')
                 ->color('primary')
                 ->url(fn() => $this->record->deliveryOrder ?
@@ -149,7 +149,7 @@ class ViewPengirimanDriver extends ViewRecord
                 ->openUrlInNewTab(false),
 
             Actions\Action::make('view_sales_order')
-                ->label('Lihat Sales Order')
+                ->label('Lihat SO')
                 ->icon('heroicon-o-shopping-cart')
                 ->color('warning')
                 ->url(fn() => $this->record->deliveryOrder?->transaksi ?

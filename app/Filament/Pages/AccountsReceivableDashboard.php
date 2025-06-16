@@ -10,6 +10,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class AccountsReceivableDashboard extends Page implements HasForms
 {
@@ -24,6 +25,11 @@ class AccountsReceivableDashboard extends Page implements HasForms
 
     public ?string $selectedCustomer = null;
     public ?string $selectedPeriod = null;
+
+    public static function canAccess(): bool
+    {
+        return Auth::user()?->can('page_AccountsReceivableDashboard') ?? false;
+    }
 
     public function mount(): void
     {

@@ -21,6 +21,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Support\Enums\MaxWidth;
+use Illuminate\Support\Facades\Auth;
 
 class FuelDeliveryDashboard extends Page implements HasTable, HasForms
 {
@@ -34,6 +35,11 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
     protected static ?int $navigationSort = 1;
 
     public string $activeTab = 'sales';
+
+    public static function canAccess(): bool
+    {
+        return Auth::user()?->can('page_FuelDeliveryDashboard') ?? false;
+    }
 
     public function getMaxContentWidth(): MaxWidth
     {

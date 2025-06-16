@@ -8,6 +8,7 @@ use App\Models\PengirimanDriver;
 use Filament\Pages\Page;
 use Filament\Support\Enums\MaxWidth;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Auth;
 
 class SalesOrderTimelineDetail extends Page
 {
@@ -17,7 +18,12 @@ class SalesOrderTimelineDetail extends Page
     protected static bool $shouldRegisterNavigation = false;
     protected static ?string $slug = 'sales-order-timeline-detail';
 
-    public TransaksiPenjualan $record;
+    public ?TransaksiPenjualan $record = null;
+
+    public static function canAccess(): bool
+    {
+        return Auth::user()?->can('page_SalesOrderTimelineDetail') ?? false;
+    }
 
     public function mount(): void
     {
@@ -48,19 +54,23 @@ class SalesOrderTimelineDetail extends Page
 
     public function getTitle(): string
     {
-        return "Timeline for SO: {$this->record->kode}";
+        return $this->record ? "Timeline for SO: {$this->record->kode}" : 'Detail Timeline Pesanan Penjualan';
     }
 
     public function getBreadcrumbs(): array
     {
         return [
             '/admin/sales-order-timeline' => 'Sales Order Timeline',
-            '' => "SO: {$this->record->kode}",
+            '' => $this->record ? "SO: {$this->record->kode}" : 'Detail Timeline',
         ];
     }
 
     public function getDeliveryOrders()
     {
+        if (!$this->record) {
+            return collect();
+        }
+
         return DeliveryOrder::where('id_transaksi', $this->record->id)
             ->with(['user', 'kendaraan', 'pengirimanDriver', 'uangJalan'])
             ->orderBy('created_at')
@@ -69,6 +79,10 @@ class SalesOrderTimelineDetail extends Page
 
     public function getTimelineEvents()
     {
+        if (!$this->record) {
+            return collect();
+        }
+
         $events = collect();
 
         // Sales Order Created Event

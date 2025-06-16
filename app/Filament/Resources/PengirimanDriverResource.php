@@ -238,15 +238,15 @@ class PengirimanDriverResource extends Resource
                         };
                     }),
 
-                Tables\Columns\TextColumn::make('volume_terkirim')
-                    ->label('Volume Terkirim')
-                    ->numeric(decimalPlaces: 2)
-                    ->suffix(' L')
-                    ->sortable()
-                    ->placeholder('Belum Diisi')
-                    ->color(fn($state) => $state ? 'success' : 'gray'),
+                // Tables\Columns\TextColumn::make('volume_terkirim')
+                //     ->label('Volume Terkirim')
+                //     ->numeric(decimalPlaces: 2)
+                //     ->suffix(' L')
+                //     ->sortable()
+                //     ->placeholder('Belum Diisi')
+                //     ->color(fn($state) => $state ? 'success' : 'gray'),
 
-                Tables\Columns\TextColumn::make('waktu_berangkat')
+                Tables\Columns\TextColumn::make('waktu_mulai')
                     ->label('Waktu Berangkat')
                     ->dateTime('d M Y H:i')
                     ->sortable()
@@ -260,7 +260,7 @@ class PengirimanDriverResource extends Resource
                     ->placeholder('Belum Tiba')
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('waktu_selesai')
+                Tables\Columns\TextColumn::make('waktu_pool_arrival')
                     ->label('Waktu Selesai')
                     ->dateTime('d M Y H:i')
                     ->sortable()
