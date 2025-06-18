@@ -50,6 +50,26 @@ class DeliveryOrderResource extends Resource
                             ->searchable()
                             ->helperText('Pilih nomor SO yang akan dijadwalkan pengirimannya')
                             ->preload()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                // Auto-calculate remaining volume when SO changes
+                                if ($state) {
+                                    $transaksi = \App\Models\TransaksiPenjualan::find($state);
+                                    if ($transaksi) {
+                                        $totalSoVolume = $transaksi->penjualanDetails->sum('volume_item');
+                                        $deliveredVolume = \App\Models\DeliveryOrder::where('id_transaksi', $state)
+                                            ->where('id', '!=', $get('id') ?? 0)
+                                            ->sum('volume_do');
+                                        $remainingVolume = $totalSoVolume - $deliveredVolume;
+                                        $set('sisa_volume_do', $remainingVolume);
+
+                                        // Set default volume_do to remaining volume if not set
+                                        if (!$get('volume_do')) {
+                                            $set('volume_do', $remainingVolume);
+                                        }
+                                    }
+                                }
+                            })
                             ->default(function () {
                                 // Autofill from URL parameter
                                 return request()->query('id_transaksi', null);
@@ -83,6 +103,60 @@ class DeliveryOrderResource extends Resource
                             ->searchable()
                             ->preload(),
 
+                        Forms\Components\TextInput::make('volume_do')
+                            ->label('Volume DO')
+                            ->placeholder('Masukkan volume yang akan dikirim')
+                            ->helperText('Volume barang yang akan dikirim dalam DO ini (dalam liter)')
+                            ->numeric()
+                            ->suffix('L')
+                            ->reactive()
+                            ->required()
+                            ->minValue(0.01)
+                            ->rules([
+                                function (callable $get) {
+                                    return function ($attribute, $value, \Closure $fail) use ($get) {
+                                        $idTransaksi = $get('id_transaksi');
+                                        if ($idTransaksi && $value) {
+                                            $transaksi = \App\Models\TransaksiPenjualan::find($idTransaksi);
+                                            if ($transaksi) {
+                                                $totalSoVolume = $transaksi->penjualanDetails->sum('volume_item');
+                                                $deliveredVolume = \App\Models\DeliveryOrder::where('id_transaksi', $idTransaksi)
+                                                    ->where('id', '!=', $get('id') ?? 0)
+                                                    ->sum('volume_do');
+                                                $availableVolume = $totalSoVolume - $deliveredVolume;
+
+                                                if ($value > $availableVolume) {
+                                                    $fail("Volume DO tidak boleh melebihi sisa volume yang tersedia ({$availableVolume} L)");
+                                                }
+                                            }
+                                        }
+                                    };
+                                },
+                            ])
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                // Auto-calculate remaining volume when volume_do changes
+                                $idTransaksi = $get('id_transaksi');
+                                if ($idTransaksi && $state) {
+                                    $transaksi = \App\Models\TransaksiPenjualan::find($idTransaksi);
+                                    if ($transaksi) {
+                                        $totalSoVolume = $transaksi->penjualanDetails->sum('volume_item');
+                                        $deliveredVolume = \App\Models\DeliveryOrder::where('id_transaksi', $idTransaksi)
+                                            ->where('id', '!=', $get('id') ?? 0)
+                                            ->sum('volume_do');
+                                        $remainingVolume = $totalSoVolume - $deliveredVolume - $state;
+                                        $set('sisa_volume_do', $remainingVolume);
+                                    }
+                                }
+                            }),
+
+                        Forms\Components\TextInput::make('sisa_volume_do')
+                            ->label('Sisa Volume DO')
+                            ->placeholder('Sisa volume akan otomatis terhitung')
+                            ->helperText('Sisa volume dari SO yang belum dikirim (otomatis terhitung)')
+                            ->numeric()
+                            ->suffix('L')
+                            ->disabled()
+                            ->dehydrated(),
 
                     ])
                     ->columns(2),
@@ -243,6 +317,20 @@ class DeliveryOrderResource extends Resource
                     ->label('Kendaraan')
                     ->searchable()
                     ->placeholder('Belum Ditugaskan'),
+
+                Tables\Columns\TextColumn::make('volume_do')
+                    ->label('Volume DO')
+                    ->numeric()
+                    ->suffix(' L')
+                    ->placeholder('Belum Diisi')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('sisa_volume_do')
+                    ->label('Sisa Volume')
+                    ->numeric()
+                    ->suffix(' L')
+                    ->placeholder('Belum Dihitung')
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('status_muat')
                     ->label('Status Muat')

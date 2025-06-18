@@ -38,6 +38,9 @@ use App\Models\TransaksiPenjualan;
 use App\Models\PenjualanDetail;
 use App\Models\PengirimanDriver;
 use App\Models\UangJalan;
+use App\Models\Invoice;
+use App\Models\Receipt;
+use App\Models\TaxInvoice;
 
 class ComprehensiveSeeder extends Seeder
 {
@@ -82,9 +85,10 @@ class ComprehensiveSeeder extends Seeder
         // 11. Sales Orders and Delivery Orders (depends on multiple entities)
         $this->seedSalesAndDeliveryOrders();
 
+        // 12. Financial Management (depends on sales orders and delivery orders)
+        $this->seedFinancialManagement();
 
-
-        // 12. Test Data for specific features
+        // 13. Test Data for specific features
         // $this->seedTestData();
 
         $this->command->info('Comprehensive database seeding completed successfully!');
@@ -417,6 +421,11 @@ class ComprehensiveSeeder extends Seeder
             'uang_jalan' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
             'expense_request' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
 
+            // Financial Management
+            'invoice' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
+            'receipt' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
+            'tax_invoice' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
+
             // Documents
         ];
 
@@ -461,6 +470,9 @@ class ComprehensiveSeeder extends Seeder
             // Finance & Accounting
             'akun' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
             'faktur_pajak' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
+            'invoice' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
+            'receipt' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
+            'tax_invoice' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
             'expense_request' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
             'tbbm' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
 
@@ -514,7 +526,7 @@ class ComprehensiveSeeder extends Seeder
             'guard_name' => 'web',
             'deskripsi' => 'Customer, sales, and delivery-related permissions only'
         ]);
-        $salesResources = ['pelanggan', 'supplier', 'transaksi_penjualan', 'delivery_order', 'item', 'province', 'regency', 'district', 'subdistrict'];
+        $salesResources = ['pelanggan', 'supplier', 'transaksi_penjualan', 'delivery_order', 'invoice', 'receipt', 'item', 'province', 'regency', 'district', 'subdistrict'];
         $this->assignResourcePermissions($sales, $salesResources, ['view', 'view_any', 'create', 'update', 'delete']);
 
         // 4. Operational - Delivery, driver, vehicle, and operational permissions
@@ -525,6 +537,10 @@ class ComprehensiveSeeder extends Seeder
         ]);
         $operationalResources = ['delivery_order', 'pengiriman_driver', 'kendaraan', 'uang_jalan', 'item', 'province', 'regency', 'district', 'subdistrict'];
         $this->assignResourcePermissions($operational, $operationalResources, ['view', 'view_any', 'create', 'update', 'delete']);
+
+        // Add view-only permissions for financial documents related to delivery orders
+        $operationalFinancialResources = ['invoice', 'receipt', 'tax_invoice'];
+        $this->assignResourcePermissions($operational, $operationalFinancialResources, ['view', 'view_any']);
 
         // 5. Driver - Limited view and update permissions for deliveries only
         $driver = Role::firstOrCreate([
@@ -541,7 +557,7 @@ class ComprehensiveSeeder extends Seeder
             'guard_name' => 'web',
             'deskripsi' => 'Accounting, transactions, and financial permissions only'
         ]);
-        $financeResources = ['akun', 'faktur_pajak', 'expense_request', 'tbbm', 'transaksi_penjualan', 'delivery_order'];
+        $financeResources = ['akun', 'faktur_pajak', 'invoice', 'receipt', 'tax_invoice', 'expense_request', 'tbbm', 'transaksi_penjualan', 'delivery_order'];
         $this->assignResourcePermissions($finance, $financeResources, ['view', 'view_any', 'create', 'update', 'delete']);
 
         // 7. Administration - User management and document permissions
@@ -1322,6 +1338,11 @@ class ComprehensiveSeeder extends Seeder
                 $vehicle = $vehicles->random();
                 $driver = $drivers->isNotEmpty() ? $drivers->random() : $users->random();
 
+                // Calculate volume for this delivery order
+                $totalSoVolume = $salesOrder->penjualanDetails->sum('volume_item');
+                $volumeDo = rand(500, min($totalSoVolume, 3000)); // Random volume but not exceeding SO volume
+                $sisaVolume = $totalSoVolume - $volumeDo;
+
                 $deliveryOrder = DeliveryOrder::create([
                     'kode' => 'DO-' . str_pad($i, 4, '0', STR_PAD_LEFT),
                     'id_transaksi' => $salesOrder->id,
@@ -1332,6 +1353,8 @@ class ComprehensiveSeeder extends Seeder
                     'status_muat' => ['pending', 'muat', 'selesai'][rand(0, 2)],
                     'waktu_muat' => now()->subDays(rand(1, 20))->addHours(8),
                     'waktu_selesai_muat' => now()->subDays(rand(1, 20))->addHours(10),
+                    'volume_do' => $volumeDo,
+                    'sisa_volume_do' => $sisaVolume,
                     'created_by' => $user->id,
                 ]);
 
@@ -1484,6 +1507,8 @@ class ComprehensiveSeeder extends Seeder
             'status_muat' => 'selesai',
             'waktu_muat' => now()->subDays(10)->addHours(8),
             'waktu_selesai_muat' => now()->subDays(10)->addHours(10),
+            'volume_do' => 2000, // Full volume from SO
+            'sisa_volume_do' => 0, // No remaining volume
             'created_by' => $user->id,
         ]);
 
@@ -1510,5 +1535,140 @@ class ComprehensiveSeeder extends Seeder
         ]);
         $this->command->info('Test data seeding completed.');
         $this->command->info('Comprehensive database seeding completed successfully!');
+    }
+
+    /**
+     * ========================================
+     * SECTION 12: FINANCIAL MANAGEMENT
+     * ========================================
+     */
+    private function seedFinancialManagement(): void
+    {
+        $this->command->info('Seeding financial management data...');
+
+        // Get existing data
+        $deliveryOrders = DeliveryOrder::with('transaksi.pelanggan')->get();
+        $users = User::all();
+
+        if ($deliveryOrders->isEmpty() || $users->isEmpty()) {
+            $this->command->warn('Missing required data for financial management. Skipping.');
+            return;
+        }
+
+        $adminUser = $users->where('email', 'superadmin@lrp.com')->first() ?? $users->first();
+
+        foreach ($deliveryOrders as $deliveryOrder) {
+            if (!$deliveryOrder->transaksi || !$deliveryOrder->transaksi->pelanggan) {
+                continue;
+            }
+
+            $transaksi = $deliveryOrder->transaksi;
+            $pelanggan = $transaksi->pelanggan;
+
+            // Calculate amounts from sales details
+            $subtotal = $transaksi->details->sum(function ($detail) {
+                return $detail->volume_item * $detail->harga_jual;
+            });
+
+            if ($subtotal <= 0) {
+                $subtotal = rand(5000000, 50000000); // Fallback random amount
+            }
+
+            $taxRate = 11; // 11% PPN
+            $taxAmount = $subtotal * ($taxRate / 100);
+            $totalAmount = $subtotal + $taxAmount;
+
+            // Create Invoice
+            $invoice = Invoice::create([
+                'nomor_invoice' => 'INV-' . str_pad($deliveryOrder->id, 6, '0', STR_PAD_LEFT),
+                'id_do' => $deliveryOrder->id,
+                'id_transaksi' => $transaksi->id,
+                'tanggal_invoice' => $deliveryOrder->tanggal_delivery ?? now()->subDays(rand(1, 30)),
+                'tanggal_jatuh_tempo' => ($deliveryOrder->tanggal_delivery ?? now())->addDays(30),
+                'nama_pelanggan' => $pelanggan->nama,
+                'alamat_pelanggan' => $pelanggan->alamat,
+                'npwp_pelanggan' => $pelanggan->npwp,
+                'subtotal' => $subtotal,
+                'total_pajak' => $taxAmount,
+                'total_invoice' => $totalAmount,
+                'total_terbayar' => 0,
+                'sisa_tagihan' => $totalAmount,
+                'status' => ['draft', 'sent', 'paid', 'overdue'][rand(0, 3)],
+                'catatan' => 'Invoice untuk delivery order ' . $deliveryOrder->kode,
+                'created_by' => $adminUser->id,
+            ]);
+
+            // Create Tax Invoice (for some invoices)
+            if (rand(0, 1)) {
+                TaxInvoice::create([
+                    'nomor_tax_invoice' => 'FP-' . str_pad($deliveryOrder->id, 6, '0', STR_PAD_LEFT),
+                    'id_invoice' => $invoice->id,
+                    'id_do' => $deliveryOrder->id,
+                    'id_transaksi' => $transaksi->id,
+                    'tanggal_tax_invoice' => $invoice->tanggal_invoice,
+                    'nama_pelanggan' => $pelanggan->nama,
+                    'alamat_pelanggan' => $pelanggan->alamat,
+                    'npwp_pelanggan' => $pelanggan->npwp,
+                    'nama_perusahaan' => 'PT. Logistik Riau Prima',
+                    'alamat_perusahaan' => 'Jl. Riau Prima No. 123, Pekanbaru',
+                    'npwp_perusahaan' => '01.234.567.8-901.000',
+                    'dasar_pengenaan_pajak' => $subtotal,
+                    'tarif_pajak' => $taxRate,
+                    'pajak_pertambahan_nilai' => $taxAmount,
+                    'total_tax_invoice' => $totalAmount,
+                    'status' => ['draft', 'submitted', 'approved'][rand(0, 2)],
+                    'catatan' => 'Faktur pajak untuk invoice ' . $invoice->nomor_invoice,
+                    'created_by' => $adminUser->id,
+                ]);
+            }
+
+            // Create Receipts (for paid/partially paid invoices)
+            if (in_array($invoice->status, ['paid']) || rand(0, 2) == 0) {
+                $paymentMethods = ['transfer', 'cash', 'check', 'giro'];
+                $numPayments = $invoice->status === 'paid' ? rand(1, 3) : rand(1, 2);
+                $totalPaid = 0;
+
+                for ($i = 0; $i < $numPayments; $i++) {
+                    $remainingAmount = $totalAmount - $totalPaid;
+                    if ($remainingAmount <= 0) break;
+
+                    $paymentAmount = $i === $numPayments - 1 && $invoice->status === 'paid'
+                        ? $remainingAmount
+                        : rand(1000000, min($remainingAmount, $totalAmount * 0.7));
+
+                    $adminFee = $paymentAmount * 0.001; // 0.1% admin fee
+
+                    Receipt::create([
+                        'nomor_receipt' => 'RCP-' . str_pad($deliveryOrder->id, 6, '0', STR_PAD_LEFT) . '-' . ($i + 1),
+                        'id_invoice' => $invoice->id,
+                        'id_do' => $deliveryOrder->id,
+                        'id_transaksi' => $transaksi->id,
+                        'tanggal_receipt' => $invoice->tanggal_invoice->addDays(rand(1, 15)),
+                        'tanggal_pembayaran' => $invoice->tanggal_invoice->addDays(rand(1, 15)),
+                        'metode_pembayaran' => $paymentMethods[array_rand($paymentMethods)],
+                        'referensi_pembayaran' => 'REF-' . strtoupper(uniqid()),
+                        'jumlah_pembayaran' => $paymentAmount,
+                        'biaya_admin' => $adminFee,
+                        'total_diterima' => $paymentAmount - $adminFee,
+                        'status' => ['pending', 'confirmed'][rand(0, 1)],
+                        'catatan' => 'Pembayaran untuk invoice ' . $invoice->nomor_invoice,
+                        'bank_pengirim' => ['BCA', 'Mandiri', 'BNI', 'BRI'][rand(0, 3)],
+                        'bank_penerima' => 'BCA',
+                        'created_by' => $adminUser->id,
+                    ]);
+
+                    $totalPaid += $paymentAmount;
+                }
+
+                // Update invoice payment status
+                $invoice->update([
+                    'total_terbayar' => $totalPaid,
+                    'sisa_tagihan' => $totalAmount - $totalPaid,
+                    'status' => $totalPaid >= $totalAmount ? 'paid' : 'sent'
+                ]);
+            }
+        }
+
+        $this->command->info('Financial management data seeded successfully!');
     }
 }

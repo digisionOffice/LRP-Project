@@ -2,3 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 @tailwind variants;
+
+
+@layer components {
+    .fi-sidebar-item-label {
+        /* @apply !text-green-900  dark:text-yellow-900; */
+    }
+
+    .fi-sidebar-nav-groups {
+        @apply !gap-y-0
+    }
+
+    .fi-sidebar-group-button {
+        /* @apply !bg-gray-800 */
+    }
+}

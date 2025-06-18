@@ -19,11 +19,11 @@ class TransaksiPenjualanResource extends Resource
 {
     protected static ?string $model = TransaksiPenjualan::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
+    // protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
 
     protected static ?string $navigationGroup = 'Penjualan';
 
-    protected static ?string $navigationLabel = 'Pesanan Penjualan';
+    protected static ?string $navigationLabel = 'Transaksi Penjualan';
 
     protected static ?int $navigationSort = 1;
 
@@ -119,7 +119,7 @@ class TransaksiPenjualanResource extends Resource
                         //     ->searchable()
                         //     ->preload(),
 
-                        
+
 
                         Forms\Components\Select::make('id_pelanggan')
                             ->label('Pelanggan')

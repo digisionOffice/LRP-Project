@@ -8,6 +8,7 @@ use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\File;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
@@ -78,9 +79,25 @@ class ViewDeliveryOrder extends ViewRecord
                             })
                             ->badge()
                             // ->color('info')
-                            ->label('Jumlah BBM')
+                            ->label('Total Volume SO')
                             ->numeric(decimalPlaces: 2)
                             ->suffix(' Liter'),
+
+                        TextEntry::make('volume_do')
+                            ->label('Volume DO')
+                            ->numeric(decimalPlaces: 2)
+                            ->suffix(' Liter')
+                            ->badge()
+                            ->color('success')
+                            ->placeholder('Belum Diisi'),
+
+                        TextEntry::make('sisa_volume_do')
+                            ->label('Sisa Volume')
+                            ->numeric(decimalPlaces: 2)
+                            ->suffix(' Liter')
+                            ->badge()
+                            ->color('warning')
+                            ->placeholder('Belum Dihitung'),
 
                         // use leafleat to show the map
                         LeafletMapPickerEntry::make('transaksi.alamatPelanggan.location')
@@ -245,11 +262,19 @@ class ViewDeliveryOrder extends ViewRecord
                             'pengirimanDriver'
                         ])->find($record->id);
 
+                        // Get logo as base64
+                        $logoPath = public_path('images/lrp.png');
+                        $logoBase64 = '';
+
+                        if (File::exists($logoPath)) {
+                            $logoBase64 = base64_encode(File::get($logoPath));
+                        }
+
                         // Generate dynamic filename
                         $filename = 'DO_' . $deliveryOrder->kode . '_' . now()->format('Ymd_His') . '.pdf';
 
                         // Load the PDF view with the record data
-                        $pdf = Pdf::loadView('pdf.delivery_order', ['record' => $deliveryOrder])
+                        $pdf = Pdf::loadView('pdf.delivery_order', ['record' => $deliveryOrder, 'logoBase64' => $logoBase64])
                             ->setPaper('a4', 'portrait')
                             ->setOptions([
                                 'isHtml5ParserEnabled' => true,
@@ -276,6 +301,15 @@ class ViewDeliveryOrder extends ViewRecord
                         return;
                     }
                 }),
+
+            // view invoice jika ada
+            Actions\Action::make('viewInvoice')
+                ->label('Lihat Invoice')
+                ->icon('heroicon-o-document-text')
+                ->url(fn($record) => $record->invoice ? route('filament.admin.resources.invoices.view', ['record' => $record->invoice->id]) : null)
+                ->visible(fn($record) => $record->invoice !== null)
+                ->openUrlInNewTab(false),
+
             Actions\Action::make('createAllowance')
                 ->label('Buat Uang Jalan')
                 ->icon('heroicon-o-banknotes')

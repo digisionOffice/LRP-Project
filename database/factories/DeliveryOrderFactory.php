@@ -30,6 +30,8 @@ class DeliveryOrderFactory extends Factory
             'tanggal_delivery' => $this->faker->dateTimeBetween('now', '+7 days'),
             'no_segel' => 'SEAL-' . $this->faker->numberBetween(100000, 999999),
             'status_muat' => $this->faker->randomElement(['pending', 'muat', 'selesai']),
+            'volume_do' => $this->faker->numberBetween(1000, 5000),
+            'sisa_volume_do' => $this->faker->numberBetween(0, 2000),
             'created_by' => User::factory(),
         ];
     }

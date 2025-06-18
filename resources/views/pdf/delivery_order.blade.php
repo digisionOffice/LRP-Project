@@ -17,6 +17,7 @@
             font-size: 11px;
             line-height: 1.3;
             color: #000;
+            margin: 20px;
         }
 
         .header {
@@ -210,17 +211,21 @@
     <div class="header">
         <div class="header-content">
             <div class="logo-section">
-                <div class="logo-placeholder">
-                    COMPANY<br>LOGO
-                </div>
+                @if(isset($logoBase64) && !empty($logoBase64))
+                    <img src="data:image/png;base64,{{ $logoBase64 }}" alt="Company Logo" width="80" height="60">
+                @else
+                    <div class="logo-placeholder">
+                        COMPANY<br>LOGO
+                    </div>
+                @endif
             </div>
             <div class="company-info">
                 <div class="company-name">LINTAS RIAU PRIMA</div>
                 <div class="company-tagline">TRUSTED & RELIABLE PARTNER</div>
                 <div class="company-tagline">Fuel Agent - Fuel Transportation - Bunker Service</div>
                 <div class="company-contact">
-                    📞 0761-22369 ✉️ office@lintasriauprima.com<br>
-                    🌐 www.lintasriauprima.com
+                     0761-22369 -  office@lintasriauprima.com<br>
+                     www.lintasriauprima.com
                 </div>
             </div>
             <div class="recipient-info">
@@ -391,3 +396,6 @@
 </body>
 
 </html>
+
+
+

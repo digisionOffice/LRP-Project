@@ -40,7 +40,8 @@ class UangJalanResource extends Resource
                                 // Autofill from URL parameter
                                 return request()->query('id_do', null);
                             })
-                            ->disabled()
+                            // ->disabled()
+                            ->helperText('DO akan otomatis terisi dari URL parameter')
                             ->required(),
 
                         Forms\Components\Select::make('id_user')
@@ -54,11 +55,14 @@ class UangJalanResource extends Resource
                                     });
                                 }
                             )
+                            ->searchable()
+                            ->helperText('Pilih sopir yang akan menerima uang jalan')
                             ->preload(),
 
                         Forms\Components\TextInput::make('nominal')
                             ->label('Allowance Amount')
                             ->required()
+                            ->dehydrated(false)
                             ->numeric()
                             ->prefix('IDR')
                             ->minValue(0),
