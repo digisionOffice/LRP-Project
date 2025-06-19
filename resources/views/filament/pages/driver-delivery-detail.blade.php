@@ -62,19 +62,47 @@
 
                 <!-- Approve Allowance -->
                 @if ($this->record->uangJalan && $this->record->uangJalan->canBeApproved())
-                    <button type="button" onclick="$wire.approveAllowance()"
-                        class="flex flex-col items-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
-                        <x-heroicon-o-banknotes class="w-6 h-6 text-green-600 dark:text-green-400 mb-2" />
-                        <span class="text-sm font-medium text-green-900 dark:text-green-100">ACC Uang Jalan</span>
+                    <button type="button" wire:click="approveAllowance" wire:loading.attr="disabled"
+                        wire:target="approveAllowance"
+                        class="flex flex-col items-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        <div wire:loading.remove wire:target="approveAllowance">
+                            <x-heroicon-o-banknotes class="w-6 h-6 text-green-600 dark:text-green-400 mb-2" />
+                            <span class="text-sm font-medium text-green-900 dark:text-green-100">ACC Uang Jalan</span>
+                        </div>
+                        <div wire:loading wire:target="approveAllowance" class="flex flex-col items-center">
+                            <svg class="animate-spin w-6 h-6 text-green-600 dark:text-green-400 mb-2" fill="none"
+                                viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                            <span class="text-sm font-medium text-green-900 dark:text-green-100">Memproses...</span>
+                        </div>
                     </button>
                 @endif
 
                 <!-- Approve Delivery -->
                 @if ($this->record->pengirimanDriver && $this->record->pengirimanDriver->canBeApproved())
-                    <button type="button" onclick="$wire.approveDelivery()"
-                        class="flex flex-col items-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
-                        <x-heroicon-o-truck class="w-6 h-6 text-purple-600 dark:text-purple-400 mb-2" />
-                        <span class="text-sm font-medium text-purple-900 dark:text-purple-100">ACC Pengiriman</span>
+                    <button type="button" wire:click="approveDelivery" wire:loading.attr="disabled"
+                        wire:target="approveDelivery"
+                        class="flex flex-col items-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        <div wire:loading.remove wire:target="approveDelivery">
+                            <x-heroicon-o-truck class="w-6 h-6 text-purple-600 dark:text-purple-400 mb-2" />
+                            <span class="text-sm font-medium text-purple-900 dark:text-purple-100">ACC Pengiriman</span>
+                        </div>
+                        <div wire:loading wire:target="approveDelivery" class="flex flex-col items-center">
+                            <svg class="animate-spin w-6 h-6 text-purple-600 dark:text-purple-400 mb-2" fill="none"
+                                viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                            <span class="text-sm font-medium text-purple-900 dark:text-purple-100">Memproses...</span>
+                        </div>
                     </button>
                 @endif
             </div>
@@ -118,9 +146,10 @@
                                 class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
                                 Batal
                             </button>
-                            <button type="submit"
-                                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                Simpan
+                            <button type="submit" wire:loading.attr="disabled" wire:target="updateTotalisator"
+                                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span wire:loading.remove wire:target="updateTotalisator">Simpan</span>
+                                <span wire:loading wire:target="updateTotalisator">Menyimpan...</span>
                             </button>
                         </div>
                     </form>
@@ -153,7 +182,7 @@
                         <div class="flex justify-between">
                             <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Kendaraan:</dt>
                             <dd class="text-sm text-gray-900 dark:text-white">
-                                {{ $this->record->kendaraan->nomor_polisi ?? 'N/A' }}</dd>
+                                {{ $this->record->kendaraan->no_pol_kendaraan ?? 'N/A' }}</dd>
                         </div>
                         <div class="flex justify-between">
                             <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Driver:</dt>
@@ -180,6 +209,10 @@
                                 {{ $this->record->transaksi->pelanggan->alamatPelanggan->first()->alamat ?? 'Alamat tidak tersedia' }}
                             </dd>
                         </div>
+                        {{-- tulisan link peta yang isinya link google map biasa aja pakai js gitu pakai lang lat dari location --}}
+                        <a href="https://www.google.com/maps/search/{{ $this->record->transaksi->pelanggan->alamatPelanggan->first()->getGoogleMapsLinkAttribute() }}">Link Gmaps</a>
+
+
                         @if ($this->record->transaksi->pelanggan->alamatPelanggan->first()?->kota)
                             <div>
                                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Kota:</dt>
@@ -226,7 +259,8 @@
                             <div class="flex items-center">
                                 <x-heroicon-o-home class="w-5 h-5 text-purple-500 mr-2" />
                                 <div>
-                                    <p class="text-sm font-medium text-gray-900 dark:text-white">Totalisator Kembali</p>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">Totalisator Kembali
+                                    </p>
                                     <p class="text-lg font-semibold text-purple-600 dark:text-purple-400">
                                         {{ $this->record->pengirimanDriver->totalisator_pool_return ? number_format($this->record->pengirimanDriver->totalisator_pool_return, 0, ',', '.') . ' km' : 'Belum diisi' }}
                                     </p>
@@ -407,7 +441,7 @@
                                 @foreach ($this->record->transaksi->penjualanDetails as $detail)
                                     <tr>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                            {{ $detail->item->nama ?? 'N/A' }}
+                                            {{ $detail->item->name ?? 'N/A' }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                             {{ number_format($detail->volume_item, 0, ',', '.') }} L
@@ -428,7 +462,7 @@
             @endif
         </div>
 
-        <!-- JavaScript for Section Toggle -->
+        <!-- JavaScript for Section Toggle and Livewire Integration -->
         <script>
             function toggleSection(sectionId) {
                 const section = document.getElementById(sectionId);
@@ -444,6 +478,31 @@
                     section.classList.add('hidden');
                 }
             }
+
+            // Ensure Livewire is ready before any interactions
+            document.addEventListener('DOMContentLoaded', function() {
+                // Wait for Livewire to be available
+                if (typeof window.Livewire !== 'undefined') {
+                    console.log('Livewire is ready');
+                } else {
+                    // If Livewire is not immediately available, wait for it
+                    const checkLivewire = setInterval(() => {
+                        if (typeof window.Livewire !== 'undefined') {
+                            console.log('Livewire is now ready');
+                            clearInterval(checkLivewire);
+                        }
+                    }, 100);
+                }
+            });
+
+            // Listen for Livewire events
+            document.addEventListener('livewire:init', () => {
+                console.log('Livewire initialized');
+            });
+
+            document.addEventListener('livewire:navigated', () => {
+                console.log('Livewire navigated');
+            });
         </script>
     @else
         <div class="text-center py-12">

@@ -119,7 +119,7 @@ class DriverDashboard extends Page implements HasTable, HasForms
                     ->sortable()
                     ->wrap(),
 
-                Tables\Columns\TextColumn::make('kendaraan.nomor_polisi')
+                Tables\Columns\TextColumn::make('kendaraan.no_pol_kendaraan')
                     ->label('Kendaraan')
                     ->badge()
                     ->color('gray'),

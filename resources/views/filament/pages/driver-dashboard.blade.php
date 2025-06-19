@@ -45,6 +45,56 @@
 
     <!-- Mobile View Mode Detection -->
     <script>
+        // Global variables for Livewire integration
+        let livewireReady = false;
+        let pendingViewModeChanges = [];
+
+        // Check if Livewire is available
+        function isLivewireReady() {
+            return typeof window.Livewire !== 'undefined' && window.Livewire.find && livewireReady;
+        }
+
+        // Execute pending view mode changes when Livewire is ready
+        function executePendingChanges() {
+            if (isLivewireReady() && pendingViewModeChanges.length > 0) {
+                pendingViewModeChanges.forEach(change => {
+                    try {
+                        if (window.Livewire.find) {
+                            const component = window.Livewire.find(document.querySelector('[wire\\:id]')
+                                ?.getAttribute('wire:id'));
+                            if (component && component.call) {
+                                component.call('setViewMode', change.mode);
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('Failed to execute pending view mode change:', error);
+                    }
+                });
+                pendingViewModeChanges = [];
+            }
+        }
+
+        // Safe wrapper for Livewire method calls
+        function safeSetViewMode(mode) {
+            if (isLivewireReady()) {
+                try {
+                    const component = window.Livewire.find(document.querySelector('[wire\\:id]')?.getAttribute('wire:id'));
+                    if (component && component.call) {
+                        component.call('setViewMode', mode);
+                        return true;
+                    }
+                } catch (error) {
+                    console.warn('Failed to call setViewMode:', error);
+                }
+            }
+
+            // Queue the change for later execution
+            pendingViewModeChanges.push({
+                mode: mode
+            });
+            return false;
+        }
+
         // Screen size detection and auto view mode setting
         function detectScreenSize() {
             const isMobile = window.innerWidth < 768;
@@ -53,7 +103,7 @@
             // Auto-set view mode based on screen size on initial load
             if (currentMode === 'auto' || currentMode === null) {
                 const newMode = isMobile ? 'compact' : 'table';
-                $wire.setViewMode(newMode);
+                safeSetViewMode(newMode);
             }
 
             // Update toggle button visibility and apply CSS classes
@@ -89,9 +139,29 @@
             }
         }
 
+        // Livewire initialization and event listeners
+        document.addEventListener('livewire:init', () => {
+            livewireReady = true;
+            console.log('Livewire initialized');
+            executePendingChanges();
+        });
+
+        document.addEventListener('livewire:navigated', () => {
+            livewireReady = true;
+            console.log('Livewire navigated');
+            executePendingChanges();
+        });
+
         // Run on page load
         document.addEventListener('DOMContentLoaded', function() {
-            detectScreenSize();
+            // Wait a bit for Livewire to initialize
+            setTimeout(() => {
+                if (typeof window.Livewire !== 'undefined') {
+                    livewireReady = true;
+                    executePendingChanges();
+                }
+                detectScreenSize();
+            }, 100);
         });
 
         // Run on window resize with debouncing
@@ -104,9 +174,9 @@
 
                 // Auto-switch view mode on resize
                 if (isMobile && currentMode === 'table') {
-                    $wire.setViewMode('compact');
+                    safeSetViewMode('compact');
                 } else if (!isMobile && currentMode === 'compact') {
-                    $wire.setViewMode('table');
+                    safeSetViewMode('table');
                 }
 
                 updateToggleButtonVisibility(isMobile);
@@ -120,14 +190,30 @@
             updateToggleButtonVisibility(isMobile);
             updateMobileToggleButton();
             applyViewModeClasses(currentMode);
+
+            // Execute any pending changes after update
+            executePendingChanges();
         });
 
         // Mobile toggle function
         function toggleMobileView() {
-            $wire.toggleViewMode().then(() => {
-                const newMode = @js($this->viewMode);
-                applyViewModeClasses(newMode);
-            });
+            if (isLivewireReady()) {
+                try {
+                    const component = window.Livewire.find(document.querySelector('[wire\\:id]')?.getAttribute('wire:id'));
+                    if (component && component.call) {
+                        component.call('toggleViewMode').then(() => {
+                            const newMode = @js($this->viewMode);
+                            applyViewModeClasses(newMode);
+                        }).catch(error => {
+                            console.warn('Failed to toggle view mode:', error);
+                        });
+                    }
+                } catch (error) {
+                    console.warn('Failed to call toggleViewMode:', error);
+                }
+            } else {
+                console.warn('Livewire not ready for toggleViewMode');
+            }
         }
 
         // Update mobile toggle button text and icon
@@ -270,7 +356,7 @@
             </div>
 
             <!-- Total Volume -->
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+            {{-- <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -288,10 +374,10 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> --}}
 
             <!-- Pending Allowances -->
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+            {{-- <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -309,7 +395,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> --}}
 
             <!-- Pending Allowance Approvals -->
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
@@ -477,7 +563,7 @@
                             <div class="flex items-center space-x-2">
                                 <x-heroicon-o-truck class="w-4 h-4 text-gray-400" />
                                 <span class="text-gray-600 dark:text-gray-300">
-                                    {{ $delivery->kendaraan->nomor_polisi ?? 'N/A' }}
+                                    {{ $delivery->kendaraan->no_pol_kendaraan ?? 'N/A' }}
                                 </span>
                             </div>
 
