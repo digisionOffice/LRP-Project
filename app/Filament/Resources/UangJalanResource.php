@@ -21,7 +21,7 @@ class UangJalanResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
-    protected static ?string $navigationLabel = 'Driver Allowance';
+    protected static ?string $navigationLabel = 'Uang Jalan';
 
     protected static ?int $navigationSort = 2;
 
@@ -62,10 +62,9 @@ class UangJalanResource extends Resource
                         Forms\Components\TextInput::make('nominal')
                             ->label('Allowance Amount')
                             ->required()
-                            ->dehydrated(false)
                             ->numeric()
                             ->prefix('IDR')
-                            ->minValue(0),
+                            ->default(0),
                     ])
                     ->columns(3),
 
