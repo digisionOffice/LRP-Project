@@ -71,6 +71,8 @@ return [
         'pages' => [
             'Dashboard',
             'MediaManager',
+            'DriverDashboard',
+            'DriverDeliveryDetail',
         ],
 
         'widgets' => [

@@ -1566,7 +1566,7 @@ class ComprehensiveSeeder extends Seeder
             $pelanggan = $transaksi->pelanggan;
 
             // Calculate amounts from sales details
-            $subtotal = $transaksi->details->sum(function ($detail) {
+            $subtotal = $transaksi->penjualanDetails->sum(function ($detail) {
                 return $detail->volume_item * $detail->harga_jual;
             });
 
