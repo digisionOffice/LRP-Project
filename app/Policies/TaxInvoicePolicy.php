@@ -15,7 +15,7 @@ class TaxInvoicePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_tax_invoice');
+        return $user->can('view_any_tax::invoice');
     }
 
     /**
@@ -23,7 +23,7 @@ class TaxInvoicePolicy
      */
     public function view(User $user, TaxInvoice $taxInvoice): bool
     {
-        return $user->can('view_tax_invoice');
+        return $user->can('view_tax::invoice');
     }
 
     /**
@@ -31,7 +31,7 @@ class TaxInvoicePolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_tax_invoice');
+        return $user->can('create_tax::invoice');
     }
 
     /**
@@ -39,7 +39,7 @@ class TaxInvoicePolicy
      */
     public function update(User $user, TaxInvoice $taxInvoice): bool
     {
-        return $user->can('update_tax_invoice');
+        return $user->can('update_tax::invoice');
     }
 
     /**
@@ -47,7 +47,7 @@ class TaxInvoicePolicy
      */
     public function delete(User $user, TaxInvoice $taxInvoice): bool
     {
-        return $user->can('delete_tax_invoice');
+        return $user->can('delete_tax::invoice');
     }
 
     /**
@@ -55,7 +55,7 @@ class TaxInvoicePolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_tax_invoice');
+        return $user->can('delete_any_tax::invoice');
     }
 
     /**
@@ -63,7 +63,7 @@ class TaxInvoicePolicy
      */
     public function forceDelete(User $user, TaxInvoice $taxInvoice): bool
     {
-        return $user->can('force_delete_tax_invoice');
+        return $user->can('force_delete_tax::invoice');
     }
 
     /**
@@ -71,7 +71,7 @@ class TaxInvoicePolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_tax_invoice');
+        return $user->can('force_delete_any_tax::invoice');
     }
 
     /**
@@ -79,7 +79,7 @@ class TaxInvoicePolicy
      */
     public function restore(User $user, TaxInvoice $taxInvoice): bool
     {
-        return $user->can('restore_tax_invoice');
+        return $user->can('restore_tax::invoice');
     }
 
     /**
@@ -87,7 +87,7 @@ class TaxInvoicePolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_tax_invoice');
+        return $user->can('restore_any_tax::invoice');
     }
 
     /**
@@ -95,7 +95,7 @@ class TaxInvoicePolicy
      */
     public function replicate(User $user, TaxInvoice $taxInvoice): bool
     {
-        return $user->can('replicate_tax_invoice');
+        return $user->can('replicate_tax::invoice');
     }
 
     /**
@@ -103,6 +103,6 @@ class TaxInvoicePolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_tax_invoice');
+        return $user->can('reorder_tax::invoice');
     }
 }

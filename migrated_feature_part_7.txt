@@ -1,0 +1,372 @@
+# AKUNTANSI MODULE MIGRATION - PART 7: SERVICES, VIEWS, AND SEEDERS
+# This file contains Services, Views, and Seeders for the Accounting Module
+
+# ============================================================================
+# FILE: app/Services/JournalingService.php
+# ============================================================================
+<?php
+
+namespace App\Services;
+
+use App\Models\Journal;
+use App\Models\JournalEntry;
+use App\Models\PostingRule;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+class JournalingService
+{
+    /**
+     * Post transaction to journal based on posting rules
+     */
+    public function postTransaction(string $sourceType, Model $sourceModel): void
+    {
+        try {
+            DB::beginTransaction();
+
+            // Find applicable posting rules
+            $postingRules = PostingRule::active()
+                ->bySourceType($sourceType)
+                ->orderedByPriority()
+                ->with('postingRuleEntries.account')
+                ->get();
+
+            foreach ($postingRules as $rule) {
+                // Evaluate trigger condition
+                if ($rule->evaluateCondition($sourceModel)) {
+                    $this->createJournalFromRule($rule, $sourceModel);
+                }
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error posting transaction to journal', [
+                'source_type' => $sourceType,
+                'source_id' => $sourceModel->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Create journal from posting rule
+     */
+    private function createJournalFromRule(PostingRule $rule, Model $sourceModel): Journal
+    {
+        $journal = Journal::create([
+            'transaction_date' => data_get($sourceModel, 'transaction_date', now()),
+            'reference_number' => data_get($sourceModel, 'transaction_code') ?? data_get($sourceModel, 'id'),
+            'source_type' => $rule->source_type,
+            'source_id' => $sourceModel->id,
+            'description' => $rule->description . ' - ' . data_get($sourceModel, 'transaction_code', $sourceModel->id),
+            'status' => 'Draft',
+            'posting_rule_id' => $rule->id,
+            'created_by' => auth()->id(),
+        ]);
+
+        $totalDebit = 0;
+        $totalCredit = 0;
+
+        // Create journal entries
+        foreach ($rule->postingRuleEntries as $ruleEntry) {
+            $amount = $ruleEntry->calculateAmount($sourceModel);
+            
+            if ($amount > 0) {
+                $journalEntry = JournalEntry::create([
+                    'journal_id' => $journal->id,
+                    'account_id' => $ruleEntry->account_id,
+                    'description' => $ruleEntry->generateDescription($sourceModel),
+                    'debit' => $ruleEntry->dc_type === 'Debit' ? $amount : 0,
+                    'credit' => $ruleEntry->dc_type === 'Credit' ? $amount : 0,
+                    'sort_order' => $ruleEntry->sort_order,
+                ]);
+
+                if ($ruleEntry->dc_type === 'Debit') {
+                    $totalDebit += $amount;
+                } else {
+                    $totalCredit += $amount;
+                }
+            }
+        }
+
+        // Validate balance
+        if (abs($totalDebit - $totalCredit) < 0.01) { // Allow small rounding differences
+            $journal->update(['status' => 'Posted']);
+        } else {
+            $journal->update(['status' => 'Error']);
+            Log::warning('Journal not balanced', [
+                'journal_id' => $journal->id,
+                'total_debit' => $totalDebit,
+                'total_credit' => $totalCredit,
+                'difference' => $totalDebit - $totalCredit
+            ]);
+        }
+
+        return $journal;
+    }
+
+    /**
+     * Reverse journal entries (for cancellations)
+     */
+    public function reverseTransaction(string $sourceType, Model $sourceModel): void
+    {
+        try {
+            DB::beginTransaction();
+
+            // Find existing journals for this transaction
+            $journals = Journal::where('source_type', $sourceType)
+                ->where('source_id', $sourceModel->id)
+                ->where('status', 'Posted')
+                ->get();
+
+            foreach ($journals as $journal) {
+                // Create reversal journal
+                $reversalJournal = Journal::create([
+                    'transaction_date' => now(),
+                    'reference_number' => $journal->reference_number . '-REV',
+                    'source_type' => $sourceType,
+                    'source_id' => $sourceModel->id,
+                    'description' => 'Reversal: ' . $journal->description,
+                    'status' => 'Posted',
+                    'created_by' => auth()->id(),
+                ]);
+
+                // Create reversal entries (swap debit/credit)
+                foreach ($journal->journalEntries as $entry) {
+                    JournalEntry::create([
+                        'journal_id' => $reversalJournal->id,
+                        'account_id' => $entry->account_id,
+                        'description' => 'Reversal: ' . $entry->description,
+                        'debit' => $entry->credit, // Swap
+                        'credit' => $entry->debit, // Swap
+                        'sort_order' => $entry->sort_order,
+                    ]);
+                }
+
+                // Mark original journal as cancelled
+                $journal->update(['status' => 'Cancelled']);
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error reversing transaction', [
+                'source_type' => $sourceType,
+                'source_id' => $sourceModel->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+}
+
+# ============================================================================
+# FILE: resources/views/filament/pages/general-ledger.blade.php
+# ============================================================================
+<x-filament-panels::page>
+    <div class="space-y-6">
+        <!-- Filter Form -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+            {{ $this->form }}
+        </div>
+
+        <!-- Account Summary -->
+        @if($this->getSelectedAccount())
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                    Ringkasan Akun: {{ $this->getSelectedAccount()->kode_akun }} - {{ $this->getSelectedAccount()->nama_akun }}
+                </h3>
+
+                @php
+                    $summary = $this->getAccountSummary();
+                @endphp
+
+                @if(!empty($summary))
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-blue-600 dark:text-blue-400">Saldo Awal</div>
+                            <div class="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                                Rp {{ number_format($summary['opening_balance'], 0, ',', '.') }}
+                            </div>
+                        </div>
+                        <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-green-600 dark:text-green-400">Total Debit</div>
+                            <div class="text-2xl font-bold text-green-900 dark:text-green-100">
+                                Rp {{ number_format($summary['total_debit'], 0, ',', '.') }}
+                            </div>
+                        </div>
+                        <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-red-600 dark:text-red-400">Total Credit</div>
+                            <div class="text-2xl font-bold text-red-900 dark:text-red-100">
+                                Rp {{ number_format($summary['total_credit'], 0, ',', '.') }}
+                            </div>
+                        </div>
+                        <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-purple-600 dark:text-purple-400">Saldo Akhir</div>
+                            <div class="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                                Rp {{ number_format($summary['ending_balance'], 0, ',', '.') }}
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        @endif
+
+        <!-- Transactions Table -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+            {{ $this->table }}
+        </div>
+
+        @if(!$this->getSelectedAccount())
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <div class="text-center py-8">
+                    <div class="text-gray-400 dark:text-gray-500 mb-2">
+                        <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">
+                        Pilih Akun untuk Melihat Buku Besar
+                    </h3>
+                    <p class="text-gray-500 dark:text-gray-400">
+                        Silakan pilih akun dari dropdown di atas untuk melihat detail transaksi
+                    </p>
+                </div>
+            </div>
+        @endif
+    </div>
+</x-filament-panels::page>
+
+# ============================================================================
+# FILE: resources/views/filament/pages/income-statement.blade.php
+# ============================================================================
+<x-filament-panels::page>
+    <div class="space-y-6">
+        <!-- Filter Form -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+            {{ $this->form }}
+
+            <div class="mt-6 flex justify-end">
+                <x-filament::button
+                    color="primary"
+                    icon="heroicon-o-document-arrow-down"
+                    onclick="alert('Fitur export PDF akan segera tersedia')">
+                    Export PDF
+                </x-filament::button>
+            </div>
+        </div>
+
+        <!-- Income Statement Report -->
+        @if($this->start_date && $this->end_date)
+            @php
+                $data = $this->getIncomeStatementData();
+            @endphp
+
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        LAPORAN LABA RUGI
+                    </h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                        Periode {{ \Carbon\Carbon::parse($this->start_date)->format('d F Y') }} - {{ \Carbon\Carbon::parse($this->end_date)->format('d F Y') }}
+                    </p>
+                </div>
+
+                <div class="space-y-8">
+                    <!-- PENDAPATAN -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                            PENDAPATAN
+                        </h3>
+
+                        @if(count($data['revenues']) > 0)
+                            <div class="space-y-2">
+                                @foreach($data['revenues'] as $revenue)
+                                    <div class="flex justify-between items-center py-1">
+                                        <span class="text-gray-700 dark:text-gray-300">
+                                            {{ $revenue['account']->kode_akun }} - {{ $revenue['account']->nama_akun }}
+                                        </span>
+                                        <span class="font-medium text-gray-900 dark:text-gray-100">
+                                            Rp {{ number_format($revenue['balance'], 0, ',', '.') }}
+                                        </span>
+                                    </div>
+                                @endforeach
+
+                                <div class="flex justify-between items-center py-3 border-t-2 border-gray-300 dark:border-gray-600 font-bold text-lg">
+                                    <span class="text-gray-900 dark:text-gray-100">TOTAL PENDAPATAN</span>
+                                    <span class="text-green-600 dark:text-green-400">
+                                        Rp {{ number_format($data['total_revenue'], 0, ',', '.') }}
+                                    </span>
+                                </div>
+                            </div>
+                        @else
+                            <p class="text-gray-500 dark:text-gray-400 italic">Tidak ada data pendapatan</p>
+                        @endif
+                    </div>
+
+                    <!-- BEBAN -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                            BEBAN
+                        </h3>
+
+                        @if(count($data['expenses']) > 0)
+                            <div class="space-y-2">
+                                @foreach($data['expenses'] as $expense)
+                                    <div class="flex justify-between items-center py-1">
+                                        <span class="text-gray-700 dark:text-gray-300">
+                                            {{ $expense['account']->kode_akun }} - {{ $expense['account']->nama_akun }}
+                                        </span>
+                                        <span class="font-medium text-gray-900 dark:text-gray-100">
+                                            Rp {{ number_format($expense['balance'], 0, ',', '.') }}
+                                        </span>
+                                    </div>
+                                @endforeach
+
+                                <div class="flex justify-between items-center py-3 border-t-2 border-gray-300 dark:border-gray-600 font-bold text-lg">
+                                    <span class="text-gray-900 dark:text-gray-100">TOTAL BEBAN</span>
+                                    <span class="text-red-600 dark:text-red-400">
+                                        Rp {{ number_format($data['total_expense'], 0, ',', '.') }}
+                                    </span>
+                                </div>
+                            </div>
+                        @else
+                            <p class="text-gray-500 dark:text-gray-400 italic">Tidak ada data beban</p>
+                        @endif
+                    </div>
+
+                    <!-- LABA BERSIH -->
+                    <div class="pt-6 border-t-4 border-gray-400 dark:border-gray-600">
+                        <div class="flex justify-between items-center py-4 bg-gray-50 dark:bg-gray-700 px-6 rounded-lg">
+                            <span class="text-xl font-bold text-gray-900 dark:text-gray-100">
+                                LABA BERSIH
+                            </span>
+                            <span class="text-2xl font-bold {{ $data['net_income'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+                                Rp {{ number_format($data['net_income'], 0, ',', '.') }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @else
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <div class="text-center py-8">
+                    <div class="text-gray-400 dark:text-gray-500 mb-2">
+                        <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">
+                        Pilih Periode Laporan
+                    </h3>
+                    <p class="text-gray-500 dark:text-gray-400">
+                        Silakan pilih tanggal mulai dan akhir untuk melihat laporan laba rugi
+                    </p>
+                </div>
+            </div>
+        @endif
+    </div>
+</x-filament-panels::page>
