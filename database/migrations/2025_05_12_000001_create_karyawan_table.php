@@ -23,11 +23,11 @@ return new class extends Migration
             $table->softDeletes();
 
             // Foreign key constraints
-            $table->foreign('id_jabatan')->references('id')->on('jabatan')->onDelete('set null');
-            $table->foreign('id_divisi')->references('id')->on('divisi')->onDelete('set null');
-            $table->foreign('id_entitas')->references('id')->on('entitas')->onDelete('set null');
-            $table->foreign('id_user')->references('id')->on('users')->onDelete('set null');
-            $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');
+            // $table->foreign('id_jabatan')->references('id')->on('jabatan')->onDelete('set null');
+            // $table->foreign('id_divisi')->references('id')->on('divisi')->onDelete('set null');
+            // $table->foreign('id_entitas')->references('id')->on('entitas')->onDelete('set null');
+            // $table->foreign('id_user')->references('id')->on('users')->onDelete('set null');
+            // $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');
 
             // Indexes
             $table->index(['id_jabatan']);
