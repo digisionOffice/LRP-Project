@@ -20,6 +20,8 @@ class DeliveryOrder extends Model
         'status_muat',
         'waktu_muat',
         'waktu_selesai_muat',
+        'volume_do',
+        'sisa_volume_do',
         'do_signatory_name',
         'do_print_status',
         'fuel_usage_notes',
@@ -55,6 +57,8 @@ class DeliveryOrder extends Model
         'invoice_archive_status' => 'boolean',
         'invoice_confirmation_status' => 'boolean',
         'driver_allowance_amount' => 'decimal:2',
+        'volume_do' => 'float',
+        'sisa_volume_do' => 'float',
     ];
 
     public function transaksi()
@@ -101,5 +105,56 @@ class DeliveryOrder extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the invoice associated with the delivery order.
+     */
+    public function invoice()
+    {
+        return $this->hasOne(Invoice::class, 'id_do');
+    }
+
+    /**
+     * Get the receipts associated with the delivery order.
+     */
+    public function receipts()
+    {
+        return $this->hasMany(Receipt::class, 'id_do');
+    }
+
+    /**
+     * Get the tax invoice associated with the delivery order.
+     */
+    public function taxInvoice()
+    {
+        return $this->hasOne(TaxInvoice::class, 'id_do');
+    }
+
+    /**
+     * Get the total volume from the related sales order (SO).
+     */
+    public function getTotalSoVolumeAttribute()
+    {
+        if (!$this->transaksi || !$this->transaksi->penjualanDetails) {
+            return 0;
+        }
+
+        return $this->transaksi->penjualanDetails->sum('volume_item');
+    }
+
+    /**
+     * Calculate remaining volume from SO after all deliveries.
+     */
+    public function calculateRemainingVolume()
+    {
+        $totalSoVolume = $this->total_so_volume;
+
+        // Get all delivery orders for this SO except current one
+        $deliveredVolume = DeliveryOrder::where('id_transaksi', $this->id_transaksi)
+            ->where('id', '!=', $this->id)
+            ->sum('volume_do');
+
+        return $totalSoVolume - $deliveredVolume;
     }
 }

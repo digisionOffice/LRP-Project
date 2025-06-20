@@ -21,7 +21,7 @@ class UangJalanResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
-    protected static ?string $navigationLabel = 'Driver Allowance';
+    protected static ?string $navigationLabel = 'Uang Jalan';
 
     protected static ?int $navigationSort = 2;
 
@@ -40,7 +40,8 @@ class UangJalanResource extends Resource
                                 // Autofill from URL parameter
                                 return request()->query('id_do', null);
                             })
-                            ->disabled()
+                            // ->disabled()
+                            ->helperText('DO akan otomatis terisi dari URL parameter')
                             ->required(),
 
                         Forms\Components\Select::make('id_user')
@@ -54,6 +55,8 @@ class UangJalanResource extends Resource
                                     });
                                 }
                             )
+                            ->searchable()
+                            ->helperText('Pilih sopir yang akan menerima uang jalan')
                             ->preload(),
 
                         Forms\Components\TextInput::make('nominal')
@@ -61,7 +64,7 @@ class UangJalanResource extends Resource
                             ->required()
                             ->numeric()
                             ->prefix('IDR')
-                            ->minValue(0),
+                            ->default(0),
                     ])
                     ->columns(3),
 

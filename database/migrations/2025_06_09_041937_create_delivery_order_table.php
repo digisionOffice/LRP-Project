@@ -22,6 +22,8 @@ return new class extends Migration
             $table->enum('status_muat', ['pending', 'muat', 'selesai'])->default('pending');
             $table->datetime('waktu_muat')->nullable();
             $table->datetime('waktu_selesai_muat')->nullable();
+            $table->float('volume_do')->nullable()->comment('Volume yang akan dikirim dalam DO ini');
+            $table->float('sisa_volume_do')->nullable()->comment('Sisa volume dari SO yang belum dikirim');
             $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamps();
             $table->softDeletes();

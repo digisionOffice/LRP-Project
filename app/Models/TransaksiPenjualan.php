@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use Illuminate\Support\Facades\Route;
 
 class TransaksiPenjualan extends Model implements HasMedia
 {
@@ -129,6 +128,30 @@ class TransaksiPenjualan extends Model implements HasMedia
     public function getDokumenPoUrlAttribute()
     {
         return $this->getFirstMediaUrl('dokumen_po');
+    }
+
+    /**
+     * Get the invoices associated with the sales transaction.
+     */
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class, 'id_transaksi');
+    }
+
+    /**
+     * Get the receipts associated with the sales transaction.
+     */
+    public function receipts()
+    {
+        return $this->hasMany(Receipt::class, 'id_transaksi');
+    }
+
+    /**
+     * Get the tax invoices associated with the sales transaction.
+     */
+    public function taxInvoices()
+    {
+        return $this->hasMany(TaxInvoice::class, 'id_transaksi');
     }
 
     // delivery order

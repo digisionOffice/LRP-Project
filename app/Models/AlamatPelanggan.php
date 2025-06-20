@@ -99,8 +99,16 @@ class AlamatPelanggan extends Model
     public function getFormattedCoordinatesAttribute(): ?string
     {
         if ($this->hasCoordinates()) {
-            // dd($this->location);
             return implode(', ', $this->location);
+        }
+
+        return null;
+    }
+
+    public function getGoogleMapsLinkAttribute(): ?string
+    {
+        if ($this->hasCoordinates()) {
+            return 'https://www.google.com/maps/search/' . implode(',', $this->location);
         }
 
         return null;
