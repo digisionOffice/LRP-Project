@@ -12,16 +12,33 @@ class Invoice extends Model
     protected $table = 'invoice';
 
     protected $fillable = [
-        'id_transaksi_penjualan',
+        // Core invoice fields (matching database schema)
         'nomor_invoice',
+        'id_do',
+        'id_transaksi',
         'tanggal_invoice',
-        'total_amount',
+        'tanggal_jatuh_tempo',
+        'nama_pelanggan',
+        'alamat_pelanggan',
+        'npwp_pelanggan',
+        'subtotal',
+        'total_pajak',
+        'total_invoice',
+        'total_terbayar',
+        'sisa_tagihan',
+        'status',
+        'catatan',
+
+        // Additional cost fields
         'biaya_ongkos_angkut',
         'biaya_pbbkb',
         'biaya_operasional_kerja',
         'include_ppn',
         'include_pbbkb',
         'include_operasional_kerja',
+
+        // Legacy fields for backward compatibility
+        'total_amount',
         'status_invoice',
         'status_kirim',
         'status_arsip',
@@ -38,7 +55,6 @@ class Invoice extends Model
         'tanggal_bayar',
         'metode_bayar',
         'referensi_bayar',
-        'catatan',
         'created_by',
         'updated_by',
     ];
@@ -47,16 +63,26 @@ class Invoice extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
-        'tanggal_invoice' => 'date',
+        'tanggal_invoice' => 'datetime',
+        'tanggal_jatuh_tempo' => 'datetime',
         'tanggal_kirim' => 'datetime',
         'tanggal_arsip' => 'datetime',
         'tanggal_konfirmasi_diterima' => 'datetime',
         'tanggal_bayar' => 'date',
+
+        // Financial fields
+        'subtotal' => 'decimal:2',
+        'total_pajak' => 'decimal:2',
+        'total_invoice' => 'decimal:2',
+        'total_terbayar' => 'decimal:2',
+        'sisa_tagihan' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'biaya_ongkos_angkut' => 'decimal:2',
         'biaya_pbbkb' => 'decimal:2',
         'biaya_operasional_kerja' => 'decimal:2',
         'nominal_bayar' => 'decimal:2',
+
+        // Boolean flags
         'include_ppn' => 'boolean',
         'include_pbbkb' => 'boolean',
         'include_operasional_kerja' => 'boolean',
@@ -199,11 +225,40 @@ class Invoice extends Model
 
     public function getStatusAttribute()
     {
+        // Check if status field exists in attributes, otherwise derive from status_bayar
+        if (isset($this->attributes['status'])) {
+            return $this->attributes['status'];
+        }
+
         return match ($this->status_bayar) {
             'lunas' => 'paid',
             'sebagian' => 'sent',
             'belum_dibayar' => 'sent',
             default => 'draft'
         };
+    }
+
+    /**
+     * Get delivery order URL for navigation
+     */
+    public function getDeliveryOrderUrlAttribute()
+    {
+        if ($this->deliveryOrder) {
+            return route('filament.admin.resources.delivery-orders.view', ['record' => $this->deliveryOrder]);
+        }
+        return null;
+    }
+
+    /**
+     * Get calculated total invoice amount
+     */
+    public function getCalculatedTotalAttribute()
+    {
+        $subtotal = $this->subtotal ?? $this->total_amount ?? 0;
+        $pajak = $this->include_ppn ? ($this->total_pajak ?? ($subtotal * 0.11)) : 0;
+        $operasional = $this->include_operasional_kerja ? ($this->biaya_operasional_kerja ?? 0) : 0;
+        $pbbkb = $this->include_pbbkb ? ($this->biaya_pbbkb ?? 0) : 0;
+
+        return $subtotal + $pajak + $operasional + $pbbkb;
     }
 }

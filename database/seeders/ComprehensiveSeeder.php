@@ -426,6 +426,11 @@ class ComprehensiveSeeder extends Seeder
             'receipt' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
             'tax_invoice' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
 
+            // Attendance Management
+            'absensi' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
+            'shift' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
+            'schedule' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
+
             // Documents
         ];
 
@@ -475,6 +480,11 @@ class ComprehensiveSeeder extends Seeder
             'tax_invoice' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
             'expense_request' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
             'tbbm' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
+
+            // Attendance Management
+            'absensi' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
+            'shift' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
+            'schedule' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
 
             // Master Data
             'item' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
@@ -566,8 +576,21 @@ class ComprehensiveSeeder extends Seeder
             'guard_name' => 'web',
             'deskripsi' => 'User management and document permissions only'
         ]);
-        $administrationResources = ['user', 'role'];
+        $administrationResources = ['user', 'role', 'absensi', 'shift', 'schedule'];
         $this->assignResourcePermissions($administration, $administrationResources, ['view', 'view_any', 'create', 'update', 'delete']);
+
+        // 8. Karyawan - Limited attendance permissions for employees
+        $karyawan = Role::firstOrCreate([
+            'name' => 'karyawan',
+            'guard_name' => 'web',
+            'deskripsi' => 'Employee role with limited attendance permissions'
+        ]);
+        $karyawanResources = ['absensi'];
+        $this->assignResourcePermissions($karyawan, $karyawanResources, ['view', 'view_any', 'create', 'update']);
+
+        // Add view-only permissions for schedule
+        $karyawanViewOnlyResources = ['schedule', 'shift'];
+        $this->assignResourcePermissions($karyawan, $karyawanViewOnlyResources, ['view', 'view_any']);
     }
 
     private function assignResourcePermissions(Role $role, array $resources, array $actions): void
@@ -632,7 +655,16 @@ class ComprehensiveSeeder extends Seeder
                 'name' => 'Driver Utama',
                 'email' => 'driver@lrp.com',
                 'password' => Hash::make('adminlrp123'),
+                'role' => 'driver',
                 'id_jabatan' => $jabatanIds[4] ?? null,
+                'id_divisi' => $divisiIds[2] ?? null,
+            ],
+            [
+                'name' => 'Karyawan Test',
+                'email' => 'karyawan@lrp.com',
+                'password' => Hash::make('adminlrp123'),
+                'role' => 'karyawan',
+                'id_jabatan' => $jabatanIds[3] ?? null,
                 'id_divisi' => $divisiIds[2] ?? null,
             ],
         ];
@@ -643,6 +675,7 @@ class ComprehensiveSeeder extends Seeder
                     'email' => $userData['email'],
                     'name' => $userData['name'],
                     'password' => $userData['password'],
+                    'role' => $userData['role'] ?? 'admin',
                     'id_jabatan' => $userData['id_jabatan'],
                     'id_divisi' => $userData['id_divisi'],
                 ]
@@ -654,12 +687,14 @@ class ComprehensiveSeeder extends Seeder
         $sales = User::where('name', 'Manager Sales')->first();
         $administration = User::where('name', 'Staff Admin')->first();
         $driver = User::where('name', 'Driver Utama')->first();
+        $karyawan = User::where('name', 'Karyawan Test')->first();
 
         $superAdmin->assignRole('super_admin');
         $admin->assignRole('admin');
         $sales->assignRole('sales');
         $administration->assignRole('administration');
         $driver->assignRole('driver');
+        $karyawan->assignRole('karyawan');
     }
 
     /**

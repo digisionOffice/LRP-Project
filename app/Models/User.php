@@ -28,6 +28,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia
         'name',
         'email',
         'password',
+        'role',
         'is_active',
         'no_induk',
         'hp',
@@ -111,6 +112,38 @@ class User extends Authenticatable implements FilamentUser, HasMedia
     public function createdUsers()
     {
         return $this->hasMany(User::class, 'created_by');
+    }
+
+    /**
+     * Get the karyawan record for this user
+     */
+    public function karyawan()
+    {
+        return $this->hasOne(Karyawan::class, 'id_user');
+    }
+
+    /**
+     * Get employees supervised by this user
+     */
+    public function supervisedEmployees()
+    {
+        return $this->hasMany(Karyawan::class, 'supervisor_id');
+    }
+
+    /**
+     * Get schedules supervised by this user
+     */
+    public function supervisedSchedules()
+    {
+        return $this->hasMany(Schedule::class, 'supervisor_id');
+    }
+
+    /**
+     * Get attendance records approved by this user
+     */
+    public function approvedAttendance()
+    {
+        return $this->hasMany(Absensi::class, 'approved_by');
     }
 
     /**

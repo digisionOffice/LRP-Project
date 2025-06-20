@@ -4,8 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\InvoiceResource\Pages;
 use App\Models\Invoice;
-use App\Models\DeliveryOrder;
-use App\Models\TransaksiPenjualan;
+
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -59,6 +58,113 @@ class InvoiceResource extends Resource
                             ->label('Tanggal Invoice')
                             ->required()
                             ->default(now()),
+
+                        Forms\Components\DateTimePicker::make('tanggal_jatuh_tempo')
+                            ->label('Tanggal Jatuh Tempo')
+                            ->required()
+                            ->default(fn() => now()->addDays(30)),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Informasi Pelanggan')
+                    ->schema([
+                        Forms\Components\TextInput::make('nama_pelanggan')
+                            ->label('Nama Pelanggan')
+                            ->required()
+                            ->maxLength(255),
+
+                        Forms\Components\Textarea::make('alamat_pelanggan')
+                            ->label('Alamat Pelanggan')
+                            ->rows(3)
+                            ->columnSpanFull(),
+
+                        Forms\Components\TextInput::make('npwp_pelanggan')
+                            ->label('NPWP Pelanggan')
+                            ->maxLength(50),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Rincian Keuangan')
+                    ->schema([
+                        Forms\Components\TextInput::make('subtotal')
+                            ->label('Subtotal')
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->required(),
+
+                        Forms\Components\Toggle::make('include_ppn')
+                            ->label('Termasuk PPN (11%)')
+                            ->default(true)
+                            ->reactive(),
+
+                        Forms\Components\TextInput::make('total_pajak')
+                            ->label('Total Pajak')
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->visible(fn(callable $get) => $get('include_ppn')),
+
+                        Forms\Components\TextInput::make('biaya_ongkos_angkut')
+                            ->label('Biaya Ongkos Angkut')
+                            ->numeric()
+                            ->prefix('Rp'),
+
+                        Forms\Components\Toggle::make('include_operasional_kerja')
+                            ->label('Termasuk Biaya Operasional')
+                            ->default(false)
+                            ->reactive(),
+
+                        Forms\Components\TextInput::make('biaya_operasional_kerja')
+                            ->label('Biaya Operasional Kerja')
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->visible(fn(callable $get) => $get('include_operasional_kerja')),
+
+                        Forms\Components\Toggle::make('include_pbbkb')
+                            ->label('Termasuk PBBKB')
+                            ->default(false)
+                            ->reactive(),
+
+                        Forms\Components\TextInput::make('biaya_pbbkb')
+                            ->label('Biaya PBBKB')
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->visible(fn(callable $get) => $get('include_pbbkb')),
+
+                        Forms\Components\TextInput::make('total_invoice')
+                            ->label('Total Invoice')
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->required(),
+                    ])->columns(3),
+
+                Forms\Components\Section::make('Status & Pembayaran')
+                    ->schema([
+                        Forms\Components\Select::make('status')
+                            ->label('Status')
+                            ->options([
+                                'draft' => 'Draft',
+                                'sent' => 'Terkirim',
+                                'paid' => 'Lunas',
+                                'overdue' => 'Jatuh Tempo',
+                                'cancelled' => 'Dibatalkan',
+                            ])
+                            ->default('draft')
+                            ->required(),
+
+                        Forms\Components\TextInput::make('total_terbayar')
+                            ->label('Total Terbayar')
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->default(0),
+
+                        Forms\Components\TextInput::make('sisa_tagihan')
+                            ->label('Sisa Tagihan')
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->default(0),
+
+                        Forms\Components\Textarea::make('catatan')
+                            ->label('Catatan')
+                            ->rows(3)
+                            ->columnSpanFull(),
 
                         Forms\Components\DateTimePicker::make('tanggal_jatuh_tempo')
                             ->label('Tanggal Jatuh Tempo')

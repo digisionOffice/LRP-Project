@@ -44,7 +44,6 @@
         .company-logo {
             width: 80px;
             height: 80px;
-            background: linear-gradient(135deg, #1e40af, #3b82f6);
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -55,6 +54,18 @@
             text-align: center;
             line-height: 1.1;
             flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .company-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .company-logo-fallback {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            color: white;
         }
 
         .company-info {
@@ -281,11 +292,15 @@
         <!-- Header Section -->
         <div class="header">
             <div class="company-section">
-                <div class="company-logo">
-                    LINTAS<br>RIAU<br>PRIMA
+                <div class="company-logo {{ empty($logoBase64) ? 'company-logo-fallback' : '' }}">
+                    @if (!empty($logoBase64))
+                        <img src="data:image/png;base64,{{ $logoBase64 }}" alt="Company Logo">
+                    @else
+                        LINTAS<br>RIAU<br>PRIMA
+                    @endif
                 </div>
                 <div class="company-info">
-                    <div class="company-name">LINTAS RIAU PRIMA</div>
+                    <div class="company-name">PT. LINTAS RIAU PRIMA</div>
                     <div class="company-tagline">TRUSTED & RELIABLE PARTNER</div>
                     <div class="company-services">Fuel Agent - Fuel Transportation - Bunker Service</div>
                 </div>
@@ -301,19 +316,28 @@
 
         @php
             // Calculate totals at the top level to ensure variable scope
-            // Handle null/zero values gracefully
-            $finalTotalPenjualan = $record->subtotal ?: ($record->total_amount ?: 100000000);
+            // Handle null/zero values gracefully and use proper field names
+            $finalTotalPenjualan = $record->subtotal ?? ($record->total_amount ?? 0);
             $includePpn = $record->include_ppn ?? true;
             $includeOperasional = $record->include_operasional_kerja ?? false;
             $includePbbkb = $record->include_pbbkb ?? false;
 
-            $finalTotalPajak = $includePpn ? ($record->total_pajak ?: $finalTotalPenjualan * 0.11) : 0;
-            $finalBiayaOperasional = $includeOperasional ? ($record->biaya_operasional_kerja ?: 0) : 0;
-            $finalBiayaPbbkb = $includePbbkb ? ($record->biaya_pbbkb ?: 0) : 0;
-            $finalTotalInvoice = $finalTotalPenjualan + $finalTotalPajak + $finalBiayaOperasional + $finalBiayaPbbkb;
+            $finalTotalPajak = $includePpn ? $record->total_pajak ?? $finalTotalPenjualan * 0.11 : 0;
+            $finalBiayaOperasional = $includeOperasional ? $record->biaya_operasional_kerja ?? 0 : 0;
+            $finalBiayaPbbkb = $includePbbkb ? $record->biaya_pbbkb ?? 0 : 0;
 
-            // Ensure we have valid numbers for calculations
-            $finalTotalInvoice = $finalTotalInvoice ?: 123225000;
+            // Use database field if available, otherwise calculate
+            $finalTotalInvoice =
+                $record->total_invoice ??
+                $finalTotalPenjualan + $finalTotalPajak + $finalBiayaOperasional + $finalBiayaPbbkb;
+
+            // Fallback for demo purposes only if no data exists
+            if ($finalTotalInvoice <= 0) {
+                $finalTotalPenjualan = 100000000;
+                $finalTotalPajak = $includePpn ? 11000000 : 0;
+                $finalTotalInvoice =
+                    $finalTotalPenjualan + $finalTotalPajak + $finalBiayaOperasional + $finalBiayaPbbkb;
+            }
         @endphp
 
         <!-- Customer Details -->
@@ -323,13 +347,19 @@
                     <span class="detail-label">Nama Pelanggan</span>
                     <span class="detail-colon">:</span>
                     <span
-                        class="detail-value">{{ optional(optional($record->transaksiPenjualan)->pelanggan)->nama ?? ($record->nama_pelanggan ?? '-') }}</span>
+                        class="detail-value">{{ $record->nama_pelanggan ?? ($record->transaksiPenjualan?->pelanggan?->nama ?? '-') }}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Alamat Pelanggan</span>
                     <span class="detail-colon">:</span>
                     <span
-                        class="detail-value">{{ optional(optional($record->transaksiPenjualan)->pelanggan)->alamat ?? ($record->alamat_pelanggan ?? '-') }}</span>
+                        class="detail-value">{{ $record->alamat_pelanggan ?? ($record->transaksiPenjualan?->pelanggan?->alamat ?? '-') }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">NPWP Pelanggan</span>
+                    <span class="detail-colon">:</span>
+                    <span
+                        class="detail-value">{{ $record->npwp_pelanggan ?? ($record->transaksiPenjualan?->pelanggan?->npwp ?? '-') }}</span>
                 </div>
             </div>
 
@@ -337,35 +367,35 @@
                 <div class="detail-row">
                     <span class="detail-label">No Surat Pengantar</span>
                     <span class="detail-colon">:</span>
-                    <span class="detail-value">{{ optional($record->deliveryOrder)->kode ?? '-' }}</span>
+                    <span class="detail-value">{{ $record->deliveryOrder?->kode ?? '-' }}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Pengiriman Pertamina</span>
+                    <span class="detail-label">Tanggal Invoice</span>
                     <span class="detail-colon">:</span>
                     <span
-                        class="detail-value">{{ optional($record->deliveryOrder)->tanggal_delivery ? $record->deliveryOrder->tanggal_delivery->format('d/m/Y') : '-' }}</span>
+                        class="detail-value">{{ $record->tanggal_invoice ? $record->tanggal_invoice->format('d/m/Y') : '-' }}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">No Tanda Bukti</span>
-                    <span class="detail-colon">:</span>
-                    <span class="detail-value">{{ optional($record->deliveryOrder)->no_segel ?? '-' }}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Pengiriman Barang</span>
+                    <span class="detail-label">Tanggal Jatuh Tempo</span>
                     <span class="detail-colon">:</span>
                     <span
-                        class="detail-value">{{ optional($record->deliveryOrder)->tanggal_delivery ? $record->deliveryOrder->tanggal_delivery->format('d/m/Y') : '-' }}</span>
+                        class="detail-value">{{ $record->tanggal_jatuh_tempo ? $record->tanggal_jatuh_tempo->format('d/m/Y') : '-' }}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">No PO</span>
                     <span class="detail-colon">:</span>
-                    <span class="detail-value">{{ optional($record->transaksiPenjualan)->nomor_po ?? '-' }}</span>
+                    <span class="detail-value">{{ $record->transaksiPenjualan?->nomor_po ?? '-' }}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Tanggal PO</span>
                     <span class="detail-colon">:</span>
                     <span
-                        class="detail-value">{{ optional($record->transaksiPenjualan)->tanggal ? $record->transaksiPenjualan->tanggal->format('d/m/Y') : '-' }}</span>
+                        class="detail-value">{{ $record->transaksiPenjualan?->tanggal ? $record->transaksiPenjualan->tanggal->format('d/m/Y') : '-' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">No Tanda Bukti</span>
+                    <span class="detail-colon">:</span>
+                    <span class="detail-value">{{ $record->deliveryOrder?->no_segel ?? '-' }}</span>
                 </div>
             </div>
         </div>
@@ -385,64 +415,80 @@
             <tbody>
                 @php
                     $itemNumber = 1;
-                    $details = optional($record->transaksiPenjualan)->penjualanDetails ?? collect();
+                    $details = $record->transaksiPenjualan?->penjualanDetails ?? collect();
+                    $hasDetails = $details->isNotEmpty();
                 @endphp
 
-                @forelse($details as $detail)
-                    <tr>
-                        <td>{{ $itemNumber++ }}</td>
-                        <td class="text-left">
-                            {{ $detail->item->nama ?? 'Item tidak ditemukan' }}<br>
-                            <small style="color: #6b7280;">{{ $detail->item->deskripsi ?? '' }}</small>
-                        </td>
-                        <td class="text-right">Rp {{ number_format($detail->harga_jual, 0, ',', '.') }}</td>
-                        <td class="text-right">{{ number_format($detail->volume_item, 2, ',', '.') }}
-                            {{ $detail->item->satuanDasar->nama ?? 'Unit' }}</td>
-                        <td class="text-right">Rp
-                            {{ number_format($detail->harga_jual * $detail->volume_item * 0.11, 0, ',', '.') }}</td>
-                        <td class="text-right">Rp
-                            {{ number_format($detail->harga_jual * $detail->volume_item * 1.11, 0, ',', '.') }}</td>
-                    </tr>
-                @empty
+                @if ($hasDetails)
+                    @foreach ($details as $detail)
+                        <tr>
+                            <td>{{ $itemNumber++ }}</td>
+                            <td class="text-left">
+                                {{ $detail->item?->nama ?? ($detail->item?->name ?? 'Item tidak ditemukan') }}<br>
+                                <small
+                                    style="color: #6b7280;">{{ $detail->item?->deskripsi ?? ($detail->item?->description ?? '') }}</small>
+                            </td>
+                            <td class="text-right">Rp {{ number_format($detail->harga_jual ?? 0, 0, ',', '.') }}</td>
+                            <td class="text-right">{{ number_format($detail->volume_item ?? 0, 2, ',', '.') }}
+                                {{ $detail->item?->satuan?->nama ?? ($detail->item?->satuanDasar?->nama ?? 'Unit') }}
+                            </td>
+                            <td class="text-right">
+                                @if ($includePpn)
+                                    Rp
+                                    {{ number_format(($detail->harga_jual ?? 0) * ($detail->volume_item ?? 0) * 0.11, 0, ',', '.') }}
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td class="text-right">Rp
+                                {{ number_format(($detail->harga_jual ?? 0) * ($detail->volume_item ?? 0) * ($includePpn ? 1.11 : 1), 0, ',', '.') }}
+                            </td>
+                        </tr>
+                    @endforeach
+                @else
                     @php
-                        $totalPenjualan = $record->subtotal ?: ($record->total_amount ?: 100000000);
-                        $totalPajak = $includePpn ? ($record->total_pajak ?: $totalPenjualan * 0.11) : 0;
+                        $totalPenjualan = $finalTotalPenjualan;
+                        $totalPajak = $finalTotalPajak;
                         $itemNumber = 1;
                     @endphp
 
-                    <!-- Main BBM Item -->
+                    <!-- Main Service Item -->
                     <tr>
                         <td>{{ $itemNumber++ }}.</td>
                         <td class="text-left">
-                            @if ($record->biaya_ongkos_angkut)
+                            @if ($record->biaya_ongkos_angkut && $record->biaya_ongkos_angkut > 0)
                                 Biaya Ongkos Angkut BBM<br>
-                                {{ optional(optional($record->transaksiPenjualan)->pelanggan)->nama ?? ($record->nama_pelanggan ?? 'Pelanggan') }}
+                                {{ $record->nama_pelanggan ?? ($record->transaksiPenjualan?->pelanggan?->nama ?? 'Pelanggan') }}
                             @else
-                                BBM BIOSOLAR<br>INDUSTRI 10000 liter<br>wilayah Kab. Siak<br>Polongan, Polongan
+                                Layanan Pengiriman BBM<br>
+                                {{ $record->nama_pelanggan ?? ($record->transaksiPenjualan?->pelanggan?->nama ?? 'Pelanggan') }}<br>
+                                @if ($record->deliveryOrder?->volume_do)
+                                    Volume: {{ number_format($record->deliveryOrder->volume_do, 0, ',', '.') }} Liter
+                                @endif
                             @endif
                         </td>
                         <td class="text-right">
-                            @if ($record->biaya_ongkos_angkut)
-                                Rp. {{ number_format($record->biaya_ongkos_angkut, 0, ',', '.') }}
+                            @if ($record->biaya_ongkos_angkut && $record->biaya_ongkos_angkut > 0)
+                                Rp {{ number_format($record->biaya_ongkos_angkut, 0, ',', '.') }}
                             @else
-                                Rp. 10.000
+                                Rp {{ number_format($totalPenjualan > 0 ? $totalPenjualan : 10000, 0, ',', '.') }}
                             @endif
                         </td>
                         <td class="text-right">
-                            @if ($record->biaya_ongkos_angkut)
+                            @if ($record->biaya_ongkos_angkut && $record->biaya_ongkos_angkut > 0)
                                 1 Layanan
                             @else
-                                10000 Liter
+                                {{ $record->deliveryOrder?->volume_do ? number_format($record->deliveryOrder->volume_do, 0, ',', '.') . ' Liter' : '1 Layanan' }}
                             @endif
                         </td>
                         <td class="text-right">
                             @if ($includePpn && $totalPajak > 0)
-                                Rp. {{ number_format($totalPajak, 0, ',', '.') }}
+                                Rp {{ number_format($totalPajak, 0, ',', '.') }}
                             @else
                                 -
                             @endif
                         </td>
-                        <td class="text-right">Rp. {{ number_format($totalPenjualan, 0, ',', '.') }}</td>
+                        <td class="text-right">Rp {{ number_format($totalPenjualan, 0, ',', '.') }}</td>
                     </tr>
 
                     <!-- Operational Costs (if enabled and has value) -->
@@ -484,7 +530,7 @@
                             <td class="text-right">Rp. {{ number_format($record->biaya_pbbkb, 0, ',', '.') }}</td>
                         </tr>
                     @endif
-                @endforelse
+                @endif
 
                 <!-- Totals within table -->
 
@@ -529,7 +575,8 @@
         <!-- Terbilang Section -->
         <div class="terbilang-section">
             <strong>Terbilang :</strong>
-            "{{ ucwords(\App\Helpers\NumberToWords::convert($finalTotalInvoice ?: 123225000)) }} rupiah"
+            "{{ ucwords(\App\Helpers\NumberToWords::convert($finalTotalInvoice > 0 ? $finalTotalInvoice : 100000000)) }}
+            rupiah"
         </div>
 
         <!-- Payment Notes -->

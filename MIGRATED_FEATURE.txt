@@ -1,0 +1,1233 @@
+# ATTENDANCE SYSTEM - COMPLETE MIGRATION CODE
+
+// FILE: database/migrations/2025_06_01_000001_create_shift_table.php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('shift', function (Blueprint $table) {
+            $table->id();
+            $table->string('nama_shift');
+            $table->time('waktu_mulai');
+            $table->time('waktu_selesai');
+            $table->integer('toleransi_keterlambatan')->default(0); // Dalam menit
+
+            // Split shift fields
+            $table->boolean('is_split_shift')->default(false);
+            $table->time('waktu_mulai_periode2')->nullable(); // Start time for second period
+            $table->time('waktu_selesai_periode2')->nullable(); // End time for second period
+            $table->integer('toleransi_keterlambatan_periode2')->nullable(); // Tolerance for second period
+
+            $table->text('keterangan')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('shift');
+    }
+};
+
+// FILE: database/migrations/2025_05_12_000003_create_jadwal_kerja_table.php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('jadwal_kerja', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('karyawan_id');
+            $table->date('tanggal_jadwal');
+            $table->time('waktu_masuk')->nullable();
+            $table->time('waktu_keluar')->nullable();
+            $table->string('status')->nullable(); // Default 'Hadir', 'Libur', 'Cuti', 'Izin'
+            $table->text('keterangan')->nullable();
+            $table->timestamps();
+
+            $table->foreign('karyawan_id')->references('id')->on('karyawan')->onDelete('cascade');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('jadwal_kerja');
+    }
+};
+
+// FILE: database/migrations/2025_06_01_000002_update_jadwal_kerja_table.php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('jadwal_kerja', function (Blueprint $table) {
+            // Check if columns exist before adding them
+            if (!Schema::hasColumn('jadwal_kerja', 'shift_id')) {
+                $table->unsignedBigInteger('shift_id')->nullable()->after('karyawan_id');
+                $table->foreign('shift_id')->references('id')->on('shift')->onDelete('set null');
+            }
+
+            if (!Schema::hasColumn('jadwal_kerja', 'supervisor_id')) {
+                $table->unsignedBigInteger('supervisor_id')->nullable()->after('shift_id');
+                $table->foreign('supervisor_id')->references('id')->on('users')->onDelete('set null');
+            }
+
+            if (!Schema::hasColumn('jadwal_kerja', 'is_approved')) {
+                $table->boolean('is_approved')->default(false)->after('keterangan');
+            }
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('jadwal_kerja', function (Blueprint $table) {
+            // Check if columns exist before dropping them
+            if (Schema::hasColumn('jadwal_kerja', 'shift_id')) {
+                $table->dropForeign(['shift_id']);
+                $table->dropColumn('shift_id');
+            }
+
+            if (Schema::hasColumn('jadwal_kerja', 'supervisor_id')) {
+                $table->dropForeign(['supervisor_id']);
+                $table->dropColumn('supervisor_id');
+            }
+
+            if (Schema::hasColumn('jadwal_kerja', 'is_approved')) {
+                $table->dropColumn('is_approved');
+            }
+        });
+    }
+};
+
+// FILE: database/migrations/2025_06_01_000003_create_absensi_table.php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('absensi', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('karyawan_id');
+            $table->unsignedBigInteger('jadwal_id')->nullable(); // Link to jadwal_kerja
+            $table->date('tanggal_absensi');
+            $table->time('waktu_masuk')->nullable();
+            $table->time('waktu_keluar')->nullable();
+            $table->enum('status', ['hadir', 'terlambat', 'izin', 'sakit', 'cuti', 'alpha'])->default('hadir');
+            $table->text('keterangan')->nullable();
+            $table->string('lokasi_masuk')->nullable(); // For GPS tracking
+            $table->decimal('latitude_masuk', 10, 8)->nullable(); // GPS latitude for check-in
+            $table->decimal('longitude_masuk', 11, 8)->nullable(); // GPS longitude for check-in
+            $table->string('lokasi_keluar')->nullable(); // For GPS tracking
+            $table->decimal('latitude_keluar', 10, 8)->nullable(); // GPS latitude for check-out
+            $table->decimal('longitude_keluar', 11, 8)->nullable(); // GPS longitude for check-out
+            $table->string('foto_masuk')->nullable(); // For selfie verification
+            $table->string('foto_keluar')->nullable(); // For selfie verification
+            $table->json('metadata_foto_masuk')->nullable(); // Photo metadata for check-in
+            $table->json('metadata_foto_keluar')->nullable(); // Photo metadata for check-out
+            $table->unsignedBigInteger('approved_by')->nullable(); // Supervisor who approved
+            $table->timestamp('approved_at')->nullable();
+            $table->timestamps();
+
+            $table->foreign('karyawan_id')->references('id')->on('karyawan')->onDelete('cascade');
+            $table->foreign('jadwal_id')->references('id')->on('jadwal_kerja')->onDelete('set null');
+            $table->foreign('approved_by')->references('id')->on('users')->onDelete('set null');
+
+            // Indexes for better performance
+            $table->index(['karyawan_id', 'tanggal_absensi']);
+            $table->index(['tanggal_absensi']);
+            $table->index(['status']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('absensi');
+    }
+};
+
+// FILE: database/migrations/2025_06_01_000004_add_photo_metadata_to_absensi_table.php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('absensi', function (Blueprint $table) {
+            // Add photo metadata fields if they don't exist
+            if (!Schema::hasColumn('absensi', 'metadata_foto_masuk')) {
+                $table->json('metadata_foto_masuk')->nullable()->after('foto_masuk');
+            }
+            if (!Schema::hasColumn('absensi', 'metadata_foto_keluar')) {
+                $table->json('metadata_foto_keluar')->nullable()->after('foto_keluar');
+            }
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('absensi', function (Blueprint $table) {
+            $table->dropColumn(['metadata_foto_masuk', 'metadata_foto_keluar']);
+        });
+    }
+};
+
+// FILE: database/migrations/2025_06_01_000012_add_periode_to_absensi_table.php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('absensi', function (Blueprint $table) {
+            // Add periode field to track which period this attendance is for
+            if (!Schema::hasColumn('absensi', 'periode')) {
+                $table->integer('periode')->default(1)->after('jadwal_id')
+                    ->comment('1 for first period, 2 for second period in split shift');
+            }
+
+            // Add index for better performance
+            $table->index(['karyawan_id', 'tanggal_absensi', 'periode'], 'idx_absensi_karyawan_tanggal_periode');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('absensi', function (Blueprint $table) {
+            $table->dropIndex('idx_absensi_karyawan_tanggal_periode');
+
+            if (Schema::hasColumn('absensi', 'periode')) {
+                $table->dropColumn('periode');
+            }
+        });
+    }
+};
+
+// FILE: database/migrations/2025_06_01_000013_add_geolocation_to_entitas_table.php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('entitas', function (Blueprint $table) {
+            $table->decimal('latitude', 10, 8)->nullable()->after('alamat')
+                ->comment('Latitude koordinat entitas untuk geofencing absensi');
+
+            $table->decimal('longitude', 11, 8)->nullable()->after('latitude')
+                ->comment('Longitude koordinat entitas untuk geofencing absensi');
+
+            $table->integer('radius')->default(100)->after('longitude')
+                ->comment('Radius dalam meter yang diperbolehkan untuk absensi');
+
+            $table->boolean('enable_geofencing')->default(true)->after('radius')
+                ->comment('Aktifkan/nonaktifkan geofencing untuk entitas ini');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('entitas', function (Blueprint $table) {
+            $table->dropColumn([
+                'latitude',
+                'longitude',
+                'radius',
+                'enable_geofencing'
+            ]);
+        });
+    }
+};
+
+// FILE: database/migrations/2025_06_01_000004_add_role_to_users_table.php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            if (!Schema::hasColumn('users', 'role')) {
+                $table->string('role')->default('karyawan')->after('email');
+            }
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            if (Schema::hasColumn('users', 'role')) {
+                $table->dropColumn('role');
+            }
+        });
+    }
+};
+
+// FILE: database/migrations/2025_06_01_000005_add_supervisor_id_to_karyawan_table.php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('karyawan', function (Blueprint $table) {
+            if (!Schema::hasColumn('karyawan', 'supervisor_id')) {
+                $table->unsignedBigInteger('supervisor_id')->nullable()->after('id_user');
+                $table->foreign('supervisor_id')->references('id')->on('users')->onDelete('set null');
+            }
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('karyawan', function (Blueprint $table) {
+            if (Schema::hasColumn('karyawan', 'supervisor_id')) {
+                $table->dropForeign(['supervisor_id']);
+                $table->dropColumn('supervisor_id');
+            }
+        });
+    }
+};
+
+// FILE: app/Models/Shift.php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Shift extends Model
+{
+    use HasFactory, SoftDeletes;
+
+    protected $table = 'shift';
+
+    protected $fillable = [
+        'nama_shift',
+        'waktu_mulai',
+        'waktu_selesai',
+        'toleransi_keterlambatan',
+        'is_split_shift',
+        'waktu_mulai_periode2',
+        'waktu_selesai_periode2',
+        'toleransi_keterlambatan_periode2',
+        'keterangan',
+        'is_active',
+        'created_by',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'is_split_shift' => 'boolean',
+        'waktu_mulai' => 'datetime:H:i:s',
+        'waktu_selesai' => 'datetime:H:i:s',
+        'waktu_mulai_periode2' => 'datetime:H:i:s',
+        'waktu_selesai_periode2' => 'datetime:H:i:s',
+    ];
+
+    /**
+     * Get the schedules associated with this shift
+     */
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class, 'shift_id');
+    }
+
+    /**
+     * Get the user who created this shift
+     */
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the bulk schedules associated with this shift
+     */
+    public function jadwalMasal()
+    {
+        return $this->hasMany(JadwalMasal::class, 'shift_id');
+    }
+
+    /**
+     * Check if this is a split shift
+     */
+    public function isSplitShift(): bool
+    {
+        return $this->is_split_shift &&
+            !is_null($this->waktu_mulai_periode2) &&
+            !is_null($this->waktu_selesai_periode2);
+    }
+}
+
+// FILE: app/Models/Schedule.php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Schedule extends Model
+{
+    use HasFactory;
+
+    protected $table = 'jadwal_kerja';
+
+    protected $fillable = [
+        'karyawan_id',
+        'shift_id',
+        'supervisor_id',
+        'tanggal_jadwal',
+        'waktu_masuk',
+        'waktu_keluar',
+        'status',
+        'keterangan',
+        'is_approved',
+    ];
+
+    protected $casts = [
+        'is_approved' => 'boolean',
+        'tanggal_jadwal' => 'date',
+    ];
+
+    /**
+     * Get the employee associated with this schedule
+     */
+    public function karyawan()
+    {
+        return $this->belongsTo(Karyawan::class);
+    }
+
+    /**
+     * Get the shift associated with this schedule
+     */
+    public function shift()
+    {
+        return $this->belongsTo(Shift::class);
+    }
+
+    /**
+     * Get the supervisor who created this schedule
+     */
+    public function supervisor()
+    {
+        return $this->belongsTo(User::class, 'supervisor_id');
+    }
+
+    /**
+     * Get the attendance records for this schedule
+     */
+    public function absensi()
+    {
+        return $this->hasMany(Absensi::class, 'jadwal_id');
+    }
+}
+
+// FILE: app/Models/Absensi.php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
+
+class Absensi extends Model
+{
+    use HasFactory;
+
+    protected $table = 'absensi';
+
+    protected $fillable = [
+        'karyawan_id',
+        'jadwal_id',
+        'periode',
+        'tanggal_absensi',
+        'waktu_masuk',
+        'waktu_keluar',
+        'status',
+        'keterangan',
+        'lokasi_masuk',
+        'lokasi_keluar',
+        'latitude_masuk',
+        'longitude_masuk',
+        'latitude_keluar',
+        'longitude_keluar',
+        'foto_masuk',
+        'foto_keluar',
+        'metadata_foto_masuk',
+        'metadata_foto_keluar',
+        'approved_by',
+        'approved_at',
+        // Compatibility fields for mass assignment
+        'latitude',
+        'longitude',
+        'foto',
+        'foto_absensi',
+    ];
+
+    protected $casts = [
+        'tanggal_absensi' => 'date',
+        'waktu_masuk' => 'datetime',
+        'waktu_keluar' => 'datetime',
+        'approved_at' => 'datetime',
+        'latitude_masuk' => 'decimal:8',
+        'longitude_masuk' => 'decimal:8',
+        'latitude_keluar' => 'decimal:8',
+        'longitude_keluar' => 'decimal:8',
+        'metadata_foto_masuk' => 'array',
+        'metadata_foto_keluar' => 'array',
+    ];
+
+    /**
+     * Get the employee associated with this attendance record
+     */
+    public function karyawan()
+    {
+        return $this->belongsTo(Karyawan::class);
+    }
+
+    /**
+     * Get the schedule associated with this attendance record
+     */
+    public function jadwal()
+    {
+        return $this->belongsTo(Schedule::class, 'jadwal_id');
+    }
+
+    /**
+     * Get the user who approved this attendance record
+     */
+    public function approvedBy()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /**
+     * Get current attendance status for split shift support
+     */
+    public static function getCurrentAttendanceStatus($karyawanId, $date, $shift = null): array
+    {
+        $existingAttendance = self::where('karyawan_id', $karyawanId)
+            ->whereDate('tanggal_absensi', $date)
+            ->orderBy('periode')
+            ->get();
+
+        if (!$shift) {
+            // Regular shift logic
+            if ($existingAttendance->isEmpty()) {
+                return [
+                    'action' => 'check_in',
+                    'periode' => 1,
+                    'message' => 'Silakan lakukan absensi masuk'
+                ];
+            }
+
+            $latest = $existingAttendance->first();
+            if ($latest->waktu_masuk && !$latest->waktu_keluar) {
+                return [
+                    'action' => 'check_out',
+                    'periode' => 1,
+                    'message' => 'Silakan lakukan absensi keluar'
+                ];
+            }
+
+            return [
+                'action' => 'completed',
+                'periode' => 1,
+                'message' => 'Absensi hari ini sudah lengkap'
+            ];
+        }
+
+        // Split shift logic
+        if ($shift->isSplitShift()) {
+            $periode1 = $existingAttendance->where('periode', 1)->first();
+            $periode2 = $existingAttendance->where('periode', 2)->first();
+
+            if (!$periode1) {
+                return [
+                    'action' => 'check_in',
+                    'periode' => 1,
+                    'message' => 'Silakan lakukan absensi masuk periode 1'
+                ];
+            }
+
+            if ($periode1->waktu_masuk && !$periode1->waktu_keluar) {
+                return [
+                    'action' => 'check_out',
+                    'periode' => 1,
+                    'message' => 'Silakan lakukan absensi keluar periode 1'
+                ];
+            }
+
+            if (!$periode2) {
+                $now = Carbon::now();
+                $periode2Start = Carbon::parse($shift->waktu_mulai_periode2);
+
+                if ($now->lt($periode2Start->subMinutes(60))) {
+                    return [
+                        'action' => 'waiting',
+                        'periode' => 2,
+                        'message' => 'Menunggu waktu periode 2 (mulai ' . $shift->waktu_mulai_periode2 . ')'
+                    ];
+                }
+
+                return [
+                    'action' => 'check_in',
+                    'periode' => 2,
+                    'message' => 'Silakan lakukan absensi masuk periode 2'
+                ];
+            }
+
+            if ($periode2->waktu_masuk && !$periode2->waktu_keluar) {
+                return [
+                    'action' => 'check_out',
+                    'periode' => 2,
+                    'message' => 'Silakan lakukan absensi keluar periode 2'
+                ];
+            }
+
+            return [
+                'action' => 'completed',
+                'periode' => 2,
+                'message' => 'Absensi untuk kedua periode sudah lengkap'
+            ];
+        }
+
+        // Regular shift with single period
+        if ($existingAttendance->isEmpty()) {
+            return [
+                'action' => 'check_in',
+                'periode' => 1,
+                'message' => 'Silakan lakukan absensi masuk'
+            ];
+        }
+
+        $latest = $existingAttendance->first();
+        if ($latest->waktu_masuk && !$latest->waktu_keluar) {
+            return [
+                'action' => 'check_out',
+                'periode' => 1,
+                'message' => 'Silakan lakukan absensi keluar'
+            ];
+        }
+
+        return [
+            'action' => 'completed',
+            'periode' => 1,
+            'message' => 'Absensi hari ini sudah lengkap'
+        ];
+    }
+}
+
+// FILE: app/Services/GeofencingService.php
+<?php
+
+namespace App\Services;
+
+use App\Models\Entitas;
+use App\Models\Karyawan;
+
+class GeofencingService
+{
+    /**
+     * Validate if user can perform attendance based on location
+     *
+     * @param Karyawan $karyawan
+     * @param float $userLat
+     * @param float $userLon
+     * @return array
+     */
+    public static function validateAttendanceLocation(Karyawan $karyawan, float $userLat, float $userLon): array
+    {
+        // Get karyawan's entitas
+        $entitas = $karyawan->entitas;
+
+        if (!$entitas) {
+            return [
+                'allowed' => false,
+                'message' => 'Entitas karyawan tidak ditemukan',
+                'distance' => 0,
+                'radius' => 0,
+                'error' => true
+            ];
+        }
+
+        // Check if geofencing is enabled for this entitas
+        if (!$entitas->enable_geofencing) {
+            return [
+                'allowed' => true,
+                'message' => 'Geofencing tidak aktif untuk entitas ini',
+                'distance' => 0,
+                'radius' => $entitas->radius ?? 0,
+                'entitas_name' => $entitas->nama_entitas ?? 'Unknown'
+            ];
+        }
+
+        // Check if entitas has coordinates
+        if (!$entitas->latitude || !$entitas->longitude) {
+            return [
+                'allowed' => false,
+                'message' => 'Koordinat entitas belum diatur',
+                'distance' => 0,
+                'radius' => $entitas->radius ?? 0,
+                'error' => true
+            ];
+        }
+
+        // Calculate distance
+        $distance = self::calculateDistance(
+            $userLat,
+            $userLon,
+            $entitas->latitude,
+            $entitas->longitude
+        );
+
+        $radius = $entitas->radius ?? 100; // Default 100 meters
+
+        return [
+            'allowed' => $distance <= $radius,
+            'message' => $distance <= $radius
+                ? 'Lokasi valid untuk absensi'
+                : 'Anda berada di luar radius yang diperbolehkan',
+            'distance' => $distance,
+            'radius' => $radius,
+            'entitas_name' => $entitas->nama_entitas ?? 'Unknown',
+            'entitas_coordinates' => [
+                'latitude' => $entitas->latitude,
+                'longitude' => $entitas->longitude
+            ]
+        ];
+    }
+
+    /**
+     * Get attendance location info for karyawan
+     */
+    public static function getAttendanceLocationInfo(Karyawan $karyawan): array
+    {
+        $entitas = $karyawan->entitas;
+
+        if (!$entitas) {
+            return [
+                'has_location' => false,
+                'message' => 'Entitas karyawan tidak ditemukan. Hubungi administrator untuk mengatur entitas Anda.'
+            ];
+        }
+
+        if (!$entitas->latitude || !$entitas->longitude) {
+            return [
+                'has_location' => false,
+                'message' => 'Koordinat lokasi kerja belum diatur. Hubungi administrator untuk mengatur koordinat entitas.',
+                'entitas_name' => $entitas->nama_entitas ?? 'Unknown'
+            ];
+        }
+
+        return [
+            'has_location' => true,
+            'entitas_name' => $entitas->nama_entitas ?? 'Unknown',
+            'coordinates' => $entitas->latitude . ', ' . $entitas->longitude,
+            'radius' => $entitas->radius ?? 100,
+            'address' => $entitas->alamat ?? 'Alamat tidak tersedia',
+            'message' => $entitas->enable_geofencing
+                ? 'Anda harus berada dalam radius ' . ($entitas->radius ?? 100) . ' meter dari lokasi kerja untuk melakukan absensi.'
+                : 'Geofencing tidak aktif untuk lokasi kerja ini.'
+        ];
+    }
+
+    /**
+     * Calculate distance between two coordinates using Haversine formula
+     *
+     * @param float $lat1
+     * @param float $lon1
+     * @param float $lat2
+     * @param float $lon2
+     * @return float Distance in meters
+     */
+    private static function calculateDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        $earthRadius = 6371000; // Earth radius in meters
+
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+
+        $a = sin($dLat/2) * sin($dLat/2) +
+             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+             sin($dLon/2) * sin($dLon/2);
+
+        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+
+        return $earthRadius * $c;
+    }
+}
+
+// FILE: app/Services/PhotoMetadataService.php
+<?php
+
+namespace App\Services;
+
+use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
+
+class PhotoMetadataService
+{
+    /**
+     * Extract metadata from uploaded photo
+     */
+    public static function extractMetadata(UploadedFile $file, ?float $latitude = null, ?float $longitude = null): array
+    {
+        $metadata = [
+            'filename' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
+            'mime_type' => $file->getMimeType(),
+            'captured_at' => Carbon::now()->toISOString(),
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'status_kehadiran' => null, // Will be set later
+        ];
+
+        // Try to extract EXIF data if available
+        try {
+            if (function_exists('exif_read_data') && in_array($file->getMimeType(), ['image/jpeg', 'image/jpg'])) {
+                $exifData = @exif_read_data($file->getPathname());
+                if ($exifData) {
+                    $metadata['exif'] = [
+                        'camera_make' => $exifData['Make'] ?? null,
+                        'camera_model' => $exifData['Model'] ?? null,
+                        'datetime_original' => $exifData['DateTimeOriginal'] ?? null,
+                        'gps_latitude' => self::getGpsCoordinate($exifData, 'GPSLatitude', 'GPSLatitudeRef'),
+                        'gps_longitude' => self::getGpsCoordinate($exifData, 'GPSLongitude', 'GPSLongitudeRef'),
+                    ];
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to extract EXIF data: ' . $e->getMessage());
+        }
+
+        return $metadata;
+    }
+
+    /**
+     * Format metadata for display
+     */
+    public static function formatMetadataForDisplay(array $metadata): array
+    {
+        $formatted = [
+            'coordinates' => null,
+            'datetime' => null,
+            'status_kehadiran' => null,
+            'camera' => null,
+        ];
+
+        // Format coordinates
+        if (isset($metadata['latitude']) && isset($metadata['longitude'])) {
+            $formatted['coordinates'] = number_format($metadata['latitude'], 6) . '°, ' . number_format($metadata['longitude'], 6) . '°';
+        }
+
+        // Format datetime
+        if (isset($metadata['captured_at'])) {
+            try {
+                $date = Carbon::parse($metadata['captured_at']);
+                $formatted['datetime'] = $date->format('d/m/Y H:i:s') . ' WIB';
+            } catch (\Exception $e) {
+                $formatted['datetime'] = $metadata['captured_at'];
+            }
+        }
+
+        // Format status
+        if (isset($metadata['status_kehadiran'])) {
+            $formatted['status_kehadiran'] = $metadata['status_kehadiran'];
+        }
+
+        // Format camera info
+        if (isset($metadata['exif']['camera_make']) && isset($metadata['exif']['camera_model'])) {
+            $formatted['camera'] = $metadata['exif']['camera_make'] . ' ' . $metadata['exif']['camera_model'];
+        } elseif (isset($metadata['camera_info'])) {
+            $formatted['camera'] = $metadata['camera_info'];
+        }
+
+        return $formatted;
+    }
+
+    /**
+     * Determine attendance status based on schedule and time
+     */
+    public static function determineAttendanceStatus($karyawanId, $datetime = null): string
+    {
+        if (!$datetime) {
+            $datetime = Carbon::now();
+        }
+
+        try {
+            // Get today's schedule for the employee
+            $schedule = \App\Models\Schedule::with(['shift', 'karyawan'])
+                ->whereHas('karyawan', function ($query) use ($karyawanId) {
+                    $query->where('id', $karyawanId);
+                })
+                ->whereDate('tanggal_jadwal', $datetime->toDateString())
+                ->first();
+
+            if (!$schedule || !$schedule->shift) {
+                return 'Tidak Ada Jadwal';
+            }
+
+            $shift = $schedule->shift;
+            $actualTime = Carbon::parse($datetime);
+
+            // Handle split shift
+            if ($shift->isSplitShift()) {
+                // Determine which period we're in
+                $periode1Start = Carbon::parse($shift->waktu_mulai);
+                $periode1End = Carbon::parse($shift->waktu_selesai);
+                $periode2Start = Carbon::parse($shift->waktu_mulai_periode2);
+                $periode2End = Carbon::parse($shift->waktu_selesai_periode2);
+
+                if ($actualTime->between($periode1Start->subHour(), $periode1End->addHour())) {
+                    // Period 1 logic
+                    $toleranceMinutes = $shift->toleransi_keterlambatan ?? 0;
+                    if ($actualTime->lessThanOrEqualTo($periode1Start->addMinutes($toleranceMinutes))) {
+                        return 'Tepat Waktu';
+                    } else {
+                        return 'Telat';
+                    }
+                } elseif ($actualTime->between($periode2Start->subHour(), $periode2End->addHour())) {
+                    // Period 2 logic
+                    $toleranceMinutes = $shift->toleransi_keterlambatan_periode2 ?? $shift->toleransi_keterlambatan ?? 0;
+                    if ($actualTime->lessThanOrEqualTo($periode2Start->addMinutes($toleranceMinutes))) {
+                        return 'Tepat Waktu';
+                    } else {
+                        return 'Telat';
+                    }
+                }
+            } else {
+                // Regular shift logic
+                $shiftStart = Carbon::parse($shift->waktu_mulai);
+                $toleranceMinutes = $shift->toleransi_keterlambatan ?? 0;
+
+                // Compare with shift start time + tolerance
+                if ($actualTime->lessThanOrEqualTo($shiftStart->addMinutes($toleranceMinutes))) {
+                    return 'Tepat Waktu';
+                } else {
+                    return 'Telat';
+                }
+            }
+
+            return 'Unknown'; // Fallback if no period matches
+        } catch (\Exception $e) {
+            Log::warning('Failed to determine attendance status: ' . $e->getMessage());
+            return 'Unknown';
+        }
+    }
+
+    /**
+     * Extract GPS coordinates from EXIF data
+     */
+    private static function getGpsCoordinate(array $exifData, string $coordKey, string $refKey): ?float
+    {
+        if (!isset($exifData[$coordKey]) || !isset($exifData[$refKey])) {
+            return null;
+        }
+
+        $coordinates = $exifData[$coordKey];
+        $reference = $exifData[$refKey];
+
+        if (!is_array($coordinates) || count($coordinates) < 3) {
+            return null;
+        }
+
+        // Convert DMS to decimal
+        $degrees = self::gpsToDecimal($coordinates[0]);
+        $minutes = self::gpsToDecimal($coordinates[1]);
+        $seconds = self::gpsToDecimal($coordinates[2]);
+
+        $decimal = $degrees + ($minutes / 60) + ($seconds / 3600);
+
+        // Apply reference (N/S for latitude, E/W for longitude)
+        if (in_array($reference, ['S', 'W'])) {
+            $decimal = -$decimal;
+        }
+
+        return $decimal;
+    }
+
+    /**
+     * Convert GPS fraction to decimal
+     */
+    private static function gpsToDecimal(string $fraction): float
+    {
+        $parts = explode('/', $fraction);
+        if (count($parts) == 2 && $parts[1] != 0) {
+            return $parts[0] / $parts[1];
+        }
+        return (float) $fraction;
+    }
+}
+
+// FILE: app/Http/Controllers/GeofencingController.php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Karyawan;
+use App\Services\GeofencingService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class GeofencingController extends Controller
+{
+    /**
+     * Validate attendance location for current employee
+     */
+    public function validateAttendanceLocation(Request $request): JsonResponse
+    {
+        try {
+            // Validate request
+            $request->validate([
+                'latitude' => 'required|numeric|between:-90,90',
+                'longitude' => 'required|numeric|between:-180,180',
+            ]);
+
+            $user = Auth::user();
+            $karyawan = Karyawan::where('id_user', $user->id)->first();
+
+            if (!$karyawan) {
+                return response()->json([
+                    'allowed' => false,
+                    'message' => 'Data karyawan tidak ditemukan',
+                    'error' => true
+                ], 404);
+            }
+
+            // Validate geofencing
+            $validation = GeofencingService::validateAttendanceLocation(
+                $karyawan,
+                $request->latitude,
+                $request->longitude
+            );
+
+            return response()->json($validation);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'allowed' => false,
+                'message' => 'Terjadi kesalahan saat validasi lokasi: ' . $e->getMessage(),
+                'error' => true
+            ], 500);
+        }
+    }
+}
+
+// FILE: app/Policies/AbsensiPolicy.php
+<?php
+
+namespace App\Policies;
+
+use App\Models\Absensi;
+use App\Models\Karyawan;
+use App\Models\User;
+use Illuminate\Auth\Access\HandlesAuthorization;
+
+class AbsensiPolicy
+{
+    use HandlesAuthorization;
+
+    /**
+     * Determine whether the user can view any models.
+     */
+    public function viewAny(User $user): bool
+    {
+        // Admin and supervisor can view all attendance records
+        if ($user->role === 'admin' || $user->role === 'supervisor') {
+            return true;
+        }
+
+        // Karyawan can only view their own attendance records
+        return $user->role === 'karyawan';
+    }
+
+    /**
+     * Determine whether the user can view the model.
+     */
+    public function view(User $user, Absensi $absensi): bool
+    {
+        // Admin and supervisor can view any attendance record
+        if ($user->role === 'admin' || $user->role === 'supervisor') {
+            return true;
+        }
+
+        // Karyawan can only view their own attendance records
+        if ($user->role === 'karyawan') {
+            $karyawan = Karyawan::where('id_user', $user->id)->first();
+            return $karyawan && $absensi->karyawan_id === $karyawan->id;
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine whether the user can create models.
+     */
+    public function create(User $user): bool
+    {
+        // Admin, supervisor, and karyawan can create attendance records
+        return in_array($user->role, ['admin', 'supervisor', 'karyawan']);
+    }
+
+    /**
+     * Determine whether the user can update the model.
+     */
+    public function update(User $user, Absensi $absensi): bool
+    {
+        // Admin and supervisor can update any attendance record
+        if ($user->role === 'admin' || $user->role === 'supervisor') {
+            return true;
+        }
+
+        // Karyawan can only update their own attendance records that haven't been approved yet
+        if ($user->role === 'karyawan') {
+            $karyawan = Karyawan::where('id_user', $user->id)->first();
+            return $karyawan &&
+                   $absensi->karyawan_id === $karyawan->id &&
+                   is_null($absensi->approved_at);
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine whether the user can delete the model.
+     */
+    public function delete(User $user, Absensi $absensi): bool
+    {
+        // Only admin and supervisor can delete attendance records
+        return $user->role === 'admin' || $user->role === 'supervisor';
+    }
+
+    /**
+     * Determine whether the user can approve the model.
+     */
+    public function approve(User $user, Absensi $absensi): bool
+    {
+        // Only admin and supervisor can approve attendance records
+        return $user->role === 'admin' || $user->role === 'supervisor';
+    }
+}
+
+// FILE: config/app_constants.php
+<?php
+
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | User Roles
+    |--------------------------------------------------------------------------
+    |
+    | Define all user roles used throughout the application
+    |
+    */
+    'user_roles' => [
+        'admin' => 'Admin',
+        'supervisor' => 'Supervisor',
+        'karyawan' => 'Karyawan',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Attendance Status
+    |--------------------------------------------------------------------------
+    |
+    | Define all attendance status options
+    |
+    */
+    'attendance_status' => [
+        'hadir' => 'Hadir',
+        'terlambat' => 'Terlambat',
+        'izin' => 'Izin',
+        'sakit' => 'Sakit',
+        'cuti' => 'Cuti',
+        'alpha' => 'Alpha (Tanpa Keterangan)',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Geofencing Settings
+    |--------------------------------------------------------------------------
+    |
+    | Default geofencing settings
+    |
+    */
+    'geofencing' => [
+        'default_radius' => 100, // meters
+        'max_radius' => 1000, // meters
+        'enable_by_default' => true,
+    ],
+];
+
+// FILE: routes/web.php (ADD TO EXISTING FILE)
+// Add this route to your existing routes/web.php file:
+
+// Geofencing validation route for karyawan panel
+Route::post('/karyawan/validate-geofencing', [App\Http\Controllers\GeofencingController::class, 'validateAttendanceLocation'])
+    ->middleware(['auth'])
+    ->name('karyawan.validate-geofencing');
+
+// FILE: app/Providers/AuthServiceProvider.php (UPDATE EXISTING FILE)
+// Add this to the $policies array in your existing AuthServiceProvider:
+
+protected $policies = [
+    \App\Models\Absensi::class => \App\Policies\AbsensiPolicy::class,
+    // ... your other policies
+];

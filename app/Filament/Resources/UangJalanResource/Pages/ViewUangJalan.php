@@ -15,6 +15,13 @@ class ViewUangJalan extends ViewRecord
         return [
             Actions\EditAction::make(),
             // lihat do
+            Actions\Action::make('view_do')
+                ->label('Lihat DO')
+                ->icon('heroicon-o-document-text')
+                ->color('primary')
+                ->url(fn($record): string => $record->deliveryOrderUrl)
+                ->visible(fn($record): bool => $record->deliveryOrderUrl !== null)
+                ->openUrlInNewTab(false),
 
 
         ];
