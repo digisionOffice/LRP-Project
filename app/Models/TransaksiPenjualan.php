@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TransaksiPenjualan extends Model implements HasMedia
 {
@@ -28,6 +29,7 @@ class TransaksiPenjualan extends Model implements HasMedia
         'id_akun_pendapatan',
         'id_akun_piutang',
         'created_by',
+        'status'
     ];
 
     protected $casts = [
@@ -158,5 +160,10 @@ class TransaksiPenjualan extends Model implements HasMedia
     public function getDeliveryOrderUrlAttribute()
     {
         return $this->deliveryOrder ? route('filament.admin.resources.delivery-orders.view', ['record' => $this->deliveryOrder->id]) : null;
+    }
+
+    public function approvals(): HasMany
+    {
+        return $this->hasMany(TransaksiPenjualanApproval::class, 'id_transaksi_penjualan')->latest();
     }
 }
