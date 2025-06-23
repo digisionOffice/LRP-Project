@@ -34,8 +34,11 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make()
                     ->label('Penjualan')
                     ->icon('heroicon-o-shopping-cart'),
+                // NavigationGroup::make()
+                //     ->label('Akuntansi')
+                //     ->icon('heroicon-o-calculator'),
             ])
-            
+
             ->colors([
                 'primary' => Color::Amber,
             ])

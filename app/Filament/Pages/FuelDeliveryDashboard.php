@@ -193,6 +193,13 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                     }),
             ])
             ->actions([
+                // lihat timeline
+                Tables\Actions\Action::make('view_timeline')
+                    ->label('Lihat Timeline')
+                    ->icon('heroicon-o-clock')
+                    ->color('success')
+                    ->url(fn($record) => "/admin/sales-order-timeline-detail?record={$record->id}")
+                    ->openUrlInNewTab(false),
                 Tables\Actions\Action::make('view')
                     ->label('Lihat Detail')
                     ->icon('heroicon-o-eye')
@@ -310,6 +317,13 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                     ->searchable(),
             ])
             ->actions([
+                Tables\Actions\Action::make('view_timeline')
+                    ->label('Lihat Timeline')
+                    ->icon('heroicon-o-clock')
+                    ->color('success')
+                    ->url(fn($record) => "/admin/sales-order-timeline-detail?record={$record->transaksi->id}")
+                    ->visible(fn($record) => $record->transaksi !== null)
+                    ->openUrlInNewTab(false),
                 Tables\Actions\Action::make('view')
                     ->label('View DO')
                     ->icon('heroicon-o-eye')

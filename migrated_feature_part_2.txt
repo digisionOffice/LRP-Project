@@ -1,0 +1,308 @@
+# AKUNTANSI MODULE MIGRATION - PART 2: DATABASE MIGRATIONS
+# This file contains all Database Migrations for the Accounting Module
+
+# ============================================================================
+# FILE: database/migrations/2025_02_20_183708_create_data_master_table.php
+# ============================================================================
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        // Tabel Akun Keuangan
+        Schema::create('akun', function (Blueprint $table) {
+            $table->id();
+            $table->string('kode_akun');
+            $table->string('nama_akun');
+            $table->enum('kategori_akun', ['Aset', 'Kewajiban', 'Ekuitas', 'Pendapatan', 'Beban']);
+            $table->enum('tipe_akun', ['Debit', 'Kredit']);
+            $table->decimal('saldo_awal', 10, 2)->nullable();
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('akun');
+    }
+};
+
+# ============================================================================
+# FILE: database/migrations/2025_06_17_182532_create_accounting_tables.php
+# ============================================================================
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        // Tabel Inventaris (Stok Produk)
+        Schema::create('inventories', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('product_id');
+            $table->integer('quantity')->default(0);
+            $table->decimal('unit_cost', 12, 2)->nullable(); // Harga pokok per unit saat ini
+            $table->decimal('total_value', 12, 2)->nullable(); // Total nilai inventaris
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+
+            $table->foreign('product_id')->references('id')->on('produk')->onDelete('cascade');
+            $table->unique('product_id'); // Satu produk hanya punya satu record inventaris
+        });
+
+        // Tabel Transaksi Penjualan
+        Schema::create('sales_transactions', function (Blueprint $table) {
+            $table->id();
+            $table->string('transaction_code')->unique(); // Auto-generated transaction code
+            $table->date('transaction_date');
+            $table->string('customer_name')->nullable();
+            $table->enum('payment_method', ['Cash', 'Transfer', 'Credit'])->default('Cash');
+            $table->decimal('subtotal', 12, 2);
+            $table->decimal('tax_amount', 12, 2)->default(0);
+            $table->decimal('discount_amount', 12, 2)->default(0);
+            $table->decimal('total_amount', 12, 2);
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        // Tabel Detail Item Penjualan
+        Schema::create('sale_items', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('sales_transaction_id');
+            $table->unsignedBigInteger('product_id');
+            $table->integer('quantity');
+            $table->decimal('unit_price', 12, 2);
+            $table->decimal('unit_cost', 12, 2); // Untuk perhitungan HPP
+            $table->decimal('total_price', 12, 2);
+            $table->decimal('total_cost', 12, 2); // Untuk perhitungan HPP
+            $table->timestamps();
+
+            $table->foreign('sales_transaction_id')->references('id')->on('sales_transactions')->onDelete('cascade');
+            $table->foreign('product_id')->references('id')->on('produk')->onDelete('cascade');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('sale_items');
+        Schema::dropIfExists('sales_transactions');
+        Schema::dropIfExists('inventories');
+    }
+};
+
+# ============================================================================
+# FILE: database/migrations/2025_06_17_182636_create_journal_tables.php
+# ============================================================================
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        // Tabel Header Jurnal
+        Schema::create('journals', function (Blueprint $table) {
+            $table->id();
+            $table->string('journal_number')->unique(); // Auto-generated journal number
+            $table->date('transaction_date');
+            $table->string('reference_number')->nullable(); // Reference ke dokumen sumber
+            $table->string('source_type')->nullable(); // Sale, Purchase, Payment, Receipt, dll
+            $table->unsignedBigInteger('source_id')->nullable(); // ID dari tabel sumber (sales_transactions, dll)
+            $table->text('description');
+            $table->enum('status', ['Draft', 'Posted', 'Cancelled'])->default('Draft');
+            $table->unsignedBigInteger('posting_rule_id')->nullable(); // Reference ke aturan posting yang digunakan
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        // Tabel Detail Entri Jurnal
+        Schema::create('journal_entries', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('journal_id');
+            $table->unsignedBigInteger('account_id');
+            $table->text('description');
+            $table->decimal('debit', 12, 2)->default(0);
+            $table->decimal('credit', 12, 2)->default(0);
+            $table->integer('sort_order')->default(0);
+            $table->timestamps();
+
+            $table->foreign('journal_id')->references('id')->on('journals')->onDelete('cascade');
+            $table->foreign('account_id')->references('id')->on('akun')->onDelete('cascade');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('journal_entries');
+        Schema::dropIfExists('journals');
+    }
+};
+
+# ============================================================================
+# FILE: database/migrations/2025_06_17_185243_create_posting_rules_tables.php
+# ============================================================================
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        // Tabel Aturan Posting (Posting Rules)
+        Schema::create('posting_rules', function (Blueprint $table) {
+            $table->id();
+            $table->string('rule_name'); // Nama aturan posting
+            $table->string('source_type'); // Sale, Purchase, Payment, Receipt, ManualAdjust, dll
+            $table->json('trigger_condition')->nullable(); // Kondisi pemicu dalam format JSON
+            $table->text('description')->nullable(); // Deskripsi aturan
+            $table->boolean('is_active')->default(true); // Status aktif/non-aktif
+            $table->integer('priority')->default(0); // Prioritas eksekusi (semakin kecil semakin tinggi)
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        // Tabel Detail Entri Aturan Posting
+        Schema::create('posting_rule_entries', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('posting_rule_id');
+            $table->unsignedBigInteger('account_id'); // Reference ke tabel akun
+            $table->enum('dc_type', ['Debit', 'Credit']); // Tipe debit atau kredit
+            $table->enum('amount_type', ['Fixed', 'SourceValue', 'Calculated']); // Tipe perhitungan jumlah
+            $table->decimal('fixed_amount', 12, 2)->nullable(); // Jumlah tetap (jika amount_type = Fixed)
+            $table->string('source_property')->nullable(); // Property dari source model (jika amount_type = SourceValue)
+            $table->text('calculation_expression')->nullable(); // Ekspresi perhitungan (jika amount_type = Calculated)
+            $table->text('description_template')->nullable(); // Template deskripsi dengan placeholder
+            $table->integer('sort_order')->default(0); // Urutan tampilan
+            $table->timestamps();
+
+            $table->foreign('posting_rule_id')->references('id')->on('posting_rules')->onDelete('cascade');
+            $table->foreign('account_id')->references('id')->on('akun')->onDelete('cascade');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('posting_rule_entries');
+        Schema::dropIfExists('posting_rules');
+    }
+};
+
+# ============================================================================
+# FILE: database/migrations/2025_06_17_190602_add_error_status_to_journals_table.php
+# ============================================================================
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('journals', function (Blueprint $table) {
+            $table->dropColumn('status');
+        });
+
+        Schema::table('journals', function (Blueprint $table) {
+            $table->enum('status', ['Draft', 'Posted', 'Cancelled', 'Error'])->default('Draft')->after('description');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('journals', function (Blueprint $table) {
+            $table->dropColumn('status');
+        });
+
+        Schema::table('journals', function (Blueprint $table) {
+            $table->enum('status', ['Draft', 'Posted', 'Cancelled'])->default('Draft')->after('description');
+        });
+    }
+};
+
+# ============================================================================
+# FILE: database/migrations/2025_06_18_090110_update_akun_saldo_awal_column_type.php
+# ============================================================================
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('akun', function (Blueprint $table) {
+            // Ubah kolom saldo_awal dari decimal(10,2) ke decimal(15,2)
+            // untuk menampung nilai yang lebih besar
+            $table->decimal('saldo_awal', 15, 2)->nullable()->change();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('akun', function (Blueprint $table) {
+            // Kembalikan ke decimal(10,2)
+            $table->decimal('saldo_awal', 10, 2)->nullable()->change();
+        });
+    }
+};

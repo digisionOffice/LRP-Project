@@ -1,0 +1,462 @@
+# AKUNTANSI MODULE MIGRATION - PART 8: SEEDERS AND BALANCE SHEET VIEW
+# This file contains Seeders and Balance Sheet View for the Accounting Module
+
+# ============================================================================
+# FILE: resources/views/filament/pages/balance-sheet.blade.php
+# ============================================================================
+<x-filament-panels::page>
+    <div class="space-y-6">
+        <!-- Filter Form -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+            {{ $this->form }}
+
+            <div class="mt-6 flex justify-end">
+                <x-filament::button
+                    color="primary"
+                    icon="heroicon-o-document-arrow-down"
+                    onclick="alert('Fitur export PDF akan segera tersedia')">
+                    Export PDF
+                </x-filament::button>
+            </div>
+        </div>
+
+        <!-- Balance Sheet Report -->
+        @if($this->report_date)
+            @php
+                $data = $this->getBalanceSheetData();
+            @endphp
+
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        NERACA
+                    </h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                        Per {{ \Carbon\Carbon::parse($this->report_date)->format('d F Y') }}
+                    </p>
+                </div>
+
+                <!-- Balance Status -->
+                @if($data['is_balanced'])
+                    <div class="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-600 dark:text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="text-green-800 dark:text-green-200 font-medium">
+                                Neraca Seimbang: Aset = Kewajiban + Ekuitas
+                            </span>
+                        </div>
+                    </div>
+                @else
+                    <div class="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-red-600 dark:text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="text-red-800 dark:text-red-200 font-medium">
+                                Neraca Tidak Seimbang! Periksa kembali jurnal Anda.
+                            </span>
+                        </div>
+                    </div>
+                @endif
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- ASET -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                            ASET
+                        </h3>
+
+                        @if(count($data['assets']) > 0)
+                            <div class="space-y-2">
+                                @foreach($data['assets'] as $asset)
+                                    <div class="flex justify-between items-center py-1">
+                                        <span class="text-gray-700 dark:text-gray-300">
+                                            {{ $asset['account']->kode_akun }} - {{ $asset['account']->nama_akun }}
+                                        </span>
+                                        <span class="font-medium text-gray-900 dark:text-gray-100">
+                                            Rp {{ number_format($asset['balance'], 0, ',', '.') }}
+                                        </span>
+                                    </div>
+                                @endforeach
+
+                                <div class="flex justify-between items-center py-3 border-t-2 border-gray-300 dark:border-gray-600 font-bold text-lg">
+                                    <span class="text-gray-900 dark:text-gray-100">TOTAL ASET</span>
+                                    <span class="text-blue-600 dark:text-blue-400">
+                                        Rp {{ number_format($data['total_assets'], 0, ',', '.') }}
+                                    </span>
+                                </div>
+                            </div>
+                        @else
+                            <p class="text-gray-500 dark:text-gray-400 italic">Tidak ada data aset</p>
+                        @endif
+                    </div>
+
+                    <!-- KEWAJIBAN & EKUITAS -->
+                    <div>
+                        <!-- KEWAJIBAN -->
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                                KEWAJIBAN
+                            </h3>
+
+                            @if(count($data['liabilities']) > 0)
+                                <div class="space-y-2">
+                                    @foreach($data['liabilities'] as $liability)
+                                        <div class="flex justify-between items-center py-1">
+                                            <span class="text-gray-700 dark:text-gray-300">
+                                                {{ $liability['account']->kode_akun }} - {{ $liability['account']->nama_akun }}
+                                            </span>
+                                            <span class="font-medium text-gray-900 dark:text-gray-100">
+                                                Rp {{ number_format($liability['balance'], 0, ',', '.') }}
+                                            </span>
+                                        </div>
+                                    @endforeach
+
+                                    <div class="flex justify-between items-center py-2 border-t border-gray-200 dark:border-gray-700 font-semibold">
+                                        <span class="text-gray-900 dark:text-gray-100">Total Kewajiban</span>
+                                        <span class="text-red-600 dark:text-red-400">
+                                            Rp {{ number_format($data['total_liabilities'], 0, ',', '.') }}
+                                        </span>
+                                    </div>
+                                </div>
+                            @else
+                                <p class="text-gray-500 dark:text-gray-400 italic">Tidak ada data kewajiban</p>
+                            @endif
+                        </div>
+
+                        <!-- EKUITAS -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                                EKUITAS
+                            </h3>
+
+                            @if(count($data['equity']) > 0)
+                                <div class="space-y-2">
+                                    @foreach($data['equity'] as $equity)
+                                        <div class="flex justify-between items-center py-1">
+                                            <span class="text-gray-700 dark:text-gray-300">
+                                                {{ $equity['account']->kode_akun }} - {{ $equity['account']->nama_akun }}
+                                            </span>
+                                            <span class="font-medium text-gray-900 dark:text-gray-100">
+                                                Rp {{ number_format($equity['balance'], 0, ',', '.') }}
+                                            </span>
+                                        </div>
+                                    @endforeach
+
+                                    <div class="flex justify-between items-center py-2 border-t border-gray-200 dark:border-gray-700 font-semibold">
+                                        <span class="text-gray-900 dark:text-gray-100">Total Ekuitas</span>
+                                        <span class="text-green-600 dark:text-green-400">
+                                            Rp {{ number_format($data['total_equity'], 0, ',', '.') }}
+                                        </span>
+                                    </div>
+                                </div>
+                            @else
+                                <p class="text-gray-500 dark:text-gray-400 italic">Tidak ada data ekuitas</p>
+                            @endif
+                        </div>
+
+                        <!-- TOTAL KEWAJIBAN + EKUITAS -->
+                        <div class="mt-6 pt-4 border-t-2 border-gray-300 dark:border-gray-600">
+                            <div class="flex justify-between items-center py-3 bg-gray-50 dark:bg-gray-700 px-4 rounded-lg font-bold text-lg">
+                                <span class="text-gray-900 dark:text-gray-100">
+                                    TOTAL KEWAJIBAN + EKUITAS
+                                </span>
+                                <span class="text-blue-600 dark:text-blue-400">
+                                    Rp {{ number_format($data['total_liabilities_equity'], 0, ',', '.') }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @else
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <div class="text-center py-8">
+                    <div class="text-gray-400 dark:text-gray-500 mb-2">
+                        <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">
+                        Pilih Tanggal Laporan
+                    </h3>
+                    <p class="text-gray-500 dark:text-gray-400">
+                        Silakan pilih tanggal untuk melihat laporan neraca
+                    </p>
+                </div>
+            </div>
+        @endif
+    </div>
+</x-filament-panels::page>
+
+# ============================================================================
+# FILE: database/seeders/AccountingSeeder.php
+# ============================================================================
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use App\Models\Akun;
+use App\Models\ProdukKategori;
+use App\Models\Satuan;
+use App\Models\Produk;
+use App\Models\Inventory;
+
+class AccountingSeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        // Seed Chart of Accounts (COA)
+        $accounts = [
+            // ASET
+            ['kode_akun' => '1001', 'nama_akun' => 'Kas', 'kategori_akun' => 'Aset', 'tipe_akun' => 'Debit', 'saldo_awal' => 10000000],
+            ['kode_akun' => '1002', 'nama_akun' => 'Bank BCA', 'kategori_akun' => 'Aset', 'tipe_akun' => 'Debit', 'saldo_awal' => 50000000],
+            ['kode_akun' => '1003', 'nama_akun' => 'Bank Mandiri', 'kategori_akun' => 'Aset', 'tipe_akun' => 'Debit', 'saldo_awal' => 25000000],
+            ['kode_akun' => '1101', 'nama_akun' => 'Piutang Usaha', 'kategori_akun' => 'Aset', 'tipe_akun' => 'Debit', 'saldo_awal' => 0],
+            ['kode_akun' => '1201', 'nama_akun' => 'Persediaan Barang Dagang', 'kategori_akun' => 'Aset', 'tipe_akun' => 'Debit', 'saldo_awal' => 15000000],
+            ['kode_akun' => '1301', 'nama_akun' => 'Peralatan Kantor', 'kategori_akun' => 'Aset', 'tipe_akun' => 'Debit', 'saldo_awal' => 5000000],
+            ['kode_akun' => '1302', 'nama_akun' => 'Akumulasi Penyusutan Peralatan', 'kategori_akun' => 'Aset', 'tipe_akun' => 'Kredit', 'saldo_awal' => 500000],
+
+            // KEWAJIBAN
+            ['kode_akun' => '2001', 'nama_akun' => 'Utang Usaha', 'kategori_akun' => 'Kewajiban', 'tipe_akun' => 'Kredit', 'saldo_awal' => 0],
+            ['kode_akun' => '2101', 'nama_akun' => 'Utang PPN', 'kategori_akun' => 'Kewajiban', 'tipe_akun' => 'Kredit', 'saldo_awal' => 0],
+            ['kode_akun' => '2201', 'nama_akun' => 'Utang Gaji', 'kategori_akun' => 'Kewajiban', 'tipe_akun' => 'Kredit', 'saldo_awal' => 0],
+
+            // EKUITAS
+            ['kode_akun' => '3001', 'nama_akun' => 'Modal Pemilik', 'kategori_akun' => 'Ekuitas', 'tipe_akun' => 'Kredit', 'saldo_awal' => 100000000],
+
+            // PENDAPATAN
+            ['kode_akun' => '4001', 'nama_akun' => 'Pendapatan Penjualan', 'kategori_akun' => 'Pendapatan', 'tipe_akun' => 'Kredit', 'saldo_awal' => 0],
+            ['kode_akun' => '4002', 'nama_akun' => 'Pendapatan Lain-lain', 'kategori_akun' => 'Pendapatan', 'tipe_akun' => 'Kredit', 'saldo_awal' => 0],
+
+            // BEBAN
+            ['kode_akun' => '5001', 'nama_akun' => 'Harga Pokok Penjualan', 'kategori_akun' => 'Beban', 'tipe_akun' => 'Debit', 'saldo_awal' => 0],
+            ['kode_akun' => '5101', 'nama_akun' => 'Beban Gaji', 'kategori_akun' => 'Beban', 'tipe_akun' => 'Debit', 'saldo_awal' => 0],
+            ['kode_akun' => '5102', 'nama_akun' => 'Beban Listrik', 'kategori_akun' => 'Beban', 'tipe_akun' => 'Debit', 'saldo_awal' => 0],
+            ['kode_akun' => '5103', 'nama_akun' => 'Beban Telepon', 'kategori_akun' => 'Beban', 'tipe_akun' => 'Debit', 'saldo_awal' => 0],
+            ['kode_akun' => '5104', 'nama_akun' => 'Beban Penyusutan Peralatan', 'kategori_akun' => 'Beban', 'tipe_akun' => 'Debit', 'saldo_awal' => 0],
+            ['kode_akun' => '5105', 'nama_akun' => 'Beban Operasional Lainnya', 'kategori_akun' => 'Beban', 'tipe_akun' => 'Debit', 'saldo_awal' => 0],
+        ];
+
+        foreach ($accounts as $account) {
+            Akun::create($account);
+        }
+
+        $this->command->info('Chart of Accounts seeded successfully!');
+
+        // Seed sample products if they don't exist
+        $this->seedSampleProducts();
+    }
+
+    private function seedSampleProducts()
+    {
+        // Create sample product category if not exists
+        $kategori = ProdukKategori::firstOrCreate([
+            'nama_kategori' => 'Elektronik'
+        ]);
+
+        // Create sample unit if not exists
+        $satuan = Satuan::firstOrCreate([
+            'nama_satuan' => 'Pcs'
+        ]);
+
+        // Create sample products
+        $products = [
+            [
+                'kode_produk' => 'ELK001',
+                'nama_produk' => 'Laptop ASUS',
+                'harga_jual' => 8000000,
+                'harga_beli' => 6000000,
+                'kategori_id' => $kategori->id,
+                'satuan_id' => $satuan->id,
+            ],
+            [
+                'kode_produk' => 'ELK002',
+                'nama_produk' => 'Mouse Wireless',
+                'harga_jual' => 150000,
+                'harga_beli' => 100000,
+                'kategori_id' => $kategori->id,
+                'satuan_id' => $satuan->id,
+            ],
+            [
+                'kode_produk' => 'ELK003',
+                'nama_produk' => 'Keyboard Mechanical',
+                'harga_jual' => 500000,
+                'harga_beli' => 350000,
+                'kategori_id' => $kategori->id,
+                'satuan_id' => $satuan->id,
+            ],
+        ];
+
+        foreach ($products as $productData) {
+            $product = Produk::firstOrCreate(
+                ['kode_produk' => $productData['kode_produk']],
+                $productData
+            );
+
+            // Create inventory record
+            Inventory::firstOrCreate(
+                ['product_id' => $product->id],
+                [
+                    'quantity' => 10,
+                    'unit_cost' => $productData['harga_beli'],
+                    'total_value' => 10 * $productData['harga_beli'],
+                    'created_by' => 1,
+                ]
+            );
+        }
+
+        $this->command->info('Sample products and inventory seeded successfully!');
+    }
+}
+
+# ============================================================================
+# FILE: database/seeders/PostingRulesSeeder.php
+# ============================================================================
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use App\Models\PostingRule;
+use App\Models\PostingRuleEntry;
+use App\Models\Akun;
+
+class PostingRulesSeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        // Get accounts for reference
+        $kas = Akun::where('kode_akun', '1001')->first();
+        $bank = Akun::where('kode_akun', '1002')->first();
+        $pendapatanPenjualan = Akun::where('kode_akun', '4001')->first();
+        $utangPpn = Akun::where('kode_akun', '2101')->first();
+        $hpp = Akun::where('kode_akun', '5001')->first();
+        $persediaan = Akun::where('kode_akun', '1201')->first();
+
+        // 1. Aturan Posting: Penjualan Tunai Umum
+        $penjualanTunai = PostingRule::create([
+            'rule_name' => 'Penjualan Tunai Umum',
+            'source_type' => 'Sale',
+            'trigger_condition' => ['payment_method' => 'Cash'],
+            'description' => 'Aturan posting untuk penjualan tunai dengan pembayaran cash',
+            'is_active' => true,
+            'priority' => 1,
+            'created_by' => 1,
+        ]);
+
+        // Entri jurnal untuk penjualan tunai
+        PostingRuleEntry::create([
+            'posting_rule_id' => $penjualanTunai->id,
+            'account_id' => $kas->id,
+            'dc_type' => 'Debit',
+            'amount_type' => 'SourceValue',
+            'source_property' => 'total_amount',
+            'description_template' => 'Penjualan tunai - {source.transaction_code}',
+            'sort_order' => 1,
+        ]);
+
+        PostingRuleEntry::create([
+            'posting_rule_id' => $penjualanTunai->id,
+            'account_id' => $pendapatanPenjualan->id,
+            'dc_type' => 'Credit',
+            'amount_type' => 'SourceValue',
+            'source_property' => 'subtotal',
+            'description_template' => 'Penjualan tunai - {source.transaction_code}',
+            'sort_order' => 2,
+        ]);
+
+        PostingRuleEntry::create([
+            'posting_rule_id' => $penjualanTunai->id,
+            'account_id' => $utangPpn->id,
+            'dc_type' => 'Credit',
+            'amount_type' => 'SourceValue',
+            'source_property' => 'tax_amount',
+            'description_template' => 'PPN Penjualan - {source.transaction_code}',
+            'sort_order' => 3,
+        ]);
+
+        // 2. Aturan Posting: Penjualan Transfer/Bank
+        $penjualanTransfer = PostingRule::create([
+            'rule_name' => 'Penjualan Transfer Bank',
+            'source_type' => 'Sale',
+            'trigger_condition' => ['payment_method' => 'Transfer'],
+            'description' => 'Aturan posting untuk penjualan dengan pembayaran transfer bank',
+            'is_active' => true,
+            'priority' => 2,
+            'created_by' => 1,
+        ]);
+
+        PostingRuleEntry::create([
+            'posting_rule_id' => $penjualanTransfer->id,
+            'account_id' => $bank->id,
+            'dc_type' => 'Debit',
+            'amount_type' => 'SourceValue',
+            'source_property' => 'total_amount',
+            'description_template' => 'Penjualan transfer - {source.transaction_code}',
+            'sort_order' => 1,
+        ]);
+
+        PostingRuleEntry::create([
+            'posting_rule_id' => $penjualanTransfer->id,
+            'account_id' => $pendapatanPenjualan->id,
+            'dc_type' => 'Credit',
+            'amount_type' => 'SourceValue',
+            'source_property' => 'subtotal',
+            'description_template' => 'Penjualan transfer - {source.transaction_code}',
+            'sort_order' => 2,
+        ]);
+
+        PostingRuleEntry::create([
+            'posting_rule_id' => $penjualanTransfer->id,
+            'account_id' => $utangPpn->id,
+            'dc_type' => 'Credit',
+            'amount_type' => 'SourceValue',
+            'source_property' => 'tax_amount',
+            'description_template' => 'PPN Penjualan - {source.transaction_code}',
+            'sort_order' => 3,
+        ]);
+
+        // 3. Aturan Posting: HPP Penjualan Umum
+        $hppPenjualan = PostingRule::create([
+            'rule_name' => 'HPP Penjualan Umum',
+            'source_type' => 'Sale',
+            'trigger_condition' => [], // Berlaku untuk semua penjualan
+            'description' => 'Aturan posting untuk mencatat Harga Pokok Penjualan',
+            'is_active' => true,
+            'priority' => 10, // Prioritas lebih rendah, dijalankan setelah aturan penjualan
+            'created_by' => 1,
+        ]);
+
+        PostingRuleEntry::create([
+            'posting_rule_id' => $hppPenjualan->id,
+            'account_id' => $hpp->id,
+            'dc_type' => 'Debit',
+            'amount_type' => 'Calculated',
+            'calculation_expression' => 'sale_items.sum(quantity * unit_cost)',
+            'description_template' => 'HPP Penjualan - {source.transaction_code}',
+            'sort_order' => 1,
+        ]);
+
+        PostingRuleEntry::create([
+            'posting_rule_id' => $hppPenjualan->id,
+            'account_id' => $persediaan->id,
+            'dc_type' => 'Credit',
+            'amount_type' => 'Calculated',
+            'calculation_expression' => 'sale_items.sum(quantity * unit_cost)',
+            'description_template' => 'Pengurangan Persediaan - {source.transaction_code}',
+            'sort_order' => 2,
+        ]);
+
+        $this->command->info('Posting rules seeded successfully!');
+    }
+}

@@ -148,11 +148,11 @@ class TransaksiPenjualanResource extends Resource
 
 
 
-                        Forms\Components\TextInput::make('data_dp')
-                            ->label('Data DP')
-                            ->numeric()
-                            ->prefix('IDR')
-                            ->step(0.01),
+                        // Forms\Components\TextInput::make('data_dp')
+                        //     ->label('Data DP')
+                        //     ->numeric()
+                        //     ->prefix('IDR')
+                        //     ->step(0.01),
 
                         Forms\Components\TextInput::make('top_pembayaran')
                             ->label('Termin Pembayaran (Hari)')
