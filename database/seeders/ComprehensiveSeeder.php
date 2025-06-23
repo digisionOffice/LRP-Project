@@ -360,17 +360,17 @@ class ComprehensiveSeeder extends Seeder
 
         $this->command->info('Seeding akun master data...');
 
-
+        // Aset', 'Kewajiban', 'Ekuitas', 'Pendapatan', 'Beban'
         // Seed Akun
         $akuns = [
-            ['kode_akun' => '1000', 'nama_akun' => 'Kas', 'tipe_akun' => 'Aktiva', 'created_by' => 1],
-            ['kode_akun' => '1100', 'nama_akun' => 'Bank', 'tipe_akun' => 'Aktiva', 'created_by' => 1],
-            ['kode_akun' => '1200', 'nama_akun' => 'Piutang Dagang', 'tipe_akun' => 'Aktiva', 'created_by' => 1],
-            ['kode_akun' => '1300', 'nama_akun' => 'Persediaan', 'tipe_akun' => 'Aktiva', 'created_by' => 1],
-            ['kode_akun' => '2000', 'nama_akun' => 'Hutang Dagang', 'tipe_akun' => 'Kewajiban', 'created_by' => 1],
-            ['kode_akun' => '3000', 'nama_akun' => 'Modal', 'tipe_akun' => 'Modal', 'created_by' => 1],
-            ['kode_akun' => '4000', 'nama_akun' => 'Pendapatan', 'tipe_akun' => 'Pendapatan', 'created_by' => 1],
-            ['kode_akun' => '5000', 'nama_akun' => 'Beban', 'tipe_akun' => 'Beban', 'created_by' => 1],
+            ['kode_akun' => '1000', 'nama_akun' => 'Kas', 'kategori_akun' => 'Aset', 'created_by' => 1],
+            ['kode_akun' => '1100', 'nama_akun' => 'Bank', 'kategori_akun' => 'Aset', 'created_by' => 1],
+            ['kode_akun' => '1200', 'nama_akun' => 'Piutang Dagang', 'kategori_akun' => 'Aset', 'created_by' => 1],
+            ['kode_akun' => '1300', 'nama_akun' => 'Persediaan', 'kategori_akun' => 'Aset', 'created_by' => 1],
+            ['kode_akun' => '2000', 'nama_akun' => 'Hutang Dagang', 'kategori_akun' => 'Kewajiban', 'created_by' => 1],
+            ['kode_akun' => '3000', 'nama_akun' => 'Modal', 'kategori_akun' => 'Ekuitas', 'created_by' => 1],
+            ['kode_akun' => '4000', 'nama_akun' => 'Pendapatan', 'kategori_akun' => 'Pendapatan', 'created_by' => 1],
+            ['kode_akun' => '5000', 'nama_akun' => 'Beban', 'kategori_akun' => 'Beban', 'created_by' => 1],
         ];
 
         foreach ($akuns as $akun) {
