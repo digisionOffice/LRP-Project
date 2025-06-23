@@ -27,6 +27,7 @@ class TransaksiPenjualan extends Model implements HasMedia
         'id_tbbm',
         'id_akun_pendapatan',
         'id_akun_piutang',
+        'status',
         'created_by',
     ];
 

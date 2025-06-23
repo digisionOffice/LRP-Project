@@ -11,6 +11,8 @@ use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\SpatieMediaLibraryImageEntry;
 use Afsakar\LeafletMapPicker\LeafletMapPickerEntry;
+use Filament\Infolists\Components\RepeatableEntry;
+
 
 class ViewTransaksiPenjualan extends ViewRecord
 {
@@ -20,7 +22,7 @@ class ViewTransaksiPenjualan extends ViewRecord
     {
         return $infolist
             ->schema([
-                Section::make('Informasi Sales Order')
+                Section::make('Informasi Transaksi Penjualan')
                     ->schema([
                         TextEntry::make('kode')
                             ->icon('heroicon-o-document-text')
@@ -50,12 +52,12 @@ class ViewTransaksiPenjualan extends ViewRecord
                             ->label('Pelanggan')
                             ->icon('heroicon-o-building-office'),
                         TextEntry::make('alamatPelanggan.alamat')
-                            ->label('Alamat Pengiriman')
+                            ->label('Alamat Invoice')
                             ->icon('heroicon-o-map-pin'),
-                        TextEntry::make('data_dp')
-                            ->label('Data DP')
-                            ->money('IDR')
-                            ->icon('heroicon-o-currency-dollar'),
+                        // TextEntry::make('data_dp')
+                        //     ->label('Data DP')
+                        //     ->money('IDR')
+                        //     ->icon('heroicon-o-currency-dollar'),
                         TextEntry::make('top_pembayaran')
                             ->label('Termin Pembayaran')
                             ->formatStateUsing(fn($state) => $state ? "{$state} hari" : 'Tunai')
@@ -63,30 +65,51 @@ class ViewTransaksiPenjualan extends ViewRecord
                             ->color(fn($state) => $state > 30 ? 'warning' : 'success'),
 
                             // masukan detail penjualan
-                            TextEntry::make('penjualanDetails.item.name')
-                            ->badge()
-                            ->color('info')
-                            ->formatStateUsing(function ($record) {
-                                return $record->penjualanDetails->pluck('item.name')->unique()->join(', ');
-                            })
-                            ->label('Jenis BBM'),
+                            // TextEntry::make('penjualanDetails.item.name')
+                            // ->badge()
+                            // ->color('info')
+                            // ->formatStateUsing(function ($record) {
+                            //     return $record->penjualanDetails->pluck('item.name')->unique()->join(', ');
+                            // })
+                            // ->label('Jenis BBM'),
 
-                            TextEntry::make('penjualanDetails.volume_item')
-                            ->getStateUsing(function ($record) {
-                                return $record->penjualanDetails->sum('volume_item');
-                            })
-                            ->label('Jumlah BBM')
-                            ->numeric(decimalPlaces: 2)
-                            ->suffix(' Liter'),
+                            // TextEntry::make('penjualanDetails.volume_item')
+                            // ->getStateUsing(function ($record) {
+                            //     return $record->penjualanDetails->sum('volume_item');
+                            // })
+                            // ->label('Jumlah BBM')
+                            // ->numeric(decimalPlaces: 2)
+                            // ->suffix(' Liter'),
 
                         // use leafleat to show the map
-                        LeafletMapPickerEntry::make('alamatPelanggan.location')
-                            ->label('Lokasi di Peta')
-                            ->height('400px')
-                            ->tileProvider('google')
-                            ->columnSpanFull(),
+                        // LeafletMapPickerEntry::make('alamatPelanggan.location')
+                        //     ->label('Lokasi di Peta')
+                        //     ->height('400px')
+                        //     ->tileProvider('google')
+                        //     ->columnSpanFull(),
                     ])
                     ->columns(2),
+
+                    // informasi detail repeater transaksi per item, use repeatableentry
+                    Section::make('Detail Transaksi')
+                    ->schema([
+                        RepeatableEntry::make('penjualanDetails')
+                            ->label('Item Penjualan')
+                            ->schema([
+                                TextEntry::make('item.name')
+                                    ->label('Item/Produk'),
+                                TextEntry::make('volume_item')
+                                    ->label('Volume')
+                                    ->numeric(decimalPlaces: 2)
+                                    ->suffix(' Liter'),
+                                TextEntry::make('harga_jual')
+                                    ->label('Harga')
+                                    ->money('IDR'),
+                            ])
+                            ->columns(3),
+
+                    ])
+                    ->columns(1),
             ]);
     }
 
@@ -94,6 +117,19 @@ class ViewTransaksiPenjualan extends ViewRecord
     {
         return [
             //  lihat timeline, buat do kalau belum ada
+            // modal acc untuk transaksi, batal atau terima
+            // Actions\Action::make('accept')
+            //     ->label('Terima SO')
+            //     ->icon('heroicon-o-check')
+            //     ->color('success')
+            //     ->action(function (TransaksiPenjualan $record) {
+            //         $record->update(['status' => 'Accepted']);
+            //     })
+            //     // visible if status is pending, visible ketika jabatan manager dan divisi sales
+            //     ->visible(fn(TransaksiPenjualan $record) => $record->status === 'Pending' && auth()->user()->hasRole('Manager')),
+            
+            Actions\Action::make('reject')
+                ->label('Tolak SO'),
             Actions\Action::make('view_timeline')
                 ->label('Lihat Timeline')
                 ->icon('heroicon-o-clock')
@@ -138,19 +174,19 @@ class ViewTransaksiPenjualan extends ViewRecord
 
     public function getTitle(): string
     {
-        return 'Detail Sales Order';
+        return 'Detail Transaksi';
     }
 
     public function getSubheading(): ?string
     {
-        return 'Lihat detail sales order';
+        return 'Lihat detail transaksi penjualan';
     }
 
     public function getBreadcrumbs(): array
     {
         return [
             '/admin' => 'Home',
-            '/admin/transaksi-penjualans' => 'Sales Order',
+            '/admin/transaksi-penjualans' => 'Transaksi Penjualan',
             '' => 'Detail',
         ];
     }
