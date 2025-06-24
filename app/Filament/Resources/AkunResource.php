@@ -17,45 +17,52 @@ class AkunResource extends Resource
 {
     protected static ?string $model = Akun::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-calculator';
+    protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
-    protected static ?string $navigationGroup = 'Data Master';
+    protected static ?string $navigationGroup = 'Akuntansi';
 
     protected static ?string $navigationLabel = 'Chart of Accounts';
 
-    protected static ?int $navigationSort = 7;
+    protected static ?string $modelLabel = 'Akun';
+
+    protected static ?string $pluralModelLabel = 'Chart of Accounts';
+
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Account Information')
-                    ->schema([
-                        Forms\Components\TextInput::make('kode_akun')
-                            ->label('Account Code')
-                            ->required()
-                            ->unique(ignoreRecord: true)
-                            ->maxLength(20)
-                            ->placeholder('e.g., 10101'),
-
-                        Forms\Components\TextInput::make('nama_akun')
-                            ->label('Account Name')
-                            ->required()
-                            ->maxLength(100)
-                            ->placeholder('e.g., Kas'),
-
-                        Forms\Components\Select::make('tipe_akun')
-                            ->label('Account Type')
-                            ->options([
-                                'aktiva' => 'Aktiva',
-                                'kewajiban' => 'Kewajiban',
-                                'modal' => 'Modal',
-                                'pendapatan' => 'Pendapatan',
-                                'biaya' => 'Biaya',
-                            ])
-                            ->required(),
+                Forms\Components\TextInput::make('kode_akun')
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('nama_akun')
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\Select::make('kategori_akun')
+                    ->required()
+                    ->options([
+                        'Aset' => 'Aset',
+                        'Kewajiban' => 'Kewajiban',
+                        'Ekuitas' => 'Ekuitas',
+                        'Pendapatan' => 'Pendapatan',
+                        'Beban' => 'Beban',
                     ])
-                    ->columns(2),
+                    ->native(false),
+                Forms\Components\Select::make('tipe_akun')
+                    ->required()
+                    ->options([
+                        'Debit' => 'Debit',
+                        'Kredit' => 'Kredit',
+                    ])
+                    ->native(false),
+                Forms\Components\TextInput::make('saldo_awal')
+                    ->numeric()
+                    ->prefix('Rp')
+                    ->step(0.01)
+                    ->default(0),
+                Forms\Components\Hidden::make('created_by')
+                    ->default(auth()->id()),
             ]);
     }
 
@@ -64,23 +71,52 @@ class AkunResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('kode_akun')
-                    ->label('Account Code')
                     ->searchable()
-                    ->sortable()
-                    ->copyable()
-                    ->weight('bold'),
-
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('nama_akun')
-                    ->label('Account Name')
                     ->searchable()
-                    ->sortable()
-                    ->wrap(),
-
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('kategori_akun')
+                    ->badge()
+                    ->colors([
+                        'primary' => 'Aset',
+                        'danger' => 'Kewajiban',
+                        'success' => 'Ekuitas',
+                        'warning' => 'Pendapatan',
+                        'secondary' => 'Beban',
+                    ]),
                 Tables\Columns\TextColumn::make('tipe_akun')
-                    ->label('Account Type')
+                    ->badge()
+                    ->colors([
+                        'success' => 'Debit',
+                        'danger' => 'Kredit',
+                    ]),
+                Tables\Columns\TextColumn::make('saldo_awal')
+                    ->money('IDR')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('kategori_akun')
+                    ->options([
+                        'Aset' => 'Aset',
+                        'Kewajiban' => 'Kewajiban',
+                        'Ekuitas' => 'Ekuitas',
+                        'Pendapatan' => 'Pendapatan',
+                        'Beban' => 'Beban',
+                    ]),
+                Tables\Filters\SelectFilter::make('tipe_akun')
+                    ->options([
+                        'Debit' => 'Debit',
+                        'Kredit' => 'Kredit',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

@@ -4,10 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class TransaksiPenjualan extends Model
+class TransaksiPenjualan extends Model implements HasMedia
 {
-    use SoftDeletes;
+    use SoftDeletes, InteractsWithMedia;
 
     protected $table = 'transaksi_penjualan';
 
@@ -16,18 +20,17 @@ class TransaksiPenjualan extends Model
         'tipe',
         'tanggal',
         'id_pelanggan',
-        'id_subdistrict',
-        'alamat',
+        'id_alamat_pelanggan',
         'nomor_po',
+        'nomor_sph',
+        'data_dp',
         'top_pembayaran',
         'id_tbbm',
         'id_akun_pendapatan',
         'id_akun_piutang',
+        'status',
         'created_by',
-        'attachment_path',
-        'attachment_original_name',
-        'attachment_mime_type',
-        'attachment_size',
+        'status'
     ];
 
     protected $casts = [
@@ -35,6 +38,7 @@ class TransaksiPenjualan extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
         'tanggal' => 'datetime',
+        'data_dp' => 'decimal:2',
     ];
 
     public function pelanggan()
@@ -42,9 +46,9 @@ class TransaksiPenjualan extends Model
         return $this->belongsTo(Pelanggan::class, 'id_pelanggan');
     }
 
-    public function subdistrict()
+    public function alamatPelanggan()
     {
-        return $this->belongsTo(Subdistrict::class, 'id_subdistrict');
+        return $this->belongsTo(AlamatPelanggan::class, 'id_alamat_pelanggan');
     }
 
     public function tbbm()
@@ -83,65 +87,84 @@ class TransaksiPenjualan extends Model
     }
 
     /**
-     * Check if the sales order has an attachment
+     * Register media collections for the TransaksiPenjualan model
      */
-    public function hasAttachment(): bool
+    public function registerMediaCollections(): void
     {
-        return !empty($this->attachment_path);
+        $this->addMediaCollection('dokumen_sph')
+            ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']);
+
+        $this->addMediaCollection('dokumen_dp')
+            ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']);
+
+        $this->addMediaCollection('dokumen_po')
+            ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']);
     }
 
     /**
-     * Get the attachment URL for download
+     * Register media conversions for the TransaksiPenjualan model
      */
-    public function getAttachmentUrl(): ?string
+    public function registerMediaConversions(?Media $media = null): void
     {
-        if (!$this->hasAttachment()) {
-            return null;
-        }
+        $this->addMediaConversion('thumb')
+            ->width(150)
+            ->height(150)
+            ->sharpen(10)
+            ->performOnCollections('dokumen_sph', 'dokumen_dp', 'dokumen_po');
 
-        return asset('storage/' . $this->attachment_path);
+        $this->addMediaConversion('preview')
+            ->width(300)
+            ->height(300)
+            ->performOnCollections('dokumen_sph', 'dokumen_dp', 'dokumen_po');
+    }
+
+    public function getDokumenSphUrlAttribute()
+    {
+        return $this->getFirstMediaUrl('dokumen_sph');
+    }
+
+    public function getDokumenDpUrlAttribute()
+    {
+        return $this->getFirstMediaUrl('dokumen_dp');
+    }
+
+    public function getDokumenPoUrlAttribute()
+    {
+        return $this->getFirstMediaUrl('dokumen_po');
     }
 
     /**
-     * Get formatted file size
+     * Get the invoices associated with the sales transaction.
      */
-    public function getFormattedFileSize(): ?string
+    public function invoices()
     {
-        if (!$this->attachment_size) {
-            return null;
-        }
-
-        $bytes = $this->attachment_size;
-        $units = ['B', 'KB', 'MB', 'GB'];
-
-        for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
-            $bytes /= 1024;
-        }
-
-        return round($bytes, 2) . ' ' . $units[$i];
+        return $this->hasMany(Invoice::class, 'id_transaksi');
     }
 
     /**
-     * Get file extension from mime type
+     * Get the receipts associated with the sales transaction.
      */
-    public function getFileExtension(): ?string
+    public function receipts()
     {
-        if (!$this->attachment_mime_type) {
-            return null;
-        }
+        return $this->hasMany(Receipt::class, 'id_transaksi');
+    }
 
-        $mimeToExt = [
-            'application/pdf' => 'pdf',
-            'application/msword' => 'doc',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
-            'application/vnd.ms-excel' => 'xls',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
-            'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-            'image/gif' => 'gif',
-            'text/plain' => 'txt',
-        ];
+    /**
+     * Get the tax invoices associated with the sales transaction.
+     */
+    public function taxInvoices()
+    {
+        return $this->hasMany(TaxInvoice::class, 'id_transaksi');
+    }
 
-        return $mimeToExt[$this->attachment_mime_type] ?? 'file';
+    // delivery order
+    public function getDeliveryOrderUrlAttribute()
+    {
+        return $this->deliveryOrder ? route('filament.admin.resources.delivery-orders.view', ['record' => $this->deliveryOrder->id]) : null;
+    }
+
+    public function approvals(): HasMany
+    {
+        return $this->hasMany(TransaksiPenjualanApproval::class, 'id_transaksi_penjualan')->latest();
     }
 }

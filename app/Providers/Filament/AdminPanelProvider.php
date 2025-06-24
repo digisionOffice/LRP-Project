@@ -9,6 +9,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Navigation\NavigationGroup;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -25,9 +26,19 @@ class AdminPanelProvider extends PanelProvider
     {
         return $panel
             ->default()
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->id('admin')
             ->path('admin')
             ->login()
+            ->navigationGroups([
+                NavigationGroup::make()
+                    ->label('Penjualan')
+                    ->icon('heroicon-o-shopping-cart'),
+                // NavigationGroup::make()
+                //     ->label('Akuntansi')
+                //     ->icon('heroicon-o-calculator'),
+            ])
+
             ->colors([
                 'primary' => Color::Amber,
             ])

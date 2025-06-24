@@ -1,0 +1,20 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@config 'tailwind.config.js';
+
+/* filament sidebar custom */
+
+
+@layer components {
+    .fi-sidebar-item-label {
+        /* @apply !text-green-900  dark:text-yellow-900; */
+    }
+
+    .fi-sidebar-nav-groups {
+        @apply !gap-y-0
+    }
+
+    /* .fi-sidebar-nav {
+        @apply !bg-white border-2
+    } */
+}

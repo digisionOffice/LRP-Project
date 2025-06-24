@@ -19,7 +19,7 @@ class SubdistrictResource extends Resource
 
     protected static ?string $navigationGroup = 'Data Master';
 
-    protected static ?string $navigationLabel = 'Subdistricts';
+    protected static ?string $navigationLabel = 'Kelurahan';
 
     protected static ?int $navigationSort = 11;
 

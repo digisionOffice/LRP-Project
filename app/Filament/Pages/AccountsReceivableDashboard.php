@@ -10,20 +10,26 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class AccountsReceivableDashboard extends Page implements HasForms
 {
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
-    protected static ?string $navigationLabel = 'Accounts Receivable';
-    protected static ?string $title = 'Accounts Receivable Status Summary';
+    protected static ?string $navigationLabel = 'Piutang Usaha';
+    protected static ?string $title = 'Ringkasan Status Piutang Usaha';
     protected static string $view = 'filament.pages.accounts-receivable-dashboard';
     protected static ?int $navigationSort = 4;
-    protected static ?string $navigationGroup = 'Reports & Analytics';
+    protected static ?string $navigationGroup = 'Laporan & Analitik';
 
     public ?string $selectedCustomer = null;
     public ?string $selectedPeriod = null;
+
+    public static function canAccess(): bool
+    {
+        return Auth::user()?->can('page_AccountsReceivableDashboard') ?? false;
+    }
 
     public function mount(): void
     {
@@ -35,23 +41,23 @@ class AccountsReceivableDashboard extends Page implements HasForms
         return $form
             ->schema([
                 Select::make('selectedPeriod')
-                    ->label('Period')
+                    ->label('Periode')
                     ->options([
-                        'current_month' => 'Current Month',
-                        'last_month' => 'Last Month',
-                        'last_3_months' => 'Last 3 Months',
-                        'last_6_months' => 'Last 6 Months',
-                        'current_year' => 'Current Year',
-                        'all_time' => 'All Time',
+                        'current_month' => 'Bulan Ini',
+                        'last_month' => 'Bulan Lalu',
+                        'last_3_months' => '3 Bulan Terakhir',
+                        'last_6_months' => '6 Bulan Terakhir',
+                        'current_year' => 'Tahun Ini',
+                        'all_time' => 'Semua Waktu',
                     ])
                     ->default('current_month')
                     ->live(),
 
                 Select::make('selectedCustomer')
-                    ->label('Customer (Optional)')
+                    ->label('Pelanggan (Opsional)')
                     ->options(Pelanggan::pluck('nama', 'id'))
                     ->searchable()
-                    ->placeholder('All Customers')
+                    ->placeholder('Semua Pelanggan')
                     ->live(),
             ])
             ->columns(2);

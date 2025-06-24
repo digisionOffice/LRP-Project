@@ -17,9 +17,9 @@ class ExpenseRequestResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
 
-    protected static ?string $navigationGroup = 'Financial Management';
+    protected static ?string $navigationGroup = 'Manajemen Keuangan';
 
-    protected static ?string $navigationLabel = 'Expense Requests';
+    protected static ?string $navigationLabel = 'Permintaan Pengeluaran';
 
     protected static ?int $navigationSort = 1;
 
@@ -29,27 +29,27 @@ class ExpenseRequestResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Request Information')
-                    ->description('Basic expense request details')
+                Forms\Components\Section::make('Informasi Permintaan')
+                    ->description('Detail dasar permintaan pengeluaran')
                     ->icon('heroicon-o-document-text')
                     ->schema([
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('request_number')
-                                    ->label('Request Number')
+                                    ->label('Nomor Permintaan')
                                     ->disabled()
                                     ->dehydrated(false)
-                                    ->placeholder('Auto-generated')
-                                    ->helperText('Will be generated automatically upon creation'),
+                                    ->placeholder('Dibuat otomatis')
+                                    ->helperText('Akan dibuat secara otomatis saat pembuatan'),
 
                                 Forms\Components\Select::make('category')
-                                    ->label('Expense Category')
+                                    ->label('Kategori Pengeluaran')
                                     ->options([
-                                        'tank_truck_maintenance' => 'Tank Truck Maintenance',
-                                        'license_fee' => 'License Fee',
-                                        'business_travel' => 'Business Travel',
-                                        'utilities' => 'Utilities',
-                                        'other' => 'Other Expenses',
+                                        'tank_truck_maintenance' => 'Perawatan Truk Tangki',
+                                        'license_fee' => 'Biaya Lisensi',
+                                        'business_travel' => 'Perjalanan Dinas',
+                                        'utilities' => 'Utilitas',
+                                        'other' => 'Pengeluaran Lainnya',
                                     ])
                                     ->required()
                                     ->searchable()
@@ -62,23 +62,23 @@ class ExpenseRequestResource extends Resource
                             ]),
 
                         Forms\Components\TextInput::make('title')
-                            ->label('Request Title')
+                            ->label('Judul Permintaan')
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('Brief description of the expense')
+                            ->placeholder('Deskripsi singkat pengeluaran')
                             ->columnSpanFull(),
 
                         Forms\Components\Textarea::make('description')
-                            ->label('Detailed Description')
+                            ->label('Deskripsi Detail')
                             ->required()
                             ->rows(3)
-                            ->placeholder('Provide detailed information about the expense request')
+                            ->placeholder('Berikan informasi detail tentang permintaan pengeluaran')
                             ->columnSpanFull(),
 
                         Forms\Components\Grid::make(3)
                             ->schema([
                                 Forms\Components\TextInput::make('requested_amount')
-                                    ->label('Requested Amount (Rp)')
+                                    ->label('Jumlah Diminta (Rp)')
                                     ->required()
                                     ->numeric()
                                     ->prefix('Rp')
@@ -87,55 +87,55 @@ class ExpenseRequestResource extends Resource
                                     ->dehydrateStateUsing(fn($state) => (float) str_replace(['.', ','], '', $state)),
 
                                 Forms\Components\Select::make('priority')
-                                    ->label('Priority Level')
+                                    ->label('Tingkat Prioritas')
                                     ->options([
-                                        'low' => 'Low',
-                                        'medium' => 'Medium',
-                                        'high' => 'High',
-                                        'urgent' => 'Urgent',
+                                        'low' => 'Rendah',
+                                        'medium' => 'Sedang',
+                                        'high' => 'Tinggi',
+                                        'urgent' => 'Mendesak',
                                     ])
                                     ->required()
                                     ->default('medium'),
 
                                 Forms\Components\DatePicker::make('needed_by_date')
-                                    ->label('Needed By Date')
-                                    ->placeholder('When is this expense needed?')
+                                    ->label('Dibutuhkan Tanggal')
+                                    ->placeholder('Kapan pengeluaran ini dibutuhkan?')
                                     ->minDate(now()),
                             ]),
                     ])
                     ->collapsible(),
 
-                Forms\Components\Section::make('Justification & Budget')
-                    ->description('Provide justification and budget information')
+                Forms\Components\Section::make('Justifikasi & Anggaran')
+                    ->description('Berikan justifikasi dan informasi anggaran')
                     ->icon('heroicon-o-calculator')
                     ->schema([
                         Forms\Components\Textarea::make('justification')
-                            ->label('Business Justification')
+                            ->label('Justifikasi Bisnis')
                             ->rows(3)
-                            ->placeholder('Explain why this expense is necessary for business operations')
+                            ->placeholder('Jelaskan mengapa pengeluaran ini diperlukan untuk operasi bisnis')
                             ->columnSpanFull(),
 
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('cost_center')
-                                    ->label('Cost Center')
-                                    ->placeholder('e.g., Operations, Sales, Admin')
+                                    ->label('Pusat Biaya')
+                                    ->placeholder('contoh: Operasional, Penjualan, Admin')
                                     ->maxLength(255),
 
                                 Forms\Components\TextInput::make('budget_code')
-                                    ->label('Budget Code')
-                                    ->placeholder('e.g., MAINT-2024, TRAVEL-Q1')
+                                    ->label('Kode Anggaran')
+                                    ->placeholder('contoh: MAINT-2024, TRAVEL-Q1')
                                     ->maxLength(255),
                             ]),
                     ])
                     ->collapsible(),
 
-                Forms\Components\Section::make('Supporting Documents')
-                    ->description('Upload supporting documents for this request')
+                Forms\Components\Section::make('Dokumen Pendukung')
+                    ->description('Unggah dokumen pendukung untuk permintaan ini')
                     ->icon('heroicon-o-paper-clip')
                     ->schema([
                         Forms\Components\FileUpload::make('supporting_documents')
-                            ->label('Supporting Documents')
+                            ->label('Dokumen Pendukung')
                             ->multiple()
                             ->disk('public')
                             ->directory('expense-requests')
@@ -149,7 +149,7 @@ class ExpenseRequestResource extends Resource
                                 'image/png',
                             ])
                             ->maxSize(10240)
-                            ->helperText('Upload invoices, quotations, or other supporting documents. Max 10MB per file.')
+                            ->helperText('Unggah faktur, penawaran, atau dokumen pendukung lainnya. Maksimal 10MB per file.')
                             ->columnSpanFull(),
                     ])
                     ->collapsible()
@@ -172,14 +172,14 @@ class ExpenseRequestResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('request_number')
-                    ->label('Request #')
+                    ->label('No. Permintaan')
                     ->searchable()
                     ->sortable()
                     ->copyable()
                     ->weight('bold'),
 
                 Tables\Columns\TextColumn::make('category')
-                    ->label('Category')
+                    ->label('Kategori')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'tank_truck_maintenance' => 'warning',
@@ -189,11 +189,18 @@ class ExpenseRequestResource extends Resource
                         'other' => 'gray',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn($record) => $record->category_label)
+                    ->formatStateUsing(fn($record) => match ($record->category) {
+                        'tank_truck_maintenance' => 'Perawatan Truk Tangki',
+                        'license_fee' => 'Biaya Lisensi',
+                        'business_travel' => 'Perjalanan Dinas',
+                        'utilities' => 'Utilitas',
+                        'other' => 'Pengeluaran Lainnya',
+                        default => $record->category_label ?? $record->category,
+                    })
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('title')
-                    ->label('Title')
+                    ->label('Judul')
                     ->searchable()
                     ->limit(30)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
@@ -202,60 +209,74 @@ class ExpenseRequestResource extends Resource
                     }),
 
                 Tables\Columns\TextColumn::make('requestedBy.name')
-                    ->label('Requested By')
+                    ->label('Diminta Oleh')
                     ->searchable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('requested_amount')
-                    ->label('Amount')
+                    ->label('Jumlah')
                     ->money('IDR')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->color(fn($record) => $record->status_color)
-                    ->formatStateUsing(fn($record) => $record->status_label)
+                    ->color(fn($record) => $record->status_color ?? 'gray')
+                    ->formatStateUsing(fn($record) => match ($record->status) {
+                        'draft' => 'Draft',
+                        'submitted' => 'Diajukan',
+                        'under_review' => 'Sedang Ditinjau',
+                        'approved' => 'Disetujui',
+                        'rejected' => 'Ditolak',
+                        'paid' => 'Dibayar',
+                        default => $record->status_label ?? $record->status,
+                    })
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('priority')
-                    ->label('Priority')
+                    ->label('Prioritas')
                     ->badge()
-                    ->color(fn($record) => $record->priority_color)
-                    ->formatStateUsing(fn($record) => $record->priority_label)
+                    ->color(fn($record) => $record->priority_color ?? 'gray')
+                    ->formatStateUsing(fn($record) => match ($record->priority) {
+                        'low' => 'Rendah',
+                        'medium' => 'Sedang',
+                        'high' => 'Tinggi',
+                        'urgent' => 'Mendesak',
+                        default => $record->priority_label ?? $record->priority,
+                    })
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('requested_date')
-                    ->label('Requested')
+                    ->label('Diminta')
                     ->date('d M Y')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('needed_by_date')
-                    ->label('Needed By')
+                    ->label('Dibutuhkan')
                     ->date('d M Y')
-                    ->placeholder('Not specified')
+                    ->placeholder('Tidak ditentukan')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('approvedBy.name')
-                    ->label('Approved By')
-                    ->placeholder('Pending')
+                    ->label('Disetujui Oleh')
+                    ->placeholder('Tertunda')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('approved_at')
-                    ->label('Approved Date')
+                    ->label('Tanggal Disetujui')
                     ->dateTime('d M Y H:i')
-                    ->placeholder('Not approved')
+                    ->placeholder('Belum disetujui')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('category')
-                    ->label('Category')
+                    ->label('Kategori')
                     ->options([
-                        'tank_truck_maintenance' => 'Tank Truck Maintenance',
-                        'license_fee' => 'License Fee',
-                        'business_travel' => 'Business Travel',
-                        'utilities' => 'Utilities',
-                        'other' => 'Other Expenses',
+                        'tank_truck_maintenance' => 'Perawatan Truk Tangki',
+                        'license_fee' => 'Biaya Lisensi',
+                        'business_travel' => 'Perjalanan Dinas',
+                        'utilities' => 'Utilitas',
+                        'other' => 'Pengeluaran Lainnya',
                     ])
                     ->multiple(),
 
@@ -263,26 +284,26 @@ class ExpenseRequestResource extends Resource
                     ->label('Status')
                     ->options([
                         'draft' => 'Draft',
-                        'submitted' => 'Submitted',
-                        'under_review' => 'Under Review',
-                        'approved' => 'Approved',
-                        'rejected' => 'Rejected',
-                        'paid' => 'Paid',
+                        'submitted' => 'Diajukan',
+                        'under_review' => 'Sedang Ditinjau',
+                        'approved' => 'Disetujui',
+                        'rejected' => 'Ditolak',
+                        'paid' => 'Dibayar',
                     ])
                     ->multiple(),
 
                 Tables\Filters\SelectFilter::make('priority')
-                    ->label('Priority')
+                    ->label('Prioritas')
                     ->options([
-                        'low' => 'Low',
-                        'medium' => 'Medium',
-                        'high' => 'High',
-                        'urgent' => 'Urgent',
+                        'low' => 'Rendah',
+                        'medium' => 'Sedang',
+                        'high' => 'Tinggi',
+                        'urgent' => 'Mendesak',
                     ])
                     ->multiple(),
 
                 Tables\Filters\Filter::make('my_requests')
-                    ->label('My Requests')
+                    ->label('Permintaan Saya')
                     ->query(fn($query) => $query->where('requested_by', \Illuminate\Support\Facades\Auth::id()))
                     ->toggle(),
 
@@ -290,7 +311,7 @@ class ExpenseRequestResource extends Resource
             ])
             ->actions([
                 Tables\Actions\Action::make('submit')
-                    ->label('Submit')
+                    ->label('Ajukan')
                     ->icon('heroicon-o-paper-airplane')
                     ->color('success')
                     ->action(function ($record) {
@@ -302,17 +323,17 @@ class ExpenseRequestResource extends Resource
                     ->visible(fn($record) => $record->canBeSubmitted()),
 
                 Tables\Actions\Action::make('approve')
-                    ->label('Approve')
+                    ->label('Setujui')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->form([
                         Forms\Components\TextInput::make('approved_amount')
-                            ->label('Approved Amount (Rp)')
+                            ->label('Jumlah Disetujui (Rp)')
                             ->required()
                             ->numeric()
                             ->prefix('Rp'),
                         Forms\Components\Textarea::make('approval_notes')
-                            ->label('Approval Notes')
+                            ->label('Catatan Persetujuan')
                             ->rows(3),
                     ])
                     ->action(function ($record, array $data) {
@@ -327,12 +348,12 @@ class ExpenseRequestResource extends Resource
                     ->visible(fn($record) => $record->canBeApproved()),
 
                 Tables\Actions\Action::make('reject')
-                    ->label('Reject')
+                    ->label('Tolak')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->form([
                         Forms\Components\Textarea::make('rejection_reason')
-                            ->label('Rejection Reason')
+                            ->label('Alasan Penolakan')
                             ->required()
                             ->rows(3),
                     ])

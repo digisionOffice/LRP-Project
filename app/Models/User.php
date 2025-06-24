@@ -10,11 +10,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Spatie\Permission\Traits\HasRoles;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, HasMedia
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes, HasRoles;
+    use HasFactory, Notifiable, SoftDeletes, HasRoles, InteractsWithMedia;
 
     /**
      * The attributes that are mass assignable.
@@ -95,11 +98,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(UangJalan::class, 'id_user');
     }
 
-    // User management relationships
-    public function userRoles()
+    public function expenseRequests()
     {
-        return $this->hasMany(UserRole::class, 'id_user');
+        return $this->hasMany(ExpenseRequest::class, 'user_id');
     }
+
 
     public function createdBy()
     {
@@ -109,5 +112,82 @@ class User extends Authenticatable implements FilamentUser
     public function createdUsers()
     {
         return $this->hasMany(User::class, 'created_by');
+    }
+
+    /**
+     * Get the karyawan record for this user
+     */
+    public function karyawan()
+    {
+        return $this->hasOne(Karyawan::class, 'id_user');
+    }
+
+    /**
+     * Get employees supervised by this user
+     */
+    public function supervisedEmployees()
+    {
+        return $this->hasMany(Karyawan::class, 'supervisor_id');
+    }
+
+    /**
+     * Get schedules supervised by this user
+     */
+    public function supervisedSchedules()
+    {
+        return $this->hasMany(Schedule::class, 'supervisor_id');
+    }
+
+    /**
+     * Get attendance records approved by this user
+     */
+    public function approvedAttendance()
+    {
+        return $this->hasMany(Absensi::class, 'approved_by');
+    }
+
+    /**
+     * Register media collections for the User model
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('avatar')
+            ->singleFile()
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+
+        $this->addMediaCollection('documents')
+            ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/png']);
+
+        $this->addMediaCollection('standalone')
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']);
+    }
+
+    /**
+     * Register media conversions for the User model
+     */
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')
+            ->width(150)
+            ->height(150)
+            ->sharpen(10)
+            ->performOnCollections('avatar', 'standalone');
+
+        $this->addMediaConversion('preview')
+            ->width(300)
+            ->height(300)
+            ->performOnCollections('avatar', 'standalone');
+    }
+
+    // role
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('super_admin');
+    }
+
+    // get role from  spatie
+    public function getRoleNameAttribute()
+    {
+        return $this->roles->first()->name ?? '';
     }
 }

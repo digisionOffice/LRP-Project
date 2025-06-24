@@ -17,8 +17,7 @@ return new class extends Migration
             $table->enum('tipe', ['dagang', 'jasa']);
             $table->datetime('tanggal');
             $table->unsignedBigInteger('id_pelanggan');
-            $table->string('id_subdistrict', 10)->nullable();
-            $table->text('alamat')->nullable();
+            $table->string('id_alamat_pelanggan');
             $table->string('nomor_po', 50)->nullable();
             $table->integer('top_pembayaran')->nullable(); // Dalam hari
             $table->unsignedBigInteger('id_tbbm')->nullable();

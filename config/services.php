@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    'starsender' => [
+        'base_url' => env('STARSENDER_BASE_URL', 'https://api.starsender.online/api'),
+        'default_sender' => env('STARSENDER_DEFAULT_SENDER', 'ilham'),
+
+        'accounts' => [
+            'ilham' => [
+                'token' => env('STARSENDER_TOKEN_ILHAM'),
+            ],
+            'indra' => [
+                'token' => env('STARSENDER_TOKEN_INDRA'),
+            ],
+        ],
+    ],
+
 ];

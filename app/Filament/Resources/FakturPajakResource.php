@@ -19,7 +19,7 @@ class FakturPajakResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
-    protected static ?string $navigationGroup = 'Keuangan';
+    protected static ?string $navigationGroup = 'Manajemen Keuangan';
 
     protected static ?string $navigationLabel = 'Faktur Pajak';
 

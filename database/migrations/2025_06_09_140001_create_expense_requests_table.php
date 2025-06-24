@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('expense_requests', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('user_id');
             $table->string('request_number')->unique();
             $table->enum('category', [
                 'tank_truck_maintenance',
@@ -54,7 +55,7 @@ return new class extends Migration
 
             $table->foreign('requested_by')->references('id')->on('users');
             $table->foreign('approved_by')->references('id')->on('users');
-            
+
             $table->index(['category', 'status']);
             $table->index(['requested_by', 'status']);
             $table->index(['requested_date', 'status']);

@@ -21,7 +21,7 @@ class ProvinceResource extends Resource
 
     protected static ?string $navigationGroup = 'Data Master';
 
-    protected static ?string $navigationLabel = 'Administrative Areas';
+    protected static ?string $navigationLabel = 'Provinsi';
 
     protected static ?int $navigationSort = 8;
 
@@ -31,31 +31,31 @@ class ProvinceResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Province Information')
-                    ->description('Manage province (provinsi) information and administrative hierarchy')
+                Forms\Components\Section::make('Informasi Provinsi')
+                    ->description('Kelola informasi provinsi dan hierarki administratif')
                     ->icon('heroicon-o-map')
                     ->schema([
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('id')
-                                    ->label('Province ID')
+                                    ->label('ID Provinsi')
                                     ->required()
                                     ->unique(ignoreRecord: true)
                                     ->maxLength(2)
-                                    ->placeholder('e.g., 14')
-                                    ->helperText('2-digit province code')
+                                    ->placeholder('contoh: 14')
+                                    ->helperText('Kode provinsi 2 digit')
                                     ->disabled(fn($context) => $context === 'edit'),
 
                                 Forms\Components\TextInput::make('name')
-                                    ->label('Province Name')
+                                    ->label('Nama Provinsi')
                                     ->required()
                                     ->maxLength(255)
-                                    ->placeholder('e.g., Riau')
-                                    ->helperText('Full province name'),
+                                    ->placeholder('contoh: Riau')
+                                    ->helperText('Nama lengkap provinsi'),
                             ]),
 
                         Forms\Components\Hidden::make('created_by')
-                            ->default(fn() => auth()->id()),
+                            ->default(fn() => \Illuminate\Support\Facades\Auth::id()),
                     ])
                     ->collapsible(),
             ]);
@@ -66,7 +66,7 @@ class ProvinceResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')
-                    ->label('Province ID')
+                    ->label('ID Provinsi')
                     ->searchable()
                     ->sortable()
                     ->copyable()
@@ -74,28 +74,28 @@ class ProvinceResource extends Resource
                     ->size('sm'),
 
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Province Name')
+                    ->label('Nama Provinsi')
                     ->searchable()
                     ->sortable()
                     ->weight('medium')
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('regencies_count')
-                    ->label('Regencies')
+                    ->label('Kabupaten/Kota')
                     ->counts('regencies')
                     ->badge()
                     ->color('info')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('districts_count')
-                    ->label('Districts')
+                    ->label('Kecamatan')
                     ->counts('districts')
                     ->badge()
                     ->color('success')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('subdistricts_count')
-                    ->label('Subdistricts')
+                    ->label('Kelurahan')
                     ->getStateUsing(function ($record) {
                         return $record->subdistricts()->count();
                     })
@@ -104,18 +104,18 @@ class ProvinceResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('createdBy.name')
-                    ->label('Created By')
-                    ->placeholder('System')
+                    ->label('Dibuat Oleh')
+                    ->placeholder('Sistem')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label('Dibuat')
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Updated')
+                    ->label('Diperbarui')
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

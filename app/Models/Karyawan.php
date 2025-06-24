@@ -19,6 +19,7 @@ class Karyawan extends Model
         'id_divisi',
         'id_entitas',
         'id_user',
+        'supervisor_id',
         'created_by',
     ];
 
@@ -63,5 +64,48 @@ class Karyawan extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the supervisor for this employee
+     */
+    public function supervisor()
+    {
+        return $this->belongsTo(User::class, 'supervisor_id');
+    }
+
+    /**
+     * Get all attendance records for this employee
+     */
+    public function absensi()
+    {
+        return $this->hasMany(Absensi::class, 'karyawan_id');
+    }
+
+    /**
+     * Get all schedules for this employee
+     */
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class, 'karyawan_id');
+    }
+
+    /**
+     * Get attendance records for a specific date
+     */
+    public function getAttendanceForDate($date)
+    {
+        return $this->absensi()->whereDate('tanggal_absensi', $date)->get();
+    }
+
+    /**
+     * Get today's schedule
+     */
+    public function getTodaySchedule()
+    {
+        return $this->schedules()
+            ->with('shift')
+            ->whereDate('tanggal_jadwal', now()->toDateString())
+            ->first();
     }
 }

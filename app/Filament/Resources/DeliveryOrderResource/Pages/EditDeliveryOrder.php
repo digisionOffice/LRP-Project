@@ -13,7 +13,20 @@ class EditDeliveryOrder extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\ViewAction::make()
+                ->color('info'),
+            Actions\DeleteAction::make()
+                ->color('danger'),
         ];
+    }
+
+    public function getTitle(): string
+    {
+        return 'Edit Delivery Order';
+    }
+
+    public function getSubheading(): ?string
+    {
+        return 'Perbarui informasi delivery order';
     }
 }

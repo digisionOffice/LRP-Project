@@ -22,12 +22,12 @@ class EditUser extends EditRecord
 
     public function getTitle(): string
     {
-        return 'Edit User';
+        return 'Edit Pengguna';
     }
 
     public function getSubheading(): ?string
     {
-        return 'Update user account and employee information';
+        return 'Perbarui akun pengguna dan informasi karyawan';
     }
 
     protected function getRedirectUrl(): string
@@ -37,6 +37,6 @@ class EditUser extends EditRecord
 
     protected function getSavedNotificationTitle(): ?string
     {
-        return 'User updated successfully';
+        return 'Pengguna berhasil diperbarui';
     }
 }

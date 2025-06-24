@@ -4,14 +4,30 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "cypress:open": "cypress open --config-file cypress.config.cjs",
+        "cypress:run": "cypress run --config-file cypress.config.cjs",
+        "cypress:run:chrome": "cypress run --config-file cypress.config.cjs --browser chrome",
+        "cypress:run:firefox": "cypress run --config-file cypress.config.cjs --browser firefox",
+        "test:e2e": "cypress run --config-file cypress.config.cjs",
+        "test:e2e:headed": "cypress run --config-file cypress.config.cjs --headed",
+        "test:journal": "cypress run --config-file cypress.config.cjs --spec 'cypress/e2e/journal-*.cy.js'",
+        "test:journal:open": "cypress open --config-file cypress.config.cjs --e2e"
     },
     "devDependencies": {
+        "@tailwindcss/forms": "^0.5.10",
+        "@tailwindcss/typography": "^0.5.16",
         "@tailwindcss/vite": "^4.0.0",
+        "autoprefixer": "^10.4.21",
         "axios": "^1.8.2",
         "concurrently": "^9.0.1",
+        "cypress": "^13.17.0",
+        "cypress-axe": "^1.6.0",
+        "cypress-terminal-report": "^5.3.12",
         "laravel-vite-plugin": "^1.2.0",
-        "tailwindcss": "^4.0.0",
+        "postcss": "^8.5.5",
+        "postcss-nesting": "^13.0.2",
+        "tailwindcss": "^3.4.17",
         "vite": "^6.2.4"
     }
 }

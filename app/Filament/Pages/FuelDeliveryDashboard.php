@@ -21,6 +21,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Support\Enums\MaxWidth;
+use Illuminate\Support\Facades\Auth;
 
 class FuelDeliveryDashboard extends Page implements HasTable, HasForms
 {
@@ -28,12 +29,17 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar-square';
-    protected static ?string $navigationLabel = 'Fuel Delivery Dashboard';
-    protected static ?string $title = 'Fuel Delivery Dashboard';
+    protected static ?string $navigationLabel = 'Dashboard Pengiriman BBM';
+    protected static ?string $title = 'Dashboard Pengiriman BBM';
     protected static string $view = 'filament.pages.fuel-delivery-dashboard';
     protected static ?int $navigationSort = 1;
 
     public string $activeTab = 'sales';
+
+    public static function canAccess(): bool
+    {
+        return Auth::user()?->can('page_FuelDeliveryDashboard') ?? false;
+    }
 
     public function getMaxContentWidth(): MaxWidth
     {
@@ -50,7 +56,7 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
         $this->resetTable();
     }
 
-   
+
 
     public function table(Table $table): Table
     {
@@ -74,19 +80,18 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                         'penjualanDetails.item.kategori',
                         'penjualanDetails.item.satuan',
                         'tbbm',
-                        'subdistrict.district.regency.province'
                     ])
                     ->latest()
             )
             ->columns([
                 Tables\Columns\TextColumn::make('pelanggan.nama')
-                    ->label('Customer Name')
+                    ->label('Nama Pelanggan')
                     ->searchable()
                     ->sortable()
                     ->copyable(),
 
                 Tables\Columns\TextColumn::make('penjualanDetails.item.name')
-                    ->label('Fuel Type')
+                    ->label('Jenis BBM')
                     ->badge()
                     ->color('info')
                     ->formatStateUsing(function ($record) {
@@ -94,7 +99,7 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                     }),
 
                 Tables\Columns\TextColumn::make('total_volume')
-                    ->label('Fuel Volume')
+                    ->label('Volume BBM')
                     ->numeric(decimalPlaces: 2)
                     ->suffix(' L')
                     ->getStateUsing(function ($record) {
@@ -102,8 +107,8 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                     })
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('alamat')
-                    ->label('Delivery Location')
+                Tables\Columns\TextColumn::make('alamatPelanggan.alamat')
+                    ->label('Lokasi Pengiriman')
                     ->limit(30)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
                         $state = $column->getState();
@@ -112,54 +117,44 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('nomor_po')
-                    ->label('PO Number')
+                    ->label('Nomor PO')
                     ->searchable()
                     ->copyable()
-                    ->placeholder('N/A'),
+                    ->placeholder('T/A'),
 
                 Tables\Columns\TextColumn::make('top_pembayaran')
-                    ->label('Payment Terms')
-                    ->formatStateUsing(fn($state) => $state ? "{$state} days" : 'Cash')
+                    ->label('Termin Pembayaran')
+                    ->formatStateUsing(fn($state) => $state ? "{$state} hari" : 'Tunai')
                     ->badge()
                     ->color(fn($state) => $state > 30 ? 'warning' : 'success'),
 
                 Tables\Columns\TextColumn::make('kode')
-                    ->label('SO Number')
+                    ->label('Nomor SO')
                     ->searchable()
                     ->sortable()
                     ->copyable()
                     ->weight('bold'),
 
                 Tables\Columns\TextColumn::make('tbbm.nama')
-                    ->label('TBBM Location')
+                    ->label('Lokasi TBBM')
                     ->searchable()
-                    ->placeholder('N/A'),
+                    ->placeholder('T/A'),
 
                 Tables\Columns\TextColumn::make('tanggal')
-                    ->label('Order Date')
+                    ->label('Tanggal Pesanan')
                     ->date('d M Y')
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('has_attachment')
-                    ->label('File')
-                    ->boolean()
-                    ->getStateUsing(fn($record) => $record->hasAttachment())
-                    ->trueIcon('heroicon-o-paper-clip')
-                    ->falseIcon('heroicon-o-minus')
-                    ->trueColor('success')
-                    ->falseColor('gray')
-                    ->tooltip(fn($record) => $record->hasAttachment()
-                        ? 'Attachment: ' . $record->attachment_original_name
-                        : 'No attachment'),
+
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('id_pelanggan')
-                    ->label('Customer')
+                    ->label('Pelanggan')
                     ->options(Pelanggan::pluck('nama', 'id'))
                     ->searchable(),
 
                 Tables\Filters\SelectFilter::make('fuel_type')
-                    ->label('Fuel Type')
+                    ->label('Jenis BBM')
                     ->options(Item::whereHas('kategori', function ($query) {
                         $query->where('nama', 'like', '%BBM%');
                     })->pluck('name', 'id'))
@@ -174,16 +169,16 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                     }),
 
                 Tables\Filters\SelectFilter::make('id_tbbm')
-                    ->label('TBBM Location')
+                    ->label('Lokasi TBBM')
                     ->options(Tbbm::pluck('nama', 'id'))
                     ->searchable(),
 
                 Tables\Filters\Filter::make('tanggal')
                     ->form([
                         \Filament\Forms\Components\DatePicker::make('from')
-                            ->label('From Date'),
+                            ->label('Dari Tanggal'),
                         \Filament\Forms\Components\DatePicker::make('until')
-                            ->label('Until Date'),
+                            ->label('Sampai Tanggal'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -198,8 +193,15 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                     }),
             ])
             ->actions([
+                // lihat timeline
+                Tables\Actions\Action::make('view_timeline')
+                    ->label('Lihat Timeline')
+                    ->icon('heroicon-o-clock')
+                    ->color('success')
+                    ->url(fn($record) => "/admin/sales-order-timeline-detail?record={$record->id}")
+                    ->openUrlInNewTab(false),
                 Tables\Actions\Action::make('view')
-                    ->label('View Details')
+                    ->label('Lihat Detail')
                     ->icon('heroicon-o-eye')
                     ->url(fn($record) => route('filament.admin.resources.transaksi-penjualans.view', ['record' => $record]))
                     ->openUrlInNewTab(),
@@ -234,31 +236,31 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
             )
             ->columns([
                 Tables\Columns\TextColumn::make('transaksi.kode')
-                    ->label('SO Number')
+                    ->label('Nomor SO')
                     ->searchable()
                     ->sortable()
                     ->copyable()
-                    ->description(fn($record) => $record->transaksi ? 'Customer: ' . $record->transaksi->pelanggan?->nama : null),
+                    ->description(fn($record) => $record->transaksi ? 'Pelanggan: ' . $record->transaksi->pelanggan?->nama : null),
 
                 Tables\Columns\TextColumn::make('kendaraan.no_pol_kendaraan')
-                    ->label('Truck License Plate')
+                    ->label('Plat Nomor Truk')
                     ->searchable()
                     ->copyable()
                     ->formatStateUsing(fn($state) => strtoupper($state))
-                    ->placeholder('Not Assigned'),
+                    ->placeholder('Belum Ditugaskan'),
 
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Driver Name')
+                    ->label('Nama Sopir')
                     ->searchable()
-                    ->placeholder('Not Assigned')
+                    ->placeholder('Belum Ditugaskan')
                     ->description(fn($record) => $record->user ? 'ID: ' . $record->user->no_induk . ' | ' . $record->user->jabatan?->nama : null),
 
                 Tables\Columns\SelectColumn::make('status_muat')
-                    ->label('Loading Status')
+                    ->label('Status Muat')
                     ->options([
-                        'pending' => 'Load Order Issued',
-                        'muat' => 'Load Confirmed',
-                        'selesai' => 'Loading Complete',
+                        'pending' => 'Perintah Muat Diterbitkan',
+                        'muat' => 'Muat Dikonfirmasi',
+                        'selesai' => 'Muat Selesai',
                     ])
                     ->selectablePlaceholder(false),
 
@@ -272,26 +274,26 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                         default => 'gray',
                     })
                     ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'pending' => 'Load Order Issued',
-                        'muat' => 'Load Confirmed',
-                        'selesai' => 'Loading Complete',
+                        'pending' => 'Perintah Muat Diterbitkan',
+                        'muat' => 'Muat Dikonfirmasi',
+                        'selesai' => 'Muat Selesai',
                         default => $state,
                     }),
 
                 Tables\Columns\TextColumn::make('tanggal_delivery')
-                    ->label('Delivery Date')
+                    ->label('Tanggal Pengiriman')
                     ->date('d M Y')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('waktu_muat')
-                    ->label('Loading Start')
+                    ->label('Mulai Muat')
                     ->dateTime('H:i')
-                    ->placeholder('Not Started'),
+                    ->placeholder('Belum Dimulai'),
 
                 Tables\Columns\TextColumn::make('waktu_selesai_muat')
-                    ->label('Loading Complete')
+                    ->label('Selesai Muat')
                     ->dateTime('H:i')
-                    ->placeholder('Not Completed'),
+                    ->placeholder('Belum Selesai'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status_muat')
@@ -315,6 +317,13 @@ class FuelDeliveryDashboard extends Page implements HasTable, HasForms
                     ->searchable(),
             ])
             ->actions([
+                Tables\Actions\Action::make('view_timeline')
+                    ->label('Lihat Timeline')
+                    ->icon('heroicon-o-clock')
+                    ->color('success')
+                    ->url(fn($record) => "/admin/sales-order-timeline-detail?record={$record->transaksi->id}")
+                    ->visible(fn($record) => $record->transaksi !== null)
+                    ->openUrlInNewTab(false),
                 Tables\Actions\Action::make('view')
                     ->label('View DO')
                     ->icon('heroicon-o-eye')

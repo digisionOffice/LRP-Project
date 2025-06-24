@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('item_kategori', function (Blueprint $table) {
             $table->id();
+            $table->string('kode');
             $table->string('nama');
             $table->string('deskripsi')->nullable();
             $table->unsignedBigInteger('created_by')->nullable();
