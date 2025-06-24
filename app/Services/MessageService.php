@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\TransaksiPenjualan;
+
 use App\Support\Formatter;
 use Illuminate\Support\Facades\Log;
 
@@ -377,6 +379,102 @@ class MessageService
 
         return $this->starSender->send(
             receiverNumber: $internalRecipientPhoneNumber,
+            message: $message,
+            senderAccount: $senderAccount
+        );
+    }
+
+    /**
+     * Sends a "Penjualan Approved" notification to the salesperson.
+     *
+     * @param TransaksiPenjualan $transaction The sales transaction object.
+     * @param object $approver The user object who approved the transaction.
+     * @param string|null $senderAccount The account to send from.
+     * @return array|null The API response.
+     */
+    public function sendPenjualanApprovedNotification(TransaksiPenjualan $transaction, object $approver, ?string $senderAccount = null): ?array
+    {
+        // Assuming the salesperson is linked via a 'user' relationship on TransaksiPenjualan
+        $salesperson = $transaction->user;
+
+        if (empty($salesperson->hp)) {
+            Log::warning("Cannot send 'Penjualan Approved' notification: Salesperson {$salesperson->name} has no phone number.");
+            return null;
+        }
+
+        $message = "🎉 *Penjualan Disetujui!* 🎉\n\n" .
+                   "Halo Bpk/Ibu *{$salesperson->name}*,\n" .
+                   "Transaksi penjualan Anda dengan No. DO: *{$transaction->kode}* telah *disetujui* oleh Bpk/Ibu *{$approver->name}*.\n\n" .
+                   "Detail transaksi:\n" .
+                   "Total: Rp " . Formatter::number(123455678) . "\n" .
+                   "Status: *Disetujui*\n\n" .
+                   "Terima kasih atas kerja keras Anda!";
+
+        return $this->starSender->send(
+            receiverNumber: $salesperson->hp,
+            message: $message,
+            senderAccount: $senderAccount
+        );
+    }
+
+    /**
+     * Sends a "Penjualan Rejected" notification to the salesperson.
+     *
+     * @param TransaksiPenjualan $transaction The sales transaction object.
+     * @param object $approver The user object who rejected the transaction.
+     * @param string|null $note The reason for rejection.
+     * @param string|null $senderAccount The account to send from.
+     * @return array|null The API response.
+     */
+    public function sendPenjualanRejectedNotification(TransaksiPenjualan $transaction, object $approver, ?string $note, ?string $senderAccount = null): ?array
+    {
+        $salesperson = $transaction->user;
+
+        if (empty($salesperson->hp)) {
+            Log::warning("Cannot send 'Penjualan Rejected' notification: Salesperson {$salesperson->name} has no phone number.");
+            return null;
+        }
+
+        $message = "❌ *Penjualan Ditolak!* ❌\n\n" .
+                   "Halo Bpk/Ibu *{$salesperson->name}*,\n" .
+                   "Transaksi penjualan Anda dengan No. DO: *{$transaction->kode}* telah *ditolak* oleh Bpk/Ibu *{$approver->name}*.\n\n" .
+                   ($note ? "Alasan: {$note}\n\n" : "") .
+                   "Mohon periksa kembali detail transaksi dan hubungi tim terkait jika ada pertanyaan.";
+
+        return $this->starSender->send(
+            receiverNumber: $salesperson->hp,
+            message: $message,
+            senderAccount: $senderAccount
+        );
+    }
+
+    /**
+     * Sends a "Penjualan Needs Revision" notification to the salesperson.
+     *
+     * @param TransaksiPenjualan $transaction The sales transaction object.
+     * @param object $approver The user object who requested revision.
+     * @param string|null $note The revision notes.
+     * @param string|null $senderAccount The account to send from.
+     * @return array|null The API response.
+     */
+    public function sendPenjualanNeedsRevisionNotification(TransaksiPenjualan $transaction, object $approver, ?string $note, ?string $senderAccount = null): ?array
+    {
+        $salesperson = $transaction->user;
+
+        if (empty($salesperson->hp)) {
+            Log::warning("Cannot send 'Penjualan Needs Revision' notification: Salesperson {$salesperson->name} has no phone number.");
+            return null;
+        }
+
+        $message = "📝 *Penjualan Membutuhkan Revisi* 📝\n\n" .
+                   "Halo Bpk/Ibu *{$salesperson->name}*,\n" .
+                   "Transaksi penjualan Anda dengan No. DO: *{$transaction->kode}* membutuhkan *revisi*.\n" .
+                   "Keputusan ini diberikan oleh Bpk/Ibu *{$approver->name}*.\n\n" .
+                   ($note ? "Catatan Revisi: {$note}\n\n" : "") .
+                   "Mohon segera perbaiki transaksi Anda sesuai catatan dan ajukan kembali untuk persetujuan.";
+
+        return $this->starSender->send(
+            receiverNumber: $salesperson->hp,
             message: $message,
             senderAccount: $senderAccount
         );

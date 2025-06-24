@@ -11,6 +11,11 @@ use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\SpatieMediaLibraryImageEntry;
 use Afsakar\LeafletMapPicker\LeafletMapPickerEntry;
+use App\Services\TransaksiPenjualanService; 
+use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Get;
+use Filament\Notifications\Notification;
 use Filament\Infolists\Components\RepeatableEntry;
 
 
@@ -116,6 +121,47 @@ class ViewTransaksiPenjualan extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            // approval action
+            Actions\Action::make('approval')
+                ->label('Proses Approval')
+                ->color('primary')
+                ->icon('heroicon-o-check-badge')
+                ->form([
+                    Radio::make('status')
+                        ->label('Status Approval')
+                        ->options([
+                            'approved' => 'Approved (Disetujui)',
+                            'reject_with_perbaikan' => 'Reject with Revision (Tolak dengan Perbaikan)',
+                            'rejected' => 'Rejected (Ditolak Final)',
+                        ])
+                        ->required()
+                        ->live(),
+                    Textarea::make('note')
+                        ->label('Catatan / Alasan')
+                        // Required only if status is a type of rejection
+                        ->required(fn (Get $get) => in_array($get('status'), ['rejected', 'reject_with_perbaikan']))
+                        // Visible only if status is a type of rejection
+                        ->visible(fn (Get $get) => in_array($get('status'), ['rejected', 'reject_with_perbaikan'])),
+                ])
+                // 2. Service class and variable name updated here
+                ->action(function (TransaksiPenjualan $record, array $data, TransaksiPenjualanService $penjualanService) {
+                    // The action is simple: just call the service.
+                    $penjualanService->processApproval(
+                        $record,
+                        auth()->user(),
+                        $data['status'],
+                        // 3. IMPORTANT: Use null coalescing operator to prevent errors when 'note' is not present.
+                        $data['note'] ?? null 
+                    );
+
+                    Notification::make()
+                        ->title('Proses approval berhasil disimpan')
+                        ->success()
+                        ->send();
+                }),
+                // Optional: Only show this button if the record needs approval
+                // ->visible(fn (TransaksiPenjualan $record) => $record->status === 'pending_approval'),
+
             //  lihat timeline, buat do kalau belum ada
             // modal acc untuk transaksi, batal atau terima
             // Actions\Action::make('accept')

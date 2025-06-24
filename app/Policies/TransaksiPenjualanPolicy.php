@@ -10,6 +10,19 @@ class TransaksiPenjualanPolicy
 {
     use HandlesAuthorization;
 
+    // bypass Super Admin
+    public function before(User $user, string $ability): ?bool
+    {
+        // Check if the user has the 'Super Admin' role.
+        // If they do, they can do anything, so we return true immediately.
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        // Return null to allow the check to fall through to the specific policy method below.
+        return null; 
+    }
+
     /**
      * Determine whether the user can view any models.
      */
@@ -104,5 +117,18 @@ class TransaksiPenjualanPolicy
     public function reorder(User $user): bool
     {
         return $user->can('reorder_transaksi::penjualan');
+    }
+
+    public function approve(User $user, TransaksiPenjualan $transaksiPenjualan): bool
+    {
+        // Layer 1: Check for the general permission first.
+        if (!$user->can('approve_transaksi::penjualan')) {
+            return false;
+        }
+
+        // Layer 2: If they have the permission, now check the business logic.
+        return $transaksiPenjualan->status === 'pending_approval' &&
+               $user->divisi === 'sales' &&
+               $user->jabatan === 'manager';
     }
 }
