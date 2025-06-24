@@ -49,7 +49,25 @@ class PostingRuleEntry extends Model
                 return $this->fixed_amount;
 
             case 'SourceValue':
-                return data_get($sourceModel, $this->source_property, 0);
+                $value = data_get($sourceModel, $this->source_property);
+
+                // Special handling for ExpenseRequest approved_amount fallback
+                if (($value === null || $value === 0) && $this->source_property === 'approved_amount' && $sourceModel instanceof \App\Models\ExpenseRequest) {
+                    $value = $sourceModel->requested_amount;
+                }
+
+                // Special handling for Invoice calculated fields
+                if ($sourceModel instanceof \App\Models\Invoice) {
+                    if ($this->source_property === 'total_invoice') {
+                        $value = $sourceModel->getTotalInvoiceAttribute();
+                    } elseif ($this->source_property === 'subtotal') {
+                        $value = $sourceModel->getSubtotalAttribute();
+                    } elseif ($this->source_property === 'total_pajak') {
+                        $value = $sourceModel->getTotalPajakAttribute();
+                    }
+                }
+
+                return (float) ($value ?? 0);
 
             case 'Calculated':
                 return $this->evaluateExpression($sourceModel);
@@ -91,7 +109,6 @@ class PostingRuleEntry extends Model
 
             // Add more expression patterns as needed
             return 0;
-
         } catch (Exception $e) {
             Log::error('Error evaluating posting rule expression', [
                 'expression' => $this->calculation_expression,

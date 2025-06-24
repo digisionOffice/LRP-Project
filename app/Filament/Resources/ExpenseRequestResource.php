@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ExpenseRequestResource\Pages;
 use App\Models\ExpenseRequest;
+use App\Models\Akun;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -37,8 +38,7 @@ class ExpenseRequestResource extends Resource
                             ->schema([
                                 Forms\Components\TextInput::make('request_number')
                                     ->label('Nomor Permintaan')
-                                    ->disabled()
-                                    ->dehydrated(false)
+                                    ->readOnly()
                                     ->placeholder('Dibuat otomatis')
                                     ->helperText('Akan dibuat secara otomatis saat pembuatan'),
 
@@ -57,8 +57,41 @@ class ExpenseRequestResource extends Resource
                                     ->afterStateUpdated(function ($state, callable $set) {
                                         if ($state) {
                                             $set('request_number', ExpenseRequest::generateRequestNumber($state));
+
+                                            // Auto-select default account for category
+                                            $defaultAccount = ExpenseRequest::getDefaultAccountForCategory($state);
+                                            if ($defaultAccount) {
+                                                $set('account_id', $defaultAccount->id);
+                                            }
                                         }
                                     }),
+                            ]),
+
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Select::make('account_id')
+                                    ->label('Akun Pengeluaran')
+                                    ->options(function () {
+                                        return Akun::where('kategori_akun', 'Beban')
+                                            ->pluck('nama_akun', 'id')
+                                            ->toArray();
+                                    })
+                                    ->searchable()
+                                    ->preload()
+                                    ->required()
+                                    ->helperText('Pilih akun yang sesuai untuk kategori pengeluaran ini'),
+
+                                Forms\Components\Placeholder::make('account_info')
+                                    ->label('Info Akun')
+                                    ->content(function (callable $get) {
+                                        $accountId = $get('account_id');
+                                        if ($accountId) {
+                                            $account = Akun::find($accountId);
+                                            return $account ? "Kode: {$account->kode_akun}" : '';
+                                        }
+                                        return 'Pilih akun terlebih dahulu';
+                                    })
+                                    ->visible(fn(callable $get) => $get('account_id')),
                             ]),
 
                         Forms\Components\TextInput::make('title')
@@ -81,9 +114,10 @@ class ExpenseRequestResource extends Resource
                                     ->label('Jumlah Diminta (Rp)')
                                     ->required()
                                     ->numeric()
+                                    // decimal
                                     ->prefix('Rp')
                                     ->placeholder('0')
-                                    ->formatStateUsing(fn($state) => $state ? number_format($state, 0, ',', '.') : '')
+                                    ->formatStateUsing(fn($state) => $state ? number_format($state, 2, ',', '.') : '')
                                     ->dehydrateStateUsing(fn($state) => (float) str_replace(['.', ','], '', $state)),
 
                                 Forms\Components\Select::make('priority')
@@ -100,8 +134,12 @@ class ExpenseRequestResource extends Resource
                                 Forms\Components\DatePicker::make('needed_by_date')
                                     ->label('Dibutuhkan Tanggal')
                                     ->placeholder('Kapan pengeluaran ini dibutuhkan?')
-                                    ->minDate(now()),
-                            ]),
+                                // ->minDate(now())
+                                ,
+                                // hidden user auth id for input
+                                Forms\Components\Hidden::make('user_id')
+                                    ->default(auth()->id()),
+                            ])
                     ])
                     ->collapsible(),
 
@@ -212,6 +250,12 @@ class ExpenseRequestResource extends Resource
                     ->label('Diminta Oleh')
                     ->searchable()
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('account.nama_akun')
+                    ->label('Akun')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('requested_amount')
                     ->label('Jumlah')
@@ -344,8 +388,29 @@ class ExpenseRequestResource extends Resource
                             'approved_by' => \Illuminate\Support\Facades\Auth::id(),
                             'approved_at' => now(),
                         ]);
+
+                        // Create journal entry when approved
+                        $record->createJournalEntry();
                     })
                     ->visible(fn($record) => $record->canBeApproved()),
+
+                Tables\Actions\Action::make('mark_paid')
+                    ->label('Tandai Dibayar')
+                    ->icon('heroicon-o-banknotes')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Konfirmasi Pembayaran')
+                    ->modalDescription('Apakah Anda yakin expense request ini sudah dibayar? Jurnal akan otomatis di-posting.')
+                    ->action(function ($record) {
+                        $record->update([
+                            'status' => 'paid',
+                            'paid_at' => now(),
+                        ]);
+
+                        // Post journal entry when paid
+                        $record->postJournalEntry();
+                    })
+                    ->visible(fn($record) => $record->status === 'approved'),
 
                 Tables\Actions\Action::make('reject')
                     ->label('Tolak')

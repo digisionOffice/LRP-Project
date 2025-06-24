@@ -114,7 +114,7 @@ class UserResource extends Resource
                     ->description('Detail karyawan dan struktur organisasi')
                     ->icon('heroicon-o-identification')
                     ->schema([
-                        Forms\Components\Grid::make(3)
+                        Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('no_induk')
                                     ->label('ID Karyawan')
@@ -124,22 +124,44 @@ class UserResource extends Resource
                                     ->helperText('Pengenal unik untuk karyawan')
                                     ->columnSpan(1),
 
+                                // Forms\Components\TextInput::make('hp')
+                                //     ->label('Nomor Telepon')
+                                //     ->tel()
+                                //     ->maxLength(100)
+                                //     ->placeholder('contoh: +62 81234567890')
+                                //     ->helperText('Nomor kontak karyawan')
+                                //     ->columnSpan(1),
+
                                 Forms\Components\TextInput::make('hp')
                                     ->label('Nomor Telepon')
                                     ->tel()
-                                    ->maxLength(100)
-                                    ->placeholder('contoh: +62 812-3456-7890')
-                                    ->helperText('Nomor kontak karyawan')
-                                    ->columnSpan(1),
+                                    ->maxLength(15) // Adjusted for typical phone number length
+                                    ->placeholder('contoh: +6281234567890')
+                                    ->helperText('Masukkan nomor telepon aktif, contoh: +6281234567890')
+                                    ->default('+62')
+                                    ->prefix('+62') // Visually lock the prefix
+                                    ->mask('+6299999999999') // Optional: Apply input mask
+                                    ->rules([
+                                        'required',
+                                        'regex:/^\+62[0-9]{9,12}$/', // Enforce +62 followed by 9-12 digits
+                                    ])
+                                    ->validationMessages([
+                                        'required' => 'Nomor telepon wajib diisi.',
+                                        'regex' => 'Nomor telepon harus diawali +62 diikuti 9-12 angka.',
+                                    ])
+                                    ->columnSpan(1)
+                                    ->reactive() // Enable real-time validation
+                                    ->dehydrateStateUsing(fn($state) => preg_replace('/\s+/', '', $state)) // Normalize input
+                                    ->extraAttributes(['autocomplete' => 'tel']), // Improve accessibility
 
-                                Forms\Components\Select::make('id_entitas')
-                                    ->label('Entitas')
-                                    ->relationship('entitas', 'nama')
-                                    ->searchable()
-                                    ->preload()
-                                    ->placeholder('Pilih entitas (opsional)')
-                                    ->helperText('Entitas bisnis atau cabang perusahaan')
-                                    ->columnSpan(1),
+                                // Forms\Components\Select::make('id_entitas')
+                                //     ->label('Entitas')
+                                //     ->relationship('entitas', 'nama')
+                                //     ->searchable()
+                                //     ->preload()
+                                //     ->placeholder('Pilih entitas (opsional)')
+                                //     ->helperText('Entitas bisnis atau cabang perusahaan')
+                                //     ->columnSpan(1),
                             ]),
 
                         Forms\Components\Grid::make(2)

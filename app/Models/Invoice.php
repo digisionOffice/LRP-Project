@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
+use App\Services\JournalingService;
+use App\Models\Journal;
 
 class Invoice extends Model
 {
@@ -55,6 +58,7 @@ class Invoice extends Model
         'tanggal_bayar',
         'metode_bayar',
         'referensi_bayar',
+        'journal_id',
         'created_by',
         'updated_by',
     ];
@@ -132,6 +136,14 @@ class Invoice extends Model
     }
 
     /**
+     * Get the journal for the invoice.
+     */
+    public function journal()
+    {
+        return $this->belongsTo(Journal::class, 'journal_id');
+    }
+
+    /**
      * Check if invoice is overdue.
      */
     public function isOverdue()
@@ -191,26 +203,20 @@ class Invoice extends Model
 
     public function getSubtotalAttribute()
     {
-        return $this->total_amount ?? 0;
+        // Return the actual subtotal field value, not calculated
+        return $this->attributes['subtotal'] ?? 0;
     }
 
     public function getTotalPajakAttribute()
     {
-        // Calculate 11% tax only if PPN is included
-        if ($this->include_ppn) {
-            return ($this->total_amount ?? 0) * 0.11;
-        }
-        return 0;
+        // Return the actual total_pajak field value, not calculated
+        return $this->attributes['total_pajak'] ?? 0;
     }
 
     public function getTotalInvoiceAttribute()
     {
-        $subtotal = $this->total_amount ?? 0;
-        $pajak = $this->include_ppn ? ($this->total_pajak ?? ($subtotal * 0.11)) : 0;
-        $operasional = $this->include_operasional_kerja ? ($this->biaya_operasional_kerja ?? 0) : 0;
-        $pbbkb = $this->include_pbbkb ? ($this->biaya_pbbkb ?? 0) : 0;
-
-        return $subtotal + $pajak + $operasional + $pbbkb;
+        // Return the actual total_invoice field value, not calculated
+        return $this->attributes['total_invoice'] ?? 0;
     }
 
     public function getTotalTerbayarAttribute()
@@ -260,5 +266,63 @@ class Invoice extends Model
         $pbbkb = $this->include_pbbkb ? ($this->biaya_pbbkb ?? 0) : 0;
 
         return $subtotal + $pajak + $operasional + $pbbkb;
+    }
+
+    /**
+     * Create journal entry using posting rules when invoice is created
+     */
+    public function createJournalEntry(): ?Journal
+    {
+        if ($this->journal_id) {
+            return $this->journal; // Journal already exists
+        }
+
+        try {
+            $journalingService = new JournalingService();
+            $journalingService->postTransaction('Invoice', $this);
+
+            // Find the created journal
+            $journal = Journal::where('source_type', 'Invoice')
+                ->where('source_id', $this->id)
+                ->latest()
+                ->first();
+
+            if ($journal) {
+                $this->update(['journal_id' => $journal->id]);
+                return $journal;
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Failed to create journal entry for invoice', [
+                'invoice_id' => $this->id,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Get transaction amount for posting rules
+     */
+    public function getTransactionAmount(): float
+    {
+        return (float) $this->getTotalInvoiceAttribute();
+    }
+
+    /**
+     * Get transaction date for posting rules
+     */
+    public function getTransactionDate(): \Carbon\Carbon
+    {
+        return $this->tanggal_invoice ?? $this->created_at;
+    }
+
+    /**
+     * Get transaction code for posting rules
+     */
+    public function getTransactionCode(): string
+    {
+        return $this->nomor_invoice;
     }
 }

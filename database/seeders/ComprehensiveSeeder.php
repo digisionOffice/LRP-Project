@@ -42,6 +42,10 @@ use App\Models\Invoice;
 use App\Models\Receipt;
 use App\Models\TaxInvoice;
 
+// Seeders
+use Database\Seeders\ExpenseRequestPostingRulesSeeder;
+use Database\Seeders\InvoicePostingRulesSeeder;
+
 class ComprehensiveSeeder extends Seeder
 {
     /**
@@ -363,14 +367,23 @@ class ComprehensiveSeeder extends Seeder
         // Aset', 'Kewajiban', 'Ekuitas', 'Pendapatan', 'Beban'
         // Seed Akun
         $akuns = [
-            ['kode_akun' => '1000', 'nama_akun' => 'Kas', 'kategori_akun' => 'Aset', 'created_by' => 1],
-            ['kode_akun' => '1100', 'nama_akun' => 'Bank', 'kategori_akun' => 'Aset', 'created_by' => 1],
-            ['kode_akun' => '1200', 'nama_akun' => 'Piutang Dagang', 'kategori_akun' => 'Aset', 'created_by' => 1],
-            ['kode_akun' => '1300', 'nama_akun' => 'Persediaan', 'kategori_akun' => 'Aset', 'created_by' => 1],
-            ['kode_akun' => '2000', 'nama_akun' => 'Hutang Dagang', 'kategori_akun' => 'Kewajiban', 'created_by' => 1],
-            ['kode_akun' => '3000', 'nama_akun' => 'Modal', 'kategori_akun' => 'Ekuitas', 'created_by' => 1],
-            ['kode_akun' => '4000', 'nama_akun' => 'Pendapatan', 'kategori_akun' => 'Pendapatan', 'created_by' => 1],
-            ['kode_akun' => '5000', 'nama_akun' => 'Beban', 'kategori_akun' => 'Beban', 'created_by' => 1],
+            // Basic Chart of Accounts
+            ['kode_akun' => '1000', 'nama_akun' => 'Kas', 'kategori_akun' => 'Aset', 'tipe_akun' => 'Debit', 'created_by' => 1],
+            ['kode_akun' => '1100', 'nama_akun' => 'Bank', 'kategori_akun' => 'Aset', 'tipe_akun' => 'Debit', 'created_by' => 1],
+            ['kode_akun' => '1110', 'nama_akun' => 'Kas & Bank', 'kategori_akun' => 'Aset', 'tipe_akun' => 'Debit', 'created_by' => 1],
+            ['kode_akun' => '1200', 'nama_akun' => 'Piutang Dagang', 'kategori_akun' => 'Aset', 'tipe_akun' => 'Debit', 'created_by' => 1],
+            ['kode_akun' => '1300', 'nama_akun' => 'Persediaan', 'kategori_akun' => 'Aset', 'tipe_akun' => 'Debit', 'created_by' => 1],
+            ['kode_akun' => '2000', 'nama_akun' => 'Hutang Dagang', 'kategori_akun' => 'Kewajiban', 'tipe_akun' => 'Kredit', 'created_by' => 1],
+            ['kode_akun' => '3000', 'nama_akun' => 'Modal', 'kategori_akun' => 'Ekuitas', 'tipe_akun' => 'Kredit', 'created_by' => 1],
+            ['kode_akun' => '4000', 'nama_akun' => 'Pendapatan', 'kategori_akun' => 'Pendapatan', 'tipe_akun' => 'Kredit', 'created_by' => 1],
+            ['kode_akun' => '5000', 'nama_akun' => 'Beban', 'kategori_akun' => 'Beban', 'tipe_akun' => 'Debit', 'created_by' => 1],
+
+            // Expense Request Specific Accounts
+            ['kode_akun' => '5110', 'nama_akun' => 'Beban Perawatan Truk Tangki', 'kategori_akun' => 'Beban', 'tipe_akun' => 'Debit', 'created_by' => 1],
+            ['kode_akun' => '5120', 'nama_akun' => 'Beban Lisensi & Perizinan', 'kategori_akun' => 'Beban', 'tipe_akun' => 'Debit', 'created_by' => 1],
+            ['kode_akun' => '5130', 'nama_akun' => 'Beban Perjalanan Dinas', 'kategori_akun' => 'Beban', 'tipe_akun' => 'Debit', 'created_by' => 1],
+            ['kode_akun' => '5140', 'nama_akun' => 'Beban Utilitas', 'kategori_akun' => 'Beban', 'tipe_akun' => 'Debit', 'created_by' => 1],
+            ['kode_akun' => '5150', 'nama_akun' => 'Beban Lain-lain', 'kategori_akun' => 'Beban', 'tipe_akun' => 'Debit', 'created_by' => 1],
         ];
 
         foreach ($akuns as $akun) {
@@ -1186,6 +1199,9 @@ class ComprehensiveSeeder extends Seeder
                 // Generate supporting documents
                 $supportingDocs = $this->generateSupportingDocuments($category);
 
+                // Get default account for category
+                $defaultAccount = ExpenseRequest::getDefaultAccountForCategory($category);
+
                 $expenseRequest = ExpenseRequest::create([
                     'request_number' => ExpenseRequest::generateRequestNumber($category),
                     'category' => $category,
@@ -1202,6 +1218,7 @@ class ComprehensiveSeeder extends Seeder
                     'supporting_documents' => $supportingDocs,
                     'requested_by' => $requestedBy->id,
                     'approved_by' => $approvedBy?->id,
+                    'account_id' => $defaultAccount?->id,
                     'submitted_at' => $status !== 'draft' ? $requestDate->copy()->addHours(rand(1, 24)) : null,
                     'reviewed_at' => in_array($status, ['approved', 'rejected', 'paid']) ? $requestDate->copy()->addDays(rand(1, 5)) : null,
                     'approved_at' => in_array($status, ['approved', 'paid']) ? $requestDate->copy()->addDays(rand(1, 7)) : null,
@@ -1217,6 +1234,12 @@ class ComprehensiveSeeder extends Seeder
         }
 
         $this->command->info("ExpenseRequest seeder completed! Created {$createdCount} expense requests.");
+
+        // Seed posting rules for expense requests
+        $this->command->info('Seeding expense request posting rules...');
+        $postingRulesSeeder = new ExpenseRequestPostingRulesSeeder();
+        $postingRulesSeeder->setCommand($this->command);
+        $postingRulesSeeder->run();
     }
 
     private function generateTitleAndDescription($category, $maintenanceItems, $licenseItems, $travelItems, $utilityItems, $otherItems): array
@@ -1611,7 +1634,17 @@ class ComprehensiveSeeder extends Seeder
 
             $taxRate = 11; // 11% PPN
             $taxAmount = $subtotal * ($taxRate / 100);
-            $totalAmount = $subtotal + $taxAmount;
+
+            // Determine invoice features
+            $includePpn = rand(0, 1) == 1;
+            $includeOperasional = rand(0, 2) == 1; // 33% chance
+            $includePbbkb = rand(0, 3) == 1; // 25% chance
+
+            $biayaOperasional = $includeOperasional ? rand(100000, 500000) : 0;
+            $biayaPbbkb = $includePbbkb ? rand(50000, 200000) : 0;
+
+            $finalTaxAmount = $includePpn ? $taxAmount : 0;
+            $finalTotalAmount = $subtotal + $finalTaxAmount + $biayaOperasional + $biayaPbbkb;
 
             // Create Invoice
             $invoice = Invoice::create([
@@ -1623,11 +1656,17 @@ class ComprehensiveSeeder extends Seeder
                 'nama_pelanggan' => $pelanggan->nama,
                 'alamat_pelanggan' => $pelanggan->alamat,
                 'npwp_pelanggan' => $pelanggan->npwp,
+                'total_amount' => $subtotal, // Base amount
                 'subtotal' => $subtotal,
-                'total_pajak' => $taxAmount,
-                'total_invoice' => $totalAmount,
+                'total_pajak' => $finalTaxAmount,
+                'total_invoice' => $finalTotalAmount,
+                'biaya_operasional_kerja' => $biayaOperasional,
+                'biaya_pbbkb' => $biayaPbbkb,
+                'include_ppn' => $includePpn,
+                'include_operasional_kerja' => $includeOperasional,
+                'include_pbbkb' => $includePbbkb,
                 'total_terbayar' => 0,
-                'sisa_tagihan' => $totalAmount,
+                'sisa_tagihan' => $finalTotalAmount,
                 'status' => ['draft', 'sent', 'paid', 'overdue'][rand(0, 3)],
                 'catatan' => 'Invoice untuk delivery order ' . $deliveryOrder->kode,
                 'created_by' => $adminUser->id,
@@ -1649,8 +1688,8 @@ class ComprehensiveSeeder extends Seeder
                     'npwp_perusahaan' => '01.234.567.8-901.000',
                     'dasar_pengenaan_pajak' => $subtotal,
                     'tarif_pajak' => $taxRate,
-                    'pajak_pertambahan_nilai' => $taxAmount,
-                    'total_tax_invoice' => $totalAmount,
+                    'pajak_pertambahan_nilai' => $finalTaxAmount,
+                    'total_tax_invoice' => $finalTotalAmount,
                     'status' => ['draft', 'submitted', 'approved'][rand(0, 2)],
                     'catatan' => 'Faktur pajak untuk invoice ' . $invoice->nomor_invoice,
                     'created_by' => $adminUser->id,
@@ -1664,12 +1703,12 @@ class ComprehensiveSeeder extends Seeder
                 $totalPaid = 0;
 
                 for ($i = 0; $i < $numPayments; $i++) {
-                    $remainingAmount = $totalAmount - $totalPaid;
+                    $remainingAmount = $finalTotalAmount - $totalPaid;
                     if ($remainingAmount <= 0) break;
 
                     $paymentAmount = $i === $numPayments - 1 && $invoice->status === 'paid'
                         ? $remainingAmount
-                        : rand(1000000, min($remainingAmount, $totalAmount * 0.7));
+                        : rand(1000000, min($remainingAmount, $finalTotalAmount * 0.7));
 
                     $adminFee = $paymentAmount * 0.001; // 0.1% admin fee
 
@@ -1698,12 +1737,18 @@ class ComprehensiveSeeder extends Seeder
                 // Update invoice payment status
                 $invoice->update([
                     'total_terbayar' => $totalPaid,
-                    'sisa_tagihan' => $totalAmount - $totalPaid,
-                    'status' => $totalPaid >= $totalAmount ? 'paid' : 'sent'
+                    'sisa_tagihan' => $finalTotalAmount - $totalPaid,
+                    'status' => $totalPaid >= $finalTotalAmount ? 'paid' : 'sent'
                 ]);
             }
         }
 
         $this->command->info('Financial management data seeded successfully!');
+
+        // Seed posting rules for invoices
+        $this->command->info('Seeding invoice posting rules...');
+        $invoicePostingRulesSeeder = new InvoicePostingRulesSeeder();
+        $invoicePostingRulesSeeder->setCommand($this->command);
+        $invoicePostingRulesSeeder->run();
     }
 }
