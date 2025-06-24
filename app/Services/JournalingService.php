@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Journal;
 use App\Models\JournalEntry;
 use App\Models\PostingRule;
+use App\Models\ExpenseRequest;
+use App\Models\Invoice;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -50,12 +52,22 @@ class JournalingService
      */
     private function createJournalFromRule(PostingRule $rule, Model $sourceModel): Journal
     {
+        // Get transaction date based on model type
+        $transactionDate = $this->getTransactionDate($sourceModel);
+
+        // Get reference number based on model type
+        $referenceNumber = $this->getReferenceNumber($sourceModel);
+
+        // Get journal number
+        $journalNumber = $this->generateJournalNumber();
+
         $journal = Journal::create([
-            'transaction_date' => data_get($sourceModel, 'transaction_date', now()),
-            'reference_number' => data_get($sourceModel, 'transaction_code') ?? data_get($sourceModel, 'id'),
+            'journal_number' => $journalNumber,
+            'transaction_date' => $transactionDate,
+            'reference_number' => $referenceNumber,
             'source_type' => $rule->source_type,
             'source_id' => $sourceModel->id,
-            'description' => $rule->description . ' - ' . data_get($sourceModel, 'transaction_code', $sourceModel->id),
+            'description' => $rule->description . ' - ' . $referenceNumber,
             'status' => 'Draft',
             'posting_rule_id' => $rule->id,
             'created_by' => auth()->id(),
@@ -67,7 +79,7 @@ class JournalingService
         // Create journal entries
         foreach ($rule->postingRuleEntries as $ruleEntry) {
             $amount = $ruleEntry->calculateAmount($sourceModel);
-            
+
             if ($amount > 0) {
                 $journalEntry = JournalEntry::create([
                     'journal_id' => $journal->id,
@@ -154,5 +166,47 @@ class JournalingService
             ]);
             throw $e;
         }
+    }
+
+    /**
+     * Get transaction date based on model type
+     */
+    private function getTransactionDate(Model $sourceModel): \Carbon\Carbon
+    {
+        if ($sourceModel instanceof ExpenseRequest) {
+            return $sourceModel->approved_at ?? $sourceModel->created_at;
+        }
+
+        if ($sourceModel instanceof Invoice) {
+            return $sourceModel->tanggal_invoice ?? $sourceModel->created_at;
+        }
+
+        return data_get($sourceModel, 'transaction_date', now());
+    }
+
+    /**
+     * Get reference number based on model type
+     */
+    private function getReferenceNumber(Model $sourceModel): string
+    {
+        if ($sourceModel instanceof ExpenseRequest) {
+            return $sourceModel->request_number;
+        }
+
+        if ($sourceModel instanceof Invoice) {
+            return $sourceModel->nomor_invoice;
+        }
+
+        return data_get($sourceModel, 'transaction_code') ?? data_get($sourceModel, 'id');
+    }
+
+    /**
+     * Generate journal number
+     */
+    private function generateJournalNumber(): string
+    {
+        $date = now()->format('Ymd');
+        $sequence = Journal::whereDate('created_at', now()->toDateString())->count() + 1;
+        return sprintf('JRN-%s-%04d', $date, $sequence);
     }
 }

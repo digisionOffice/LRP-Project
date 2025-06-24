@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Log;
+use App\Services\JournalingService;
 
 class ExpenseRequest extends Model
 {
@@ -13,6 +15,7 @@ class ExpenseRequest extends Model
     protected $fillable = [
         'request_number',
         'category',
+        'user_id',
         'title',
         'description',
         'requested_amount',
@@ -34,6 +37,8 @@ class ExpenseRequest extends Model
         'cost_center',
         'budget_code',
         'approval_workflow',
+        'account_id',
+        'journal_id',
     ];
 
     protected $casts = [
@@ -57,6 +62,16 @@ class ExpenseRequest extends Model
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(Akun::class, 'account_id');
+    }
+
+    public function journal(): BelongsTo
+    {
+        return $this->belongsTo(Journal::class, 'journal_id');
     }
 
     public function getCategoryLabelAttribute(): string
@@ -171,5 +186,113 @@ class ExpenseRequest extends Model
             ->count() + 1;
 
         return sprintf('%s-%s-%04d', $prefix, $date, $sequence);
+    }
+
+    /**
+     * Get default account for expense category
+     */
+    public static function getDefaultAccountForCategory(string $category): ?Akun
+    {
+        $accountMapping = [
+            'tank_truck_maintenance' => '5110',
+            'license_fee' => '5120',
+            'business_travel' => '5130',
+            'utilities' => '5140',
+            'other' => '5150',
+        ];
+
+        $accountCode = $accountMapping[$category] ?? null;
+
+        if ($accountCode) {
+            return Akun::where('kode_akun', $accountCode)->first();
+        }
+
+        return null;
+    }
+
+    /**
+     * Create journal entry using posting rules when expense is approved
+     */
+    public function createJournalEntry(): ?Journal
+    {
+        if ($this->journal_id) {
+            return $this->journal; // Journal already exists
+        }
+
+        try {
+            $journalingService = new JournalingService();
+            $journalingService->postTransaction('ExpenseRequest', $this);
+
+            // Find the created journal
+            $journal = Journal::where('source_type', 'ExpenseRequest')
+                ->where('source_id', $this->id)
+                ->latest()
+                ->first();
+
+            if ($journal) {
+                $this->update(['journal_id' => $journal->id]);
+                return $journal;
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Failed to create journal entry for expense request', [
+                'expense_request_id' => $this->id,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Post journal entry when expense is paid
+     */
+    public function postJournalEntry(): bool
+    {
+        if (!$this->journal_id) {
+            return false;
+        }
+
+        $journal = $this->journal;
+        if ($journal && $journal->status === 'Draft') {
+            $journal->update(['status' => 'Posted']);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Get transaction amount for posting rules
+     */
+    public function getTransactionAmount(): float
+    {
+        return (float) ($this->approved_amount ?? $this->requested_amount);
+    }
+
+    /**
+     * Get transaction date for posting rules
+     */
+    public function getTransactionDate(): \Carbon\Carbon
+    {
+        return $this->approved_at ?? $this->created_at;
+    }
+
+    /**
+     * Get transaction code for posting rules
+     */
+    public function getTransactionCode(): string
+    {
+        return $this->request_number;
+    }
+
+    /**
+     * Generate journal number
+     */
+    private function generateJournalNumber(): string
+    {
+        $date = now()->format('Ymd');
+        $sequence = Journal::whereDate('created_at', now()->toDateString())->count() + 1;
+        return sprintf('JRN-EXP-%s-%04d', $date, $sequence);
     }
 }
