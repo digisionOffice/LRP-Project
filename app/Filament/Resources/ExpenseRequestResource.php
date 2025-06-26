@@ -134,37 +134,13 @@ class ExpenseRequestResource extends Resource
                                 Forms\Components\DatePicker::make('needed_by_date')
                                     ->label('Dibutuhkan Tanggal')
                                     ->placeholder('Kapan pengeluaran ini dibutuhkan?')
+                                    ->default(now())
                                 // ->minDate(now())
                                 ,
                                 // hidden user auth id for input
                                 Forms\Components\Hidden::make('user_id')
                                     ->default(auth()->id()),
                             ])
-                    ])
-                    ->collapsible(),
-
-                Forms\Components\Section::make('Justifikasi & Anggaran')
-                    ->description('Berikan justifikasi dan informasi anggaran')
-                    ->icon('heroicon-o-calculator')
-                    ->schema([
-                        Forms\Components\Textarea::make('justification')
-                            ->label('Justifikasi Bisnis')
-                            ->rows(3)
-                            ->placeholder('Jelaskan mengapa pengeluaran ini diperlukan untuk operasi bisnis')
-                            ->columnSpanFull(),
-
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                Forms\Components\TextInput::make('cost_center')
-                                    ->label('Pusat Biaya')
-                                    ->placeholder('contoh: Operasional, Penjualan, Admin')
-                                    ->maxLength(255),
-
-                                Forms\Components\TextInput::make('budget_code')
-                                    ->label('Kode Anggaran')
-                                    ->placeholder('contoh: MAINT-2024, TRAVEL-Q1')
-                                    ->maxLength(255),
-                            ]),
                     ])
                     ->collapsible(),
 
@@ -200,7 +176,7 @@ class ExpenseRequestResource extends Resource
                     ->default(now()),
 
                 Forms\Components\Hidden::make('status')
-                    ->default('draft'),
+                    ->default('submitted'),
             ])
             ->columns(1);
     }
@@ -353,93 +329,32 @@ class ExpenseRequestResource extends Resource
 
                 Tables\Filters\TrashedFilter::make(),
             ])
+            ->recordUrl(fn ($record) => static::getUrl('view', ['record' => $record]))
             ->actions([
-                Tables\Actions\Action::make('submit')
-                    ->label('Ajukan')
-                    ->icon('heroicon-o-paper-airplane')
-                    ->color('success')
-                    ->action(function ($record) {
-                        $record->update([
-                            'status' => 'submitted',
-                            'submitted_at' => now(),
-                        ]);
-                    })
-                    ->visible(fn($record) => $record->canBeSubmitted()),
-
-                Tables\Actions\Action::make('approve')
-                    ->label('Setujui')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->form([
-                        Forms\Components\TextInput::make('approved_amount')
-                            ->label('Jumlah Disetujui (Rp)')
-                            ->required()
-                            ->numeric()
-                            ->prefix('Rp'),
-                        Forms\Components\Textarea::make('approval_notes')
-                            ->label('Catatan Persetujuan')
-                            ->rows(3),
-                    ])
-                    ->action(function ($record, array $data) {
-                        $record->update([
-                            'status' => 'approved',
-                            'approved_amount' => $data['approved_amount'],
-                            'approval_notes' => $data['approval_notes'],
-                            'approved_by' => \Illuminate\Support\Facades\Auth::id(),
-                            'approved_at' => now(),
-                        ]);
-
-                        // Create journal entry when approved
-                        $record->createJournalEntry();
-                    })
-                    ->visible(fn($record) => $record->canBeApproved()),
-
-                Tables\Actions\Action::make('mark_paid')
-                    ->label('Tandai Dibayar')
-                    ->icon('heroicon-o-banknotes')
-                    ->color('success')
-                    ->requiresConfirmation()
-                    ->modalHeading('Konfirmasi Pembayaran')
-                    ->modalDescription('Apakah Anda yakin expense request ini sudah dibayar? Jurnal akan otomatis di-posting.')
-                    ->action(function ($record) {
-                        $record->update([
-                            'status' => 'paid',
-                            'paid_at' => now(),
-                        ]);
-
-                        // Post journal entry when paid
-                        $record->postJournalEntry();
-                    })
-                    ->visible(fn($record) => $record->status === 'approved'),
-
-                Tables\Actions\Action::make('reject')
-                    ->label('Tolak')
-                    ->icon('heroicon-o-x-circle')
-                    ->color('danger')
-                    ->form([
-                        Forms\Components\Textarea::make('rejection_reason')
-                            ->label('Alasan Penolakan')
-                            ->required()
-                            ->rows(3),
-                    ])
-                    ->action(function ($record, array $data) {
-                        $record->update([
-                            'status' => 'rejected',
-                            'rejection_reason' => $data['rejection_reason'],
-                            'approved_by' => \Illuminate\Support\Facades\Auth::id(),
-                            'reviewed_at' => now(),
-                        ]);
-                    })
-                    ->visible(fn($record) => $record->canBeRejected()),
-
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make()
-                    ->visible(fn($record) => $record->isEditable()),
-                Tables\Actions\DeleteAction::make(),
+                    // Rule 1: Hide if status is 'approved' or 'rejected'
+                    ->visible(fn (ExpenseRequest $record): bool => 
+                        !in_array($record->status, ['approved', 'rejected', 'paid'])
+                    ),
+                Tables\Actions\DeleteAction::make()
+                    // Rule 2: Only show if status is 'submitted'
+                    ->visible(fn (ExpenseRequest $record): bool => 
+                        $record->status === 'submitted'
+                    ),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->action(function ($records) {
+                            $records->filter(fn ($record) => $record->status === 'submitted')
+                                    ->each(fn ($record) => $record->delete());
+
+                            Notification::make()
+                                ->title('Beberapa item telah dihapus.')
+                                ->success()
+                                ->send();
+                        }),
                     Tables\Actions\ForceDeleteBulkAction::make(),
                     Tables\Actions\RestoreBulkAction::make(),
                 ]),
@@ -462,6 +377,7 @@ class ExpenseRequestResource extends Resource
             'index' => Pages\ListExpenseRequests::route('/'),
             'create' => Pages\CreateExpenseRequest::route('/create'),
             'edit' => Pages\EditExpenseRequest::route('/{record}/edit'),
+            'view' => Pages\ViewExpenseRequest::route('/{record}'),
         ];
     }
 

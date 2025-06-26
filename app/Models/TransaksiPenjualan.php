@@ -8,6 +8,7 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Services\MessageService;
 
 class TransaksiPenjualan extends Model implements HasMedia
 {
@@ -167,4 +168,39 @@ class TransaksiPenjualan extends Model implements HasMedia
     {
         return $this->hasMany(TransaksiPenjualanApproval::class, 'id_transaksi_penjualan')->latest();
     }
+
+    protected static function booted(): void
+    {
+        static::created(function (TransaksiPenjualan $transaksi) {
+            // 1. Ambil instance MessageService dari container
+            $messageService = resolve(MessageService::class);
+
+            // 2. Tentukan nama event untuk konteks "pembuatan transaksi baru"
+            $eventName = 'penjualan_baru';
+
+            // 3. Cari pengaturan notifikasi dari database untuk event ini
+            $notifSettings = NotificationSetting::with('user')
+                ->where('event_name', $eventName)
+                ->where('is_active', true)
+                ->get();
+
+            // 4. Jika tidak ada aturan yang ditemukan, hentikan proses
+            if ($notifSettings->isEmpty()) {
+                Log::info("booted(): No active notification settings found for event '{$eventName}' on Transaksi ID: {$transaksi->id}.");
+                return;
+            }
+
+            // 5. Kirim notifikasi berdasarkan setiap aturan yang ditemukan
+            foreach ($notifSettings as $notifSetting) {
+                // Akses user melalui relasi yang sudah di-load, dan pastikan nomor HP ada
+                if ($notifSetting->user && !empty($notifSetting->user->hp)) {
+                    $messageService->sendNewPenjualanNotification(
+                        $transaksi,
+                        $notifSetting->user->hp
+                    );
+                }
+            }
+        });
+    }
+    
 }

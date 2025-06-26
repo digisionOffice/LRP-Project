@@ -72,6 +72,12 @@ class StarSenderService
             return null;
         }
 
+        Log::info('StarSender message sent successfully.', [
+            'to' => $receiverNumber,
+            'sender_key' => $senderKey,
+            'response' => $response->json()
+        ]);
+
         return $response->json();
     }
     

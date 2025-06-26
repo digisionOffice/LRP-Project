@@ -2,22 +2,33 @@
 
 namespace App\Filament\Resources\TransaksiPenjualanResource\Pages;
 
+// --- Model & Resource ---
 use App\Filament\Resources\TransaksiPenjualanResource;
+use App\Models\TransaksiPenjualan;
+
+// --- Services ---
+use App\Services\TransaksiPenjualanService;
+use App\Services\MessageService;
+
+// --- Core Filament Classes ---
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
-use App\Models\TransaksiPenjualan;
 use Filament\Infolists\Infolist;
+use Filament\Notifications\Notification;
+
+// --- Komponen untuk Menampilkan Data (Infolist) ---
 use Filament\Infolists\Components\Section;
+use Filament\Infolists\Components\Grid;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\SpatieMediaLibraryImageEntry;
-use Afsakar\LeafletMapPicker\LeafletMapPickerEntry;
-use App\Services\TransaksiPenjualanService; 
+
+// --- Komponen untuk Form di dalam Action ---
+use Filament\Forms\Get;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Get;
-use Filament\Notifications\Notification;
-use Filament\Infolists\Components\RepeatableEntry;
-
+use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Placeholder;
 
 class ViewTransaksiPenjualan extends ViewRecord
 {
@@ -127,6 +138,17 @@ class ViewTransaksiPenjualan extends ViewRecord
                 ->color('primary')
                 ->icon('heroicon-o-check-badge')
                 ->form([
+                    Fieldset::make('Informasi Pembuat Transaksi')
+                        ->schema([
+                            Placeholder::make('pembuat_nama')
+                                ->label('Nama Salesperson')
+                                ->content(fn (TransaksiPenjualan $record): string => $record->createdBy?->name ?? 'N/A'),
+
+                            Placeholder::make('pembuat_hp')
+                                ->label('No. Handphone')
+                                ->content(fn (TransaksiPenjualan $record): string => $record->createdBy?->hp ?? 'Tidak ada nomor'),
+                        ])
+                        ->columns(2),
                     Radio::make('status')
                         ->label('Status Approval')
                         ->options([
@@ -162,20 +184,8 @@ class ViewTransaksiPenjualan extends ViewRecord
                 // Optional: Only show this button if the record needs approval
                 // ->visible(fn (TransaksiPenjualan $record) => $record->status === 'pending_approval'),
 
-            //  lihat timeline, buat do kalau belum ada
-            // modal acc untuk transaksi, batal atau terima
-            // Actions\Action::make('accept')
-            //     ->label('Terima SO')
-            //     ->icon('heroicon-o-check')
-            //     ->color('success')
-            //     ->action(function (TransaksiPenjualan $record) {
-            //         $record->update(['status' => 'Accepted']);
-            //     })
-            //     // visible if status is pending, visible ketika jabatan manager dan divisi sales
-            //     ->visible(fn(TransaksiPenjualan $record) => $record->status === 'Pending' && auth()->user()->hasRole('Manager')),
-            
-            Actions\Action::make('reject')
-                ->label('Tolak SO'),
+            // Actions\Action::make('reject')
+            //     ->label('Tolak SO'),
             Actions\Action::make('view_timeline')
                 ->label('Lihat Timeline')
                 ->icon('heroicon-o-clock')

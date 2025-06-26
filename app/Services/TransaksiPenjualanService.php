@@ -71,20 +71,11 @@ class TransaksiPenjualanService
         });
     }
 
-    /**
-     * Process an approval decision for a sales transaction.
-     *
-     * @param TransaksiPenjualan $transaksi The transaction being approved.
-     * @param User $approver The user making the decision.
-     * @param string $status The approval status ('approved', 'rejected', 'reject_with_perbaikan').
-     * @param ?string $note An optional note for the decision.
-     * @return TransaksiPenjualanApproval The created approval record.
-     */
     public function processApproval(TransaksiPenjualan $transaksi, User $approver, string $status, ?string $note): TransaksiPenjualanApproval
     {
-        // The main transaction for database operations
+        // DB Transaction tetap tidak berubah, karena ini untuk integritas data.
         $approval = DB::transaction(function () use ($transaksi, $approver, $status, $note) {
-            // Corrected variable names to match conventions, but your original names are fine too.
+            // ... (logika create approval dan update transaksi tetap sama) ...
             $approvalRecord = TransaksiPenjualanApproval::create([
                 'id_transaksi_penjualan' => $transaksi->id,
                 'user_id' => $approver->id,
@@ -92,48 +83,46 @@ class TransaksiPenjualanService
                 'note' => $note,
             ]);
 
-            // Update the parent transaction's status
-            if ($status === 'approved') {
-                $transaksi->status = 'approved';
-            } elseif ($status === 'rejected') {
-                $transaksi->status = 'rejected';
-            } elseif ($status === 'reject_with_perbaikan') {
-                $transaksi->status = 'needs_revision';
-            }
+            $transaksi->status = match ($status) {
+                'approved' => 'approved',
+                'rejected' => 'rejected',
+                'reject_with_perbaikan' => 'needs_revision',
+                default => $transaksi->status,
+            };
             $transaksi->save();
 
             return $approvalRecord;
         });
 
-        // --- Error handling for notifications happens OUTSIDE the database transaction ---
-        
+        // --- LOGIKA NOTIFIKASI YANG DISEMPURNAKAN ---
         try {
-            if ($transaksi->user?->hp) { // Check if salesperson and phone number exist
-                // I've corrected the use of $decision to $status
-                match ($status) {
-                    'approved' => $this->messageService->sendPenjualanApprovedNotification($transaksi, $approver),
-                    'rejected' => $this->messageService->sendPenjualanRejectedNotification($transaksi, $approver, $note),
-                    'reject_with_perbaikan' => $this->messageService->sendPenjualanNeedsRevisionNotification($transaksi, $approver, $note),
+            if ($transaksi->createdBy->hp) {
+                $salesPerson = $transaksi->createdBy;
+                // Panggil service dan tangkap hasilnya ke variabel $waResponse
+                $waResponse = match ($status) {
+                    'approved' => $this->messageService->sendPenjualanApprovedNotification($transaksi, $salesPerson, $approver),
+                    'rejected' => $this->messageService->sendPenjualanRejectedNotification($transaksi, $salesPerson, $approver, $note),
+                    'reject_with_perbaikan' => $this->messageService->sendPenjualanNeedsRevisionNotification($transaksi, $salesPerson, $approver, $note),
                     default => null,
                 };
+
+                // Jika $waResponse ada DAN status di dalamnya false, maka catat sebagai Peringatan.
+                if ($waResponse && ($waResponse['status'] ?? false) === false) {
+                    Log::warning('Notifikasi WA Gagal Terkirim (dijawab GAGAL oleh provider)', [
+                        'transaksi_id' => $transaksi->id,
+                        'status_approval' => $status,
+                        'provider_response' => $waResponse, // Penting untuk debugging!
+                    ]);
+                }
             }
         } catch (Throwable $e) {
-            // If the MessageService fails, catch the exception.
-            // The approval is already saved, so we don't need to panic.
-            
-            // 1. Log the error for developers to investigate later.
-            Log::error('Failed to send approval notification for Transaksi ID: ' . $transaksi->id, [
+            // Blok ini menangani jika service notifikasi tidak bisa dihubungi sama sekali.
+            Log::error('Gagal Menghubungi Service Notifikasi', [
+                'transaksi_id' => $transaksi->id,
                 'error_message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(), // Optional: for detailed debugging
             ]);
-
-            // 2. You could also add logic here to notify your team via Slack or email.
         }
 
         return $approval;
     }
-
-    // You can add other methods here in the future, for example:
-    // public function processPayment(TransaksiPenjualan $transaksi, float $amount) { ... }
-    // public function cancelTransaction(TransaksiPenjualan $transaksi, User $canceller) { ... }
 }

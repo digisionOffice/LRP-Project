@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\TransaksiPenjualan;
-
 use App\Support\Formatter;
 use Illuminate\Support\Facades\Log;
 
+// models call
+use App\Models\TransaksiPenjualan;
+use App\Models\ExpenseRequest;
 class MessageService
 {
     public function __construct(protected StarSenderService $starSender)
@@ -54,8 +55,8 @@ class MessageService
                    "Anda mendapatkan tugas pengiriman baru dengan detail sebagai berikut:\n\n" .
                    "📋 *No. DO: {$transaction->kode}*\n" .
                    "👤 Pelanggan: {$transaction->pelanggan_nama}\n" .
-                   "📍 Lokasi Muat: {$transaction->lokasi_muat}\n" .
-                   "🚚 Kendaraan: {$vehicle->nopol} ({$vehicle->jenis})\n" .
+                   "📍 Lokasi Muat (TBBM): {$transaction->lokasi_muat}\n" .
+                   "🚚 Kendaraan: {$vehicle->no_pol_kendaraan} ({$vehicle->merk} {$vehicle->tipe})\n" .
                    "📅 Tgl. Penjemputan: *" . Formatter::date($transaction->tanggal_jemput) . "*\n\n" .
                    "Untuk melihat detail tugas, silakan klik link di bawah ini:\n" .
                    $redirectUrl . "\n\n" . // Using the provided URL directly
@@ -392,13 +393,14 @@ class MessageService
      * @param string|null $senderAccount The account to send from.
      * @return array|null The API response.
      */
-    public function sendPenjualanApprovedNotification(TransaksiPenjualan $transaction, object $approver, ?string $senderAccount = null): ?array
-    {
-        // Assuming the salesperson is linked via a 'user' relationship on TransaksiPenjualan
-        $salesperson = $transaction->user;
+    public function sendPenjualanApprovedNotification(TransaksiPenjualan $transaction, object $salesperson, object $approver, ?string $senderAccount = null): ?array
+    {   
+        $totalAmount = $transaction->total_amount ?? 0;
 
         if (empty($salesperson->hp)) {
-            Log::warning("Cannot send 'Penjualan Approved' notification: Salesperson {$salesperson->name} has no phone number.");
+            // Sebaiknya tambahkan ID untuk logging yang lebih mudah
+            $salespersonId = $salesperson->id ?? 'N/A';
+            Log::warning("Cannot send 'Penjualan Approved' notification: Salesperson {$salesperson->name} (ID: {$salespersonId}) has no phone number.");
             return null;
         }
 
@@ -406,7 +408,7 @@ class MessageService
                    "Halo Bpk/Ibu *{$salesperson->name}*,\n" .
                    "Transaksi penjualan Anda dengan No. DO: *{$transaction->kode}* telah *disetujui* oleh Bpk/Ibu *{$approver->name}*.\n\n" .
                    "Detail transaksi:\n" .
-                   "Total: Rp " . Formatter::number(123455678) . "\n" .
+                   "Total: Rp " . Formatter::number($totalAmount) . "\n" .
                    "Status: *Disetujui*\n\n" .
                    "Terima kasih atas kerja keras Anda!";
 
@@ -417,29 +419,39 @@ class MessageService
         );
     }
 
-    /**
-     * Sends a "Penjualan Rejected" notification to the salesperson.
-     *
-     * @param TransaksiPenjualan $transaction The sales transaction object.
-     * @param object $approver The user object who rejected the transaction.
-     * @param string|null $note The reason for rejection.
-     * @param string|null $senderAccount The account to send from.
-     * @return array|null The API response.
-     */
-    public function sendPenjualanRejectedNotification(TransaksiPenjualan $transaction, object $approver, ?string $note, ?string $senderAccount = null): ?array
+    public function sendPenjualanRejectedNotification(TransaksiPenjualan $transaction, object $salesperson, object $approver, ?string $note, ?string $senderAccount = null): ?array
     {
-        $salesperson = $transaction->user;
-
         if (empty($salesperson->hp)) {
             Log::warning("Cannot send 'Penjualan Rejected' notification: Salesperson {$salesperson->name} has no phone number.");
             return null;
         }
 
         $message = "❌ *Penjualan Ditolak!* ❌\n\n" .
-                   "Halo Bpk/Ibu *{$salesperson->name}*,\n" .
-                   "Transaksi penjualan Anda dengan No. DO: *{$transaction->kode}* telah *ditolak* oleh Bpk/Ibu *{$approver->name}*.\n\n" .
-                   ($note ? "Alasan: {$note}\n\n" : "") .
-                   "Mohon periksa kembali detail transaksi dan hubungi tim terkait jika ada pertanyaan.";
+                "Halo Bpk/Ibu *{$salesperson->name}*,\n" .
+                "Transaksi penjualan Anda dengan No. DO: *{$transaction->kode}* telah *ditolak* oleh Bpk/Ibu *{$approver->name}*.\n\n" .
+                ($note ? "Alasan: {$note}\n\n" : "") .
+                "Mohon periksa kembali detail transaksi dan hubungi tim terkait jika ada pertanyaan.";
+
+        return $this->starSender->send(
+            receiverNumber: $salesperson->hp,
+            message: $message,
+            senderAccount: $senderAccount
+        );
+    }
+
+    public function sendPenjualanNeedsRevisionNotification(TransaksiPenjualan $transaction, object $salesperson, object $approver, ?string $note, ?string $senderAccount = null): ?array
+    {
+        if (empty($salesperson->hp)) {
+            Log::warning("Cannot send 'Penjualan Needs Revision' notification: Salesperson {$salesperson->name} has no phone number.");
+            return null;
+        }
+
+        $message = "📝 *Penjualan Membutuhkan Revisi* 📝\n\n" .
+                "Halo Bpk/Ibu *{$salesperson->name}*,\n" .
+                "Transaksi penjualan Anda dengan No. DO: *{$transaction->kode}* membutuhkan *revisi*.\n" .
+                "Keputusan ini diberikan oleh Bpk/Ibu *{$approver->name}*.\n\n" .
+                ($note ? "Catatan Revisi: {$note}\n\n" : "") .
+                "Mohon segera perbaiki transaksi Anda sesuai catatan dan ajukan kembali untuk persetujuan.";
 
         return $this->starSender->send(
             receiverNumber: $salesperson->hp,
@@ -449,34 +461,270 @@ class MessageService
     }
 
     /**
-     * Sends a "Penjualan Needs Revision" notification to the salesperson.
+     * Sends a notification about a new sales transaction requiring approval.
      *
-     * @param TransaksiPenjualan $transaction The sales transaction object.
-     * @param object $approver The user object who requested revision.
-     * @param string|null $note The revision notes.
+     * @param TransaksiPenjualan $transaction The newly created transaction.
+     * @param string $recipientPhoneNumber The phone number of the approver/manager.
      * @param string|null $senderAccount The account to send from.
      * @return array|null The API response.
      */
-    public function sendPenjualanNeedsRevisionNotification(TransaksiPenjualan $transaction, object $approver, ?string $note, ?string $senderAccount = null): ?array
+    public function sendNewPenjualanNotification(TransaksiPenjualan $transaction, string $recipientPhoneNumber, ?string $senderAccount = null): ?array
     {
-        $salesperson = $transaction->user;
+        // Eager load relationships to avoid N+1 issues if not already loaded
+        $transaction->loadMissing(['pelanggan', 'createdBy']);
 
-        if (empty($salesperson->hp)) {
-            Log::warning("Cannot send 'Penjualan Needs Revision' notification: Salesperson {$salesperson->name} has no phone number.");
-            return null;
-        }
+        $salespersonName = $transaction->createdBy->name ?? 'N/A';
+        $customerName = $transaction->pelanggan->nama ?? 'N/A';
+        $totalAmount = $transaction->total_amount ?? 0;
 
-        $message = "📝 *Penjualan Membutuhkan Revisi* 📝\n\n" .
-                   "Halo Bpk/Ibu *{$salesperson->name}*,\n" .
-                   "Transaksi penjualan Anda dengan No. DO: *{$transaction->kode}* membutuhkan *revisi*.\n" .
-                   "Keputusan ini diberikan oleh Bpk/Ibu *{$approver->name}*.\n\n" .
-                   ($note ? "Catatan Revisi: {$note}\n\n" : "") .
-                   "Mohon segera perbaiki transaksi Anda sesuai catatan dan ajukan kembali untuk persetujuan.";
+        // Generate a link to the view page in Filament
+        $viewUrl = route('filament.admin.resources.transaksi-penjualans.view', ['record' => $transaction->id]);
+
+        $message = "🔔 *Transaksi Penjualan Baru* 🔔\n\n" .
+                   "Halo,\n" .
+                   "Ada transaksi penjualan baru yang membutuhkan persetujuan Anda.\n\n" .
+                   "📝 *Detail Transaksi:*\n" .
+                   "No. Transaksi: *{$transaction->kode}*\n" .
+                   "Salesperson: *{$salespersonName}*\n" .
+                   "Pelanggan: *{$customerName}*\n" .
+                   "Total: *Rp " . Formatter::number($totalAmount) . "*\n\n" .
+                   "Mohon segera ditinjau dan diproses melalui link berikut:\n" .
+                   $viewUrl . "\n\n" .
+                   "Terima kasih.";
+
+        Log::info("Attempting to send new transaction notification for {$transaction->kode} to {$recipientPhoneNumber}.");
 
         return $this->starSender->send(
-            receiverNumber: $salesperson->hp,
+            receiverNumber: $recipientPhoneNumber,
             message: $message,
             senderAccount: $senderAccount
         );
     }
+
+
+    // ==========================================================================================================================================================================
+    // expense request ==========================================================================================================================================================
+
+    // new expense made
+    public function sendNewExpenseNotification(object $managerData, object $requesterData, object $expenseData, ?string $senderAccount = null): ?array
+    {
+        if (empty($managerData->hp)) {
+            Log::warning("Cannot send expense notification: Designated manager {$managerData->name} has no phone number.");
+            return null;
+        }
+
+        $viewUrl = route('filament.admin.resources.expense-requests.view', ['record' => $expenseData->id]);
+
+        $message = "💵 *Approval Permintaan Biaya Baru* 💵\n\n" .
+                   "Halo Bpk/Ibu *{$managerData->name}*,\n" .
+                   "Ada permintaan biaya baru dari *{$requesterData->name}* yang membutuhkan persetujuan Anda.\n\n" .
+                   "🧾 *Detail Permintaan:*\n" .
+                   "Judul: {$expenseData->title}\n" .
+                   "Jumlah: *Rp " . Formatter::number($expenseData->amount) . "*\n\n" .
+                   "Mohon segera ditinjau melalui link berikut:\n" .
+                   $viewUrl;
+
+        Log::info("Formatted new expense notification for manager {$managerData->name}. Calling StarSender.");
+
+        // Call the actual sender service
+        return $this->starSender->send(
+            receiverNumber: $managerData->hp,
+            message: $message,
+            senderAccount: $senderAccount
+        );
+    }
+
+    public function sendExpenseApprovedNotification(object $requesterData, object $approverData, object $expenseData, ?string $senderAccount = null): ?array
+    {
+        $viewUrl = route('filament.admin.resources.expense-requests.view', ['record' => $expenseData->id]);
+
+        $message = "✅ *Permintaan Biaya Disetujui Manager* ✅\n\n" .
+                   "Halo Bpk/Ibu *{$requesterData->name}*,\n" .
+                   "Kabar baik! Permintaan biaya Anda dengan No. *{$expenseData->request_number}* telah *DISETUJUI* oleh Bpk/Ibu *{$approverData->name}*.\n\n" .
+                   "Jumlah Disetujui: *Rp " . Formatter::number($expenseData->approved_amount) . "*\n" .
+                   "Silakan lihat detailnya di sini:\n" .
+                   $viewUrl;
+        
+        return $this->starSender->send($requesterData->hp, $message, $senderAccount);
+    }
+
+    public function sendExpenseRejectedNotification(object $requesterData, object $approverData, object $expenseData, ?string $senderAccount = null): ?array
+    {
+        $viewUrl = route('filament.admin.resources.expense-requests.view', ['record' => $expenseData->id]);
+
+        $message = "❌ *Permintaan Biaya Ditolak* ❌\n\n" .
+                   "Halo Bpk/Ibu *{$requesterData->name}*,\n" .
+                   "Mohon maaf, permintaan biaya Anda dengan No. *{$expenseData->request_number}* telah *DITOLAK* oleh Bpk/Ibu *{$approverData->name}*.\n\n" .
+                   "Alasan Penolakan: *{$expenseData->note}*\n\n" .
+                   "Untuk detail lebih lanjut, silakan buka link berikut:\n" .
+                   $viewUrl;
+        
+        return $this->starSender->send($requesterData->hp, $message, $senderAccount);
+    }
+
+    public function sendExpenseNeedsRevisionNotification(object $requesterData, object $approverData, object $expenseData, ?string $senderAccount = null): ?array
+    {
+        $editUrl = route('filament.admin.resources.expense-requests.edit', ['record' => $expenseData->id]);
+
+        $message = "📝 *Permintaan Biaya Butuh Revisi* 📝\n\n" .
+                   "Halo Bpk/Ibu *{$requesterData->name}*,\n" .
+                   "Permintaan biaya Anda dengan No. *{$expenseData->request_number}* membutuhkan *revisi* dari Bpk/Ibu *{$approverData->name}*.\n\n" .
+                   "Catatan untuk Revisi: *{$expenseData->note}*\n\n" .
+                   "Mohon segera perbaiki permintaan Anda melalui link berikut:\n" .
+                   $editUrl;
+        
+        return $this->starSender->send($requesterData->hp, $message, $senderAccount);
+    }
+
+    /**
+     * Sends a notification to the finance team about an approved expense request.
+     *
+     * @param object $financeUserData Object with finance user's data (name, hp).
+     * @param object $requesterData Object with the original requester's data (name).
+     * @param object $approverData Object with the approver's data (name).
+     * @param object $expenseData Object with the approved expense details.
+     * @param string|null $senderAccount
+     * @return array|null
+     */
+    public function sendFinanceNotificationForApprovedExpense(object $financeUserData, object $requesterData, object $approverData, object $expenseData, ?string $senderAccount = null): ?array
+    {
+        if (empty($financeUserData->hp)) {
+            Log::warning("Cannot send notification to Finance: User {$financeUserData->name} has no phone number.");
+            return null;
+        }
+
+        $viewUrl = route('filament.admin.resources.expense-requests.view', ['record' => $expenseData->id]);
+
+        $message = "💰 *Permintaan Biaya Siap Diproses* 💰\n\n" .
+                   "Halo Bpk/Ibu *{$financeUserData->name}*,\n" .
+                   "Sebuah permintaan biaya telah disetujui dan siap untuk proses pembayaran.\n\n" .
+                   "📄 *Detail Persetujuan:*\n" .
+                   "No. Request: *{$expenseData->request_number}*\n" .
+                   "Pemohon: *{$requesterData->name}*\n" .
+                   "Disetujui Oleh: *{$approverData->name}*\n" .
+                   "Jumlah Disetujui: *Rp " . Formatter::number($expenseData->approved_amount) . "*\n\n" .
+                   "Mohon segera lakukan proses selanjutnya melalui link berikut:\n" .
+                   $viewUrl . "\n\n" .
+                   "Terima kasih.";
+        
+        return $this->starSender->send(
+            receiverNumber: $financeUserData->hp,
+            message: $message,
+            senderAccount: $senderAccount
+        );
+    }
+
+    /**
+     * Sends a notification to the requester that their expense request has been paid.
+     *
+     * @param object $requesterData Object with requester's data (name, hp).
+     * @param object $expenseData Object with expense details (request_number, title, approved_amount, paid_at, id).
+     * @param string|null $senderAccount The account to send from.
+     * @return array|null The API response.
+     */
+    public function sendExpensePaidNotificationToRequester(object $requesterData, object $expenseData, ?string $senderAccount = null): ?array
+    {
+        if (empty($requesterData->hp)) {
+            Log::warning("Cannot send expense paid notification to requester: Requester {$requesterData->name} has no phone number.");
+            return null;
+        }
+
+        $viewUrl = route('filament.admin.resources.expense-requests.view', ['record' => $expenseData->id]);
+
+        $message = "✅ *Pembayaran Permintaan Biaya Anda Telah Diproses!* ✅\n\n" .
+                   "Halo Bpk/Ibu *{$requesterData->name}*,\n" .
+                   "Kami informasikan bahwa permintaan biaya Anda dengan detail berikut telah *DIBAYAR*:\n\n" .
+                   "No. Request: *{$expenseData->request_number}*\n" .
+                   "Judul: *{$expenseData->title}*\n" .
+                   "Jumlah Dibayar: *Rp " . Formatter::number($expenseData->approved_amount) . "*\n" .
+                   "Tanggal Pembayaran: *" . Formatter::date($expenseData->paid_at) . "*\n\n" .
+                   "Untuk melihat detail lengkap, silakan kunjungi:\n" .
+                   $viewUrl . "\n\n" .
+                   "Terima kasih.";
+
+        Log::info("Attempting to send expense paid notification to requester {$requesterData->name} for request {$expenseData->request_number}.");
+        return $this->starSender->send($requesterData->hp, $message, $senderAccount);
+    }
+
+    /**
+     * Sends a notification to the requester's manager that an expense request from their team member has been paid.
+     *
+     * @param object $managerData Object with manager's data (name, hp).
+     * @param object $requesterData Object with requester's data (name).
+     * @param object $expenseData Object with expense details (request_number, title, approved_amount, paid_at, id).
+     * @param string|null $senderAccount The account to send from.
+     * @return array|null The API response.
+     */
+    public function sendExpensePaidNotificationToManager(object $managerData, object $requesterData, object $expenseData, ?string $senderAccount = null): ?array
+    {
+        if (empty($managerData->hp)) {
+            Log::warning("Cannot send expense paid notification to manager: Manager {$managerData->name} has no phone number.");
+            return null;
+        }
+
+        $viewUrl = route('filament.admin.resources.expense-requests.view', ['record' => $expenseData->id]);
+
+        $message = "💸 *Update Pembayaran Permintaan Biaya* 💸\n\n" .
+                   "Halo Bpk/Ibu *{$managerData->name}*,\n" .
+                   "Permintaan biaya dari staf Anda, *{$requesterData->name}* (No. Request: *{$expenseData->request_number}*), telah *DIBAYAR*.\n\n" .
+                   "Judul: *{$expenseData->title}*\n" .
+                   "Jumlah Dibayar: *Rp " . Formatter::number($expenseData->approved_amount) . "*\n" .
+                   "Tanggal Pembayaran: *" . Formatter::date($expenseData->paid_at) . "*\n\n" .
+                   "Detail dapat dilihat di:\n" . $viewUrl;
+
+        Log::info("Attempting to send expense paid notification to manager {$managerData->name} for requester {$requesterData->name}'s request {$expenseData->request_number}.");
+        return $this->starSender->send($managerData->hp, $message, $senderAccount);
+    }
+
+    /**
+     * Sends a unified notification to the requester's manager about an expense request update.
+     * This method handles both new requests and paid requests for managers.
+     *
+     * @param object $managerData Object with manager's data (name, hp).
+     * @param object $requesterData Object with requester's data (name).
+     * @param object $expenseData Object with expense details (request_number, title, amount/approved_amount, paid_at, id).
+     * @param string $updateType Type of update ('new_request', 'paid').
+     * @param string|null $senderAccount The account to send from.
+     * @return array|null The API response.
+     */
+    public function sendExpenseManagerUpdateNotification(object $managerData, object $requesterData, object $expenseData, string $updateType, ?string $senderAccount = null): ?array
+    {
+        if (empty($managerData->hp)) {
+            Log::warning("Cannot send expense manager update notification: Manager {$managerData->name} has no phone number.");
+            return null;
+        }
+
+        $viewUrl = route('filament.admin.resources.expense-requests.view', ['record' => $expenseData->id]);
+        $message = "";
+
+        switch ($updateType) {
+            case 'new_request':
+                $message = "💵 *Permintaan Biaya Baru* 💵\n\n" .
+                        "Halo Bpk/Ibu *{$managerData->name}*,\n" .
+                        "Ada permintaan biaya baru dari staf Anda, *{$requesterData->name}* yang membutuhkan persetujuan Anda.\n\n" .
+                        "🧾 *Detail Permintaan:*\n" .
+                        "No. Request: *{$expenseData->request_number}*\n" . 
+                        "Judul: *{$expenseData->title}*\n" .
+                        "Jumlah: *Rp " . Formatter::number($expenseData->amount) . "*\n\n" .
+                        "Mohon segera ditinjau melalui link berikut:\n" .
+                        $viewUrl;
+                break;
+            case 'paid':
+                $message = "💸 *Update Pembayaran Permintaan Biaya* 💸\n\n" .
+                        "Halo Bpk/Ibu *{$managerData->name}*,\n" .
+                        "Permintaan biaya dari staf Anda, *{$requesterData->name}* (No. Request: *{$expenseData->request_number}*), telah *DIBAYAR*.\n\n" .
+                        "Judul: *{$expenseData->title}*\n" .
+                        "Jumlah Dibayar: *Rp " . Formatter::number($expenseData->approved_amount) . "*\n" .
+                        "Tanggal Pembayaran: *" . Formatter::date($expenseData->paid_at) . "*\n\n" .
+                        "Detail dapat dilihat di:\n" . $viewUrl;
+                break;
+            default:
+                Log::warning("Unknown expense manager update type: {$updateType}");
+                return null;
+        }
+
+        Log::info("Attempting to send expense manager update notification ({$updateType}) to manager {$managerData->name} for requester {$requesterData->name}'s request {$expenseData->request_number}.");
+        return $this->starSender->send($managerData->hp, $message, $senderAccount);
+    }
+
 }

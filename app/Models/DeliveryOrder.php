@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 
+use App\Services\MessageService;
+use Illuminate\Support\Facades\Log;
+use Throwable;
+
 class DeliveryOrder extends Model
 {
     protected $table = 'delivery_order';
@@ -156,5 +160,52 @@ class DeliveryOrder extends Model
             ->sum('volume_do');
 
         return $totalSoVolume - $deliveredVolume;
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (DeliveryOrder $deliveryOrder) {
+            if ($deliveryOrder->id_user) {
+                try {
+                    $messageService = resolve(MessageService::class);
+
+                    $deliveryOrder->loadMissing(['driver', 'kendaraan', 'transaksi.pelanggan', 'transaksi.alamatPelanggan']);
+
+                    $driver      = $deliveryOrder->driver;
+                    $vehicle     = $deliveryOrder->kendaraan;
+                    $transaction = $deliveryOrder->transaksi;
+
+                    if (!$driver || !$vehicle || !$transaction) {
+                        Log::warning("Gagal mengirim notifikasi penugasan DO. Data relasi tidak lengkap.", [
+                            'delivery_order_id' => $deliveryOrder->id
+                        ]);
+                        return;
+                    }
+
+                    $redirectUrl = route('filament.admin.resources.delivery-orders.view', ['record' => $deliveryOrder->id]);
+
+                    $transactionData = (object) [
+                        'kode'           => $deliveryOrder->kode,
+                        'pelanggan_nama' => $transaction->pelanggan?->nama ?? 'N/A',
+                        'lokasi_muat'    => $transaction->tbbm?->alamat ?? 'Lokasi tidak ditentukan',
+                        'tanggal_jemput' => $deliveryOrder->created_at,
+                    ];
+
+                    $messageService->sendDriverAssignmentNotification(
+                        $driver,
+                        $transactionData,
+                        $vehicle,
+                        $redirectUrl
+                    );
+
+                } catch (Throwable $e) {
+                    // 10. Jika terjadi error apapun saat mengirim notifikasi, catat error tersebut.
+                    Log::error('Gagal mengirim notifikasi penugasan driver saat pembuatan DO.', [
+                        'delivery_order_id' => $deliveryOrder->id,
+                        'error_message'     => $e->getMessage(),
+                    ]);
+                }
+            }
+        });
     }
 }
