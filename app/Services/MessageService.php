@@ -718,6 +718,18 @@ class MessageService
                         "Tanggal Pembayaran: *" . Formatter::date($expenseData->paid_at) . "*\n\n" .
                         "Detail dapat dilihat di:\n" . $viewUrl;
                 break;
+            case 'expense_update':
+                $message = "📝 *Revisi Permintaan Biaya* 📝\n\n" .
+                           "Halo Bpk/Ibu *{$managerData->name}*,\n" .
+                           "Permintaan biaya (No. *{$expenseData->request_number}*) yang sebelumnya Anda minta untuk direvisi, telah diperbarui oleh *{$requesterData->name}*.\n\n" .
+                           "*Detail Terbaru:*\n" .
+                           "Judul: *{$expenseData->title}*\n" .
+                           "Deskripsi: *{$expenseData->description}*\n" .
+                           "Jumlah: *Rp " . Formatter::number($expenseData->amount) . "*\n" .
+                           "Status: *Siap untuk direview kembali*\n\n" .
+                           "Silakan tinjau ulang perubahan pada link berikut:\n" .
+                           $viewUrl;
+                break;
             default:
                 Log::warning("Unknown expense manager update type: {$updateType}");
                 return null;

@@ -382,6 +382,12 @@ class ExpenseRequest extends Model implements HasMedia
                         continue;
                     }
 
+                    // ADDED: Skip notification if the manager is the same as the requester.
+                    if ($manager->id === $requester->id) {
+                        Log::info("Skipping new expense notification: Manager {$manager->name} is the same as the requester for ExpenseRequest ID: {$expenseRequest->id}.");
+                        continue;
+                    }
+
                     // Prepare the DTO for the manager (recipient).
                     $managerData = (object) [
                         'name' => $manager->name,
@@ -404,6 +410,74 @@ class ExpenseRequest extends Model implements HasMedia
                     'expense_request_id' => $expenseRequest->id,
                     'error_message'      => $e->getMessage(),
                     'trace'              => $e->getTraceAsString(), // Optional: for detailed debugging
+                ]);
+            }
+        });
+
+        static::updated(function (ExpenseRequest $expenseRequest) {
+            // This notification should only trigger when a staff member submits a revision
+            // for an expense that a manager has marked as 'needs_revision' (status: under_review).
+
+            // 1. The expense must have been in 'under_review' status *before* this update.
+            // 2. The user performing the update must be the original requester.
+            // 3. The model must have actual changes.
+            if (
+                $expenseRequest->getOriginal('status') !== 'under_review' ||
+                auth()->id() !== $expenseRequest->requested_by ||
+                !$expenseRequest->isDirty()
+            ) {
+                return;
+            }
+
+            try {
+                // The notification logic is very similar to the 'created' event.
+                $messageService = resolve(MessageService::class);
+        
+                $expenseRequest->loadMissing('requestedBy.divisi');
+                $requester = $expenseRequest->requestedBy;
+        
+                // This check is mostly for safety, but should not fail given the logic above.
+                if (!$requester || !$requester->divisi) {
+                    $logMessage = !$requester
+                        ? "Requester not found for ExpenseRequest ID: {$expenseRequest->id}."
+                        : "Division not set for requester '{$requester->name}'.";
+                    Log::info("Skipping revision update notification: {$logMessage}");
+                    return;
+                }
+        
+                $divisionSlug = Str::slug($requester->divisi->nama, '_');
+                $eventName = "expense_manager_update_{$divisionSlug}";
+        
+                $settings = NotificationSetting::with('user')
+                    ->where('event_name', $eventName)
+                    ->where('is_active', true)
+                    ->get();
+        
+                if ($settings->isEmpty()) {
+                    Log::info("No active notification settings found for revision update event '{$eventName}'.");
+                    return;
+                }
+        
+                $requesterData = (object) ['name' => $requester->name];
+                $expenseData = (object) [
+                    'id'             => $expenseRequest->id,
+                    'request_number' => $expenseRequest->request_number,
+                    'title'          => $expenseRequest->title,
+                    'description'    => $expenseRequest->description,
+                    'amount'         => $expenseRequest->requested_amount,
+                ];
+        
+                foreach ($settings as $setting) {
+                    $manager = $setting->user;
+                    if (!$manager || empty($manager->hp)) continue;
+        
+                    $managerData = (object) ['name' => $manager->name, 'hp' => $manager->hp];
+                    $messageService->sendExpenseManagerUpdateNotification($managerData, $requesterData, $expenseData, 'expense_update');
+                }
+            } catch (Throwable $e) {
+                Log::error('Failed to send expense revision update notification.', [
+                    'expense_request_id' => $expenseRequest->id,
+                    'error_message'      => $e->getMessage(),
                 ]);
             }
         });
