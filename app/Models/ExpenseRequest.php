@@ -13,19 +13,20 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 use Throwable;
 
 // call models
+use App\Models\Traits\LogsModelUpdates;
 use App\Models\NotificationSetting;
 
 // call services
 use App\Services\MessageService;
 use App\Services\JournalingService;
+use App\Services\ExpenseRequestService;
 
 // call filament resource
 use App\Filament\Resources\ExpenseRequestResource;
 
 class ExpenseRequest extends Model implements HasMedia
 {
-    use SoftDeletes;
-    use InteractsWithMedia;
+    use SoftDeletes, LogsModelUpdates, InteractsWithMedia;
 
     protected $fillable = [
         'request_number',
@@ -45,6 +46,7 @@ class ExpenseRequest extends Model implements HasMedia
         'submitted_at',
         'reviewed_at', // This might be moved to approvals table later
         'paid_at',
+        'paid_by',
         'cost_center',
         'budget_code',
         'approval_workflow',
@@ -77,6 +79,11 @@ class ExpenseRequest extends Model implements HasMedia
     public function journal(): BelongsTo
     {
         return $this->belongsTo(Journal::class, 'journal_id');
+    }
+
+    public function paidBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'paid_by');
     }
 
     public function getCategoryLabelAttribute(): string
@@ -141,7 +148,12 @@ class ExpenseRequest extends Model implements HasMedia
 
     public function isEditable(): bool
     {
-        return in_array($this->status, ['draft', 'rejected']);
+        return in_array($this->status, ['submitted', 'on_review']);
+    }
+
+    public function isDeletable(): bool
+    {
+        return in_array($this->status, ['submitted']);
     }
 
     public function canBeSubmitted(): bool
@@ -321,97 +333,8 @@ class ExpenseRequest extends Model implements HasMedia
     protected static function booted(): void
     {
         static::created(function (ExpenseRequest $expenseRequest) {
-            try {
-                // 1. Resolve the MessageService from Laravel's service container.
-                $messageService = resolve(MessageService::class);
-
-                // 2. Eager load the 'requestedBy' user and their 'division' to prevent N+1 query issues.
-                $expenseRequest->loadMissing('requestedBy.divisi');
-                $requester = $expenseRequest->requestedBy;
-
-                // 3. Stop if the requester cannot be found.
-                if (!$requester) {
-                    Log::info("Skipping notification: Requester user not found for ExpenseRequest ID: {$expenseRequest->id} (requested_by: {$expenseRequest->requested_by}).");
-                    return;
-                }
-
-                // 4. Stop if the requester's division is not set.
-                if (!$requester->divisi) {
-                    Log::info("Skipping notification: Division not set for requester '{$requester->name}' on ExpenseRequest ID: {$expenseRequest->id}.");
-                    return;
-                }
-
-                // 4. Create a dynamic event name based on the requester's division.
-                //    Example: 'Finance' division becomes 'expense_request_created_finance'
-                $divisionSlug = Str::slug($requester->divisi->nama, '_');
-                $eventName = "expense_manager_update_{$divisionSlug}"; // Unified event name
-
-                // 5. Find all active notification rules for this specific event.
-                $settings = NotificationSetting::with('user')
-                    ->where('event_name', $eventName)
-                    ->where('is_active', true)
-                    ->get();
-
-                if ($settings->isEmpty()) {
-                    Log::info("No active notification settings found for event '{$eventName}'.");
-                    return;
-                }
-
-                // 6. Prepare the data transfer objects (DTOs) for the requester and the expense.
-                //    These are created once and reused for every notification sent.
-                $requesterData = (object) [
-                    'name' => $requester->name,
-                ];
-
-                $expenseData = (object) [
-                    'title'       => $expenseRequest->title,
-                    'amount'      => $expenseRequest->requested_amount,
-                    'date'        => $expenseRequest->requested_date,
-                    'category'    => $expenseRequest->category,
-                    'description' => $expenseRequest->description,
-                    'id'          => $expenseRequest->id,
-                    'request_number' => $expenseRequest->request_number
-                ];
-
-                // 7. Loop through each notification rule and send the message.
-                foreach ($settings as $setting) {
-                    $manager = $setting->user;
-
-                    // Skip if the user in the setting is invalid or has no phone number.
-                    if (!$manager || empty($manager->hp)) {
-                        continue;
-                    }
-
-                    // ADDED: Skip notification if the manager is the same as the requester.
-                    if ($manager->id === $requester->id) {
-                        Log::info("Skipping new expense notification: Manager {$manager->name} is the same as the requester for ExpenseRequest ID: {$expenseRequest->id}.");
-                        continue;
-                    }
-
-                    // Prepare the DTO for the manager (recipient).
-                    $managerData = (object) [
-                        'name' => $manager->name,
-                        'hp'   => $manager->hp,
-                    ];
-
-                    // Call the notification service with the prepared data objects.
-                    $messageService->sendExpenseManagerUpdateNotification(
-                        $managerData,
-                        $requesterData,
-                        $expenseData,
-                        'new_request'
-                    );
-                }
-
-            } catch (Throwable $e) {
-                // 8. If any error occurs during the notification process, log it
-                //    without crashing the main application flow.
-                Log::error('Failed to send new expense request notification.', [
-                    'expense_request_id' => $expenseRequest->id,
-                    'error_message'      => $e->getMessage(),
-                    'trace'              => $e->getTraceAsString(), // Optional: for detailed debugging
-                ]);
-            }
+            // handle notif WA
+            resolve(ExpenseRequestService::class)->handleCreationNotification($expenseRequest);
         });
 
         static::updated(function (ExpenseRequest $expenseRequest) {
@@ -429,57 +352,8 @@ class ExpenseRequest extends Model implements HasMedia
                 return;
             }
 
-            try {
-                // The notification logic is very similar to the 'created' event.
-                $messageService = resolve(MessageService::class);
-        
-                $expenseRequest->loadMissing('requestedBy.divisi');
-                $requester = $expenseRequest->requestedBy;
-        
-                // This check is mostly for safety, but should not fail given the logic above.
-                if (!$requester || !$requester->divisi) {
-                    $logMessage = !$requester
-                        ? "Requester not found for ExpenseRequest ID: {$expenseRequest->id}."
-                        : "Division not set for requester '{$requester->name}'.";
-                    Log::info("Skipping revision update notification: {$logMessage}");
-                    return;
-                }
-        
-                $divisionSlug = Str::slug($requester->divisi->nama, '_');
-                $eventName = "expense_manager_update_{$divisionSlug}";
-        
-                $settings = NotificationSetting::with('user')
-                    ->where('event_name', $eventName)
-                    ->where('is_active', true)
-                    ->get();
-        
-                if ($settings->isEmpty()) {
-                    Log::info("No active notification settings found for revision update event '{$eventName}'.");
-                    return;
-                }
-        
-                $requesterData = (object) ['name' => $requester->name];
-                $expenseData = (object) [
-                    'id'             => $expenseRequest->id,
-                    'request_number' => $expenseRequest->request_number,
-                    'title'          => $expenseRequest->title,
-                    'description'    => $expenseRequest->description,
-                    'amount'         => $expenseRequest->requested_amount,
-                ];
-        
-                foreach ($settings as $setting) {
-                    $manager = $setting->user;
-                    if (!$manager || empty($manager->hp)) continue;
-        
-                    $managerData = (object) ['name' => $manager->name, 'hp' => $manager->hp];
-                    $messageService->sendExpenseManagerUpdateNotification($managerData, $requesterData, $expenseData, 'expense_update');
-                }
-            } catch (Throwable $e) {
-                Log::error('Failed to send expense revision update notification.', [
-                    'expense_request_id' => $expenseRequest->id,
-                    'error_message'      => $e->getMessage(),
-                ]);
-            }
+            // handle notif WA
+            resolve(ExpenseRequestService::class)->handleRevisionSubmissionNotification($expenseRequest);
         });
     }
 

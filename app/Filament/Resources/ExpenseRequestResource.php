@@ -333,15 +333,10 @@ class ExpenseRequestResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make()
-                    // Rule 1: Hide if status is 'approved' or 'rejected'
-                    ->visible(fn (ExpenseRequest $record): bool => 
-                        !in_array($record->status, ['approved', 'rejected', 'paid'])
-                    ),
+                    ->visible(fn (ExpenseRequest $record): bool => $record->isEditable()),
+
                 Tables\Actions\DeleteAction::make()
-                    // Rule 2: Only show if status is 'submitted'
-                    ->visible(fn (ExpenseRequest $record): bool => 
-                        $record->status === 'submitted'
-                    ),
+                    ->visible(fn (ExpenseRequest $record): bool => $record->isDeletable()),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

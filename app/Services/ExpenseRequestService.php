@@ -11,10 +11,14 @@ use App\Models\NotificationSetting;
 // --- Framework & Helpers ---
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Throwable;
 
 // --- Services ---
 use App\Services\MessageService;
+
+// support
+use App\Support\Formatter;
 
 /**
  * Handles all business logic related to Expense Requests.
@@ -43,13 +47,21 @@ class ExpenseRequestService
         // Use a database transaction to ensure data integrity.
         // All operations will succeed, or none will.
         $approval = DB::transaction(function () use ($expenseRequest, $approver, $status, $note, $approvedAmount) {
+
+            $setnote = $note;
+
+            if ($status === 'approved') {
+                $expenseRequest->approved_amount = $approvedAmount ?? $expenseRequest->requested_amount;
+
+                $setnote = "Nominal disetujui sebesar Rp " . Formatter::number($expenseRequest->approved_amount);
+            }
             
             // 1. Create a new record in the approvals history table.
             $approvalRecord = ExpenseRequestApproval::create([
                 'expense_request_id' => $expenseRequest->id,
                 'user_id'          => $approver->id,
                 'status'           => $status,
-                'note'             => $note,
+                'note'             => $setnote,
             ]);
 
             // 2. Update the main status on the parent ExpenseRequest record.
@@ -59,10 +71,6 @@ class ExpenseRequestService
                 'needs_revision' => 'under_review',
                 default          => $expenseRequest->status,
             };
-
-            if ($status === 'approved') {
-                $expenseRequest->approved_amount = $approvedAmount ?? $expenseRequest->requested_amount;
-            }
 
             $expenseRequest->save();
 
@@ -178,6 +186,7 @@ class ExpenseRequestService
             $expenseRequest->update([
                 'status' => 'paid',
                 'paid_at' => now(),
+                'paid_by' => auth()->id()
             ]);
 
             // Call the existing model method to post the journal
@@ -253,5 +262,157 @@ class ExpenseRequestService
 
             return $expenseRequest;
         });
+    }
+
+    /**
+     * Handles sending notifications when a new expense request is created.
+     * This method contains all the business logic, keeping the model clean.
+     *
+     * @param ExpenseRequest $expenseRequest The newly created record.
+     * @return void
+     */
+    public function handleCreationNotification(ExpenseRequest $expenseRequest): void
+    {
+        try {
+            // 1. Resolve the MessageService from Laravel's service container.
+            $messageService = resolve(MessageService::class);
+
+            // 2. Eager load the 'requestedBy' user and their 'division' to prevent N+1 query issues.
+            $expenseRequest->loadMissing('requestedBy.divisi');
+            $requester = $expenseRequest->requestedBy;
+
+            // 3. Stop if the requester cannot be found.
+            if (!$requester) {
+                Log::info("Skipping notification: Requester user not found for ExpenseRequest ID: {$expenseRequest->id} (requested_by: {$expenseRequest->requested_by}).");
+                return;
+            }
+
+            // 4. Stop if the requester's division is not set.
+            if (!$requester->divisi) {
+                Log::info("Skipping notification: Division not set for requester '{$requester->name}' on ExpenseRequest ID: {$expenseRequest->id}.");
+                return;
+            }
+
+            // 4. Create a dynamic event name based on the requester's division.
+            //    Example: 'Finance' division becomes 'expense_request_created_finance'
+            $divisionSlug = Str::slug($requester->divisi->nama, '_');
+            $eventName = "expense_manager_update_{$divisionSlug}"; // Unified event name
+
+            // 5. Find all active notification rules for this specific event.
+            $settings = NotificationSetting::findActiveRecipientsForEvent($eventName);
+            if ($settings->isEmpty()) {
+                Log::info("No active notification settings found for event '{$eventName}'.");
+                return;
+            }
+
+            // 6. Prepare the data transfer objects (DTOs) for the requester and the expense.
+            //    These are created once and reused for every notification sent.
+            $requesterData = (object) [
+                'name' => $requester->name,
+            ];
+            $expenseData = (object) [
+                'title'       => $expenseRequest->title,
+                'amount'      => $expenseRequest->requested_amount,
+                'date'        => $expenseRequest->requested_date,
+                'category'    => $expenseRequest->category,
+                'description' => $expenseRequest->description,
+                'id'          => $expenseRequest->id,
+                'request_number' => $expenseRequest->request_number
+            ];
+
+            // 7. Loop through each notification rule and send the message.
+            foreach ($settings as $setting) {
+                $manager = $setting->user;
+                // Skip if the user in the setting is invalid or has no phone number.
+                if (!$manager || empty($manager->hp)) {
+                    continue;
+                }
+                // ADDED: Skip notification if the manager is the same as the requester.
+                if ($manager->id === $requester->id) {
+                    Log::info("Skipping new expense notification: Manager {$manager->name} is the same as the requester for ExpenseRequest ID: {$expenseRequest->id}.");
+                    continue;
+                }
+                // Prepare the DTO for the manager (recipient).
+                $managerData = (object) [
+                    'name' => $manager->name,
+                    'hp'   => $manager->hp,
+                ];
+                // Call the notification service with the prepared data objects.
+                $messageService->sendExpenseManagerUpdateNotification(
+                    $managerData,
+                    $requesterData,
+                    $expenseData,
+                    'new_request'
+                );
+            }
+
+        } catch (Throwable $e) {
+            // 8. If any error occurs during the notification process, log it
+            //    without crashing the main application flow.
+            Log::error('Failed to send new expense request notification.', [
+                'expense_request_id' => $expenseRequest->id,
+                'error_message'      => $e->getMessage(),
+                'trace'              => $e->getTraceAsString(), // Optional: for detailed debugging
+            ]);
+        }
+    }
+
+    /**
+     * Handles sending notifications when a staff member submits a revision.
+     *
+     * @param ExpenseRequest $expenseRequest The updated record.
+     * @return void
+     */
+    public function handleRevisionSubmissionNotification(ExpenseRequest $expenseRequest): void
+    {
+        try {
+            // 2. The rest of the notification logic is very similar to the creation handler.
+            $expenseRequest->loadMissing('requestedBy.divisi');
+            $requester = $expenseRequest->requestedBy;
+    
+            if (!$requester || !$requester->divisi) {
+                Log::info("Skipping revision update: Requester or division not found for ExpenseRequest ID {$expenseRequest->id}.");
+                return;
+            }
+    
+            $divisionSlug = Str::slug($requester->divisi->nama, '_');
+            $eventName = "expense_manager_update_{$divisionSlug}";
+    
+            $settings = NotificationSetting::findActiveRecipientsForEvent($eventName);
+    
+            if ($settings->isEmpty()) {
+                Log::info("No active notification settings found for revision update event '{$eventName}'.");
+                return;
+            }
+    
+            // Prepare the data for the notification message
+            $requesterData = (object) ['name' => $requester->name];
+            $expenseData = (object) [
+                'id'             => $expenseRequest->id,
+                'request_number' => $expenseRequest->request_number,
+                'title'          => $expenseRequest->title,
+                'description'    => $expenseRequest->description,
+                'amount'         => $expenseRequest->requested_amount,
+            ];
+    
+            // Send the notification to all relevant managers
+            foreach ($settings as $setting) {
+                $manager = $setting->user;
+                if (!$manager || empty($manager->hp)) continue;
+    
+                $managerData = (object) ['name' => $manager->name, 'hp' => $manager->hp];
+                $this->messageService->sendExpenseManagerUpdateNotification(
+                    $managerData,
+                    $requesterData,
+                    $expenseData,
+                    'expense_update' // A new type for your MessageService switch case
+                );
+            }
+        } catch (Throwable $e) {
+            Log::error('Failed to send expense revision update notification.', [
+                'expense_request_id' => $expenseRequest->id,
+                'error_message'      => $e->getMessage(),
+            ]);
+        }
     }
 }

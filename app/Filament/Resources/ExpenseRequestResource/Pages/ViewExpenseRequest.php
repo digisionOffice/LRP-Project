@@ -15,6 +15,7 @@ use Filament\Forms\Get;
 use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Support\HtmlString;
 
 // --- Infolist Components (Direct Use) ---
 use Filament\Infolists\Components\Grid;
@@ -23,6 +24,7 @@ use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\SpatieMediaLibraryImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\ViewEntry;
 
 // --- Form Components (Direct Use) ---
 use Filament\Forms\Components\Fieldset;
@@ -43,16 +45,44 @@ class ViewExpenseRequest extends ViewRecord
                 // Main column with primary details
                 Group::make()
                     ->schema([
-                        Section::make('Detail Permintaan')->schema([
-                            TextEntry::make('title')->label('Judul Permintaan'),
-                            Grid::make(2)->schema([
-                                TextEntry::make('requested_amount')->label('Jumlah Diajukan')->money('IDR')->weight('bold'),
-                                TextEntry::make('approved_amount')->label('Jumlah Disetujui')->money('IDR')->weight('bold')->color('success'),
+                        Section::make('Detail Permintaan')
+                            ->schema([
+                                // The ViewEntry component renders a custom Blade file.
+                                ViewEntry::make('amounts')
+                                    ->label('') // Hide the default label
+                                    ->view('infolists.components.expense-amount-display')
+                                    ->columnSpanFull(),
+
+                                // Title and Description are placed below the new amounts display.
+                                TextEntry::make('title')
+                                    ->label('Judul Permintaan')
+                                    ->columnSpanFull(),
+                                TextEntry::make('description')
+                                    ->label('Deskripsi')
+                                    ->columnSpanFull(),
                             ]),
-                            TextEntry::make('description')->label('Deskripsi')->columnSpanFull(),
-                        ])->columns(2),
 
                         Section::make('Riwayat Approval')
+                            ->description(function (ExpenseRequest $record) {
+                                $latestApproval = $record->approvals->first();
+                                if (!$latestApproval) {
+                                    return 'Belum ada tindakan';
+                                }
+
+                                $status = $latestApproval->status;
+                                $user = $latestApproval->user->name;
+
+                                $color = match($status) {
+                                    'approved' => '#10b981',
+                                    'rejected' => '#ef4444',
+                                    'needs_revision' => '#f59e0b',
+                                    default => '#6b7280',
+                                };
+                                
+                                $statusLabel = ucfirst(str_replace('_', ' ', $status));
+
+                                return new HtmlString("<span style='color: {$color};'>●</span> {$statusLabel} oleh {$user}");
+                            })
                             ->schema([
                                 RepeatableEntry::make('approvals')
                                     ->label('')
@@ -66,7 +96,6 @@ class ViewExpenseRequest extends ViewRecord
                             ->collapsible()
                             ->visible(fn (ExpenseRequest $record) => $record->approvals->isNotEmpty()),
                         
-                        // --- ADDED: Section to display supporting documents ---
                         Section::make('Dokumen Pendukung')
                             ->schema([
                                 SpatieMediaLibraryImageEntry::make('supporting_documents')
@@ -78,35 +107,52 @@ class ViewExpenseRequest extends ViewRecord
                             ->visible(fn (ExpenseRequest $record) => $record->getMedia('supporting_documents')->isNotEmpty()),
 
                         Section::make('Informasi Pembayaran')
+                            ->description(function (ExpenseRequest $record) {
+                                $status = $record->status;
+                                $color = match($status) {
+                                    'paid' => '#10b981',
+                                    'approved' => '#f59e0b',
+                                    'rejected' => '#ef4444',
+                                    default => '#3b82f6',
+                                };
+                                $statusLabel = match ($status) {
+                                    'paid' => 'Sudah Dibayar',
+                                    'approved' => 'Menunggu Pembayaran',
+                                    'rejected' => 'Tidak Disetujui Manager',
+                                    default => 'Menunggu Approval',
+                                };
+                                return new HtmlString("<span style='color: {$color};'>●</span> {$statusLabel}");
+                            })
                             ->schema([
-                                TextEntry::make('paid_at')
-                                    ->label('Tanggal Dibayar')
-                                    ->dateTime('d M Y H:i')
-                                    ->visible(fn (ExpenseRequest $record): bool => $record->status === 'paid'),
-                                TextEntry::make('payment_status_placeholder')
-                                    ->label('Status Pembayaran')
-                                    ->default('Belum dibayarkan')
-                                    ->visible(fn (ExpenseRequest $record): bool => $record->status !== 'paid'),
-                            ]),
+                                ViewEntry::make('payment_stamp')
+                                    ->label('')
+                                    ->view('infolists.components.payment-stamp')
+                            ])
+                            ->collapsible(),
 
-                    ])->columnSpan(2),
+                    ])->columnSpan(['lg' => 2]),
 
                 // Side column with metadata
                 Group::make()
                     ->schema([
                         Section::make('Status')->schema([
-                            TextEntry::make('request_number')->label('No. Permintaan')->icon('heroicon-s-document-text'),
-                            TextEntry::make('status')->label('Status Saat Ini')->badge()->color(fn ($record) => $record->status_color)->formatStateUsing(fn ($record) => $record->status_label),
-                            TextEntry::make('priority')->label('Prioritas')->badge()->color(fn ($record) => $record->priority_color)->formatStateUsing(fn ($record) => $record->priority_label),
-                        ]),
+                                TextEntry::make('request_number')->label('No. Permintaan')->icon('heroicon-s-document-text'),
+                                TextEntry::make('status')->label('Status Saat Ini')->badge()->color(fn ($record) => $record->status_color)->formatStateUsing(fn ($record) => $record->status_label),
+                                TextEntry::make('priority')->label('Prioritas')->badge()->color(fn ($record) => $record->priority_color)->formatStateUsing(fn ($record) => $record->priority_label),
+                            ])
+                            ->collapsible(),
+
                         Section::make('Informasi Penting')->schema([
-                            TextEntry::make('requestedBy.name')->label('Diminta Oleh')->icon('heroicon-s-user-circle'),
-                            TextEntry::make('requestedBy.divisi.nama')->label('Divisi')->icon('heroicon-s-building-office-2'),
-                            TextEntry::make('requested_date')->label('Tanggal Diminta')->date('d M Y')->icon('heroicon-s-calendar-days'),
-                            TextEntry::make('needed_by_date')->label('Dibutuhkan Pada')->date('d M Y')->icon('heroicon-s-calendar'),
-                        ]),
-                    ])->columnSpan(1),
-            ])->columns(3);
+                                TextEntry::make('requestedBy.name')->label('Diminta Oleh')->icon('heroicon-s-user-circle'),
+                                TextEntry::make('requestedBy.divisi.nama')->label('Divisi')->icon('heroicon-s-building-office-2'),
+                                TextEntry::make('requested_date')->label('Tanggal Diminta')->date('d M Y')->icon('heroicon-s-calendar-days'),
+                                TextEntry::make('needed_by_date')->label('Dibutuhkan Pada')->date('d M Y')->icon('heroicon-s-calendar'),
+                            ])
+                            ->collapsible(),
+
+                    ])->columnSpan(['lg' => 1]),
+
+            ])->columns(['lg' => 3]);
     }
 
     /**

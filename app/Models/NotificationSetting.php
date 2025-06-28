@@ -21,4 +21,18 @@ class NotificationSetting extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Mencari dan mengembalikan semua pengaturan notifikasi yang aktif untuk sebuah event.
+     *
+     * @param string $eventName Nama event yang akan dicari.
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public static function findActiveRecipientsForEvent(string $eventName)
+    {
+        return static::with('user')
+            ->where('event_name', $eventName)
+            ->where('is_active', true)
+            ->get();
+    }
 }
