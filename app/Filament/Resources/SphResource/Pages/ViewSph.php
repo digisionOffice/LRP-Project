@@ -23,6 +23,11 @@ use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 
+// PDF generation imports
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
+
 class ViewSph extends ViewRecord
 {
     protected static string $resource = SphResource::class;
@@ -90,8 +95,8 @@ class ViewSph extends ViewRecord
                                 TextEntry::make('status')
                                     ->label('Status Saat Ini')
                                     ->badge()
-                                    ->color(fn (Sph $record) => $record->status_color)
-                                    ->formatStateUsing(fn (Sph $record) => $record->status_label),
+                                    ->color(fn(Sph $record) => $record->status_color)
+                                    ->formatStateUsing(fn(Sph $record) => $record->status_label),
                                 TextEntry::make('createdBy.name')
                                     ->label('Dibuat Oleh'),
                                 TextEntry::make('created_at')
@@ -99,7 +104,7 @@ class ViewSph extends ViewRecord
                                     ->dateTime('d M Y H:i'),
                             ])
                             ->collapsible(),
-                        
+
                         Section::make('Riwayat Approval')
                             ->schema([
                                 RepeatableEntry::make('approvals')
@@ -111,8 +116,8 @@ class ViewSph extends ViewRecord
                                         TextEntry::make('status')
                                             ->label('Tindakan')
                                             ->badge()
-                                            ->formatStateUsing(fn ($state) => ucfirst(str_replace('_', ' ', $state)))
-                                            ->color(fn ($state) => match($state) {
+                                            ->formatStateUsing(fn($state) => ucfirst(str_replace('_', ' ', $state)))
+                                            ->color(fn($state) => match ($state) {
                                                 'approved' => 'success',
                                                 'rejected' => 'danger',
                                                 'needs_revision' => 'warning',
@@ -127,7 +132,7 @@ class ViewSph extends ViewRecord
                                     ])->columns(2)
                             ])
                             ->collapsible()
-                            ->visible(fn (Sph $record) => $record->approvals->isNotEmpty()),
+                            ->visible(fn(Sph $record) => $record->approvals->isNotEmpty()),
 
                     ])->columnSpan(1),
             ])->columns(3);
@@ -141,18 +146,78 @@ class ViewSph extends ViewRecord
                 ->label('Preview SPH')
                 ->color('gray')
                 ->icon('heroicon-o-eye')
-                ->action(null) 
-                ->modalContent(fn (Sph $record): \Illuminate\View\View => 
+                ->action(null)
+                ->modalContent(
+                    fn(Sph $record): \Illuminate\View\View =>
                     View::make('sph.sph-preview', ['record' => $record])
                 )
                 ->modalHeading("Preview: {$this->record->sph_number}")
                 ->modalSubmitAction(false)
                 ->modalCancelActionLabel('Tutup')
                 ->slideOver()
-                ->modalWidth('4xl'),
+                ->modalWidth('4xl')
+                ->extraModalFooterActions([
+                    Actions\Action::make('download_from_modal')
+                        ->label('Download PDF')
+                        ->color('success')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->action(function (Sph $record) {
+                            return $this->downloadPdf($record);
+                        })
+                ]),
+
+            Actions\Action::make('download_pdf')
+                ->label('Download PDF')
+                ->color('success')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->action(function (Sph $record) {
+                    return $this->downloadPdf($record);
+                }),
 
             Actions\EditAction::make()
-                ->visible(fn (Sph $record): bool => $record->isEditable())
+                ->visible(fn(Sph $record): bool => $record->isEditable())
         ];
+    }
+
+    protected function downloadPdf(Sph $record)
+    {
+        try {
+            // Load the record with all necessary relationships
+            $sph = Sph::with([
+                'customer',
+                'details.item',
+                'createdBy'
+            ])->find($record->id);
+
+            // Generate dynamic filename
+            $filename = 'SPH_' . $sph->sph_number . '_' . now()->format('Ymd_His') . '.pdf';
+
+            // Load the PDF view with the record data
+            $pdf = Pdf::loadView('sph.sph-pdf', ['record' => $sph])
+                ->setPaper('a4', 'portrait')
+                ->setOptions([
+                    'isHtml5ParserEnabled' => true,
+                    'isPhpEnabled' => true,
+                    'defaultFont' => 'Arial'
+                ]);
+
+            // Stream the PDF as a download
+            return response()->streamDownload(function () use ($pdf) {
+                echo $pdf->output();
+            }, $filename);
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            Log::error('Failed to generate SPH PDF: ' . $e->getMessage());
+            Log::error('SPH PDF Error Stack Trace: ' . $e->getTraceAsString());
+
+            // Show notification to user
+            \Filament\Notifications\Notification::make()
+                ->title('Error generating PDF')
+                ->body('Failed to generate PDF. Please try again or contact administrator.')
+                ->danger()
+                ->send();
+
+            return;
+        }
     }
 }
