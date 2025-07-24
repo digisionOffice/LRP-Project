@@ -38,6 +38,9 @@ class NotificationSettingResource extends Resource
             'expense_manager_update_keuangan' => 'Notif Manajer: Update Permintaan Biaya (Keuangan)',
             'expense_manager_update_hrd' => 'Notif Manajer: Update Permintaan Biaya (HRD)',
             'expense_manager_update_it' => 'Notif Manajer: Update Permintaan Biaya (IT)',
+
+            // Unified notif for sph
+            'sph_manager_update_sales' => 'Notif Manajer: SPH Baru (Sales)',
         ];
 
         return $form
