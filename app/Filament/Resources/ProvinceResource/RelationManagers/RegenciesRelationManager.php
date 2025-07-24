@@ -103,9 +103,6 @@ class RegenciesRelationManager extends RelationManager
                     ->successNotificationTitle('Regency created successfully'),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()
-                    ->url(fn($record) => route('filament.admin.resources.regencies.view', ['record' => $record]))
-                    ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make()
                     ->modalHeading('Edit Regency')
                     ->successNotificationTitle('Regency updated successfully'),

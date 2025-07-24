@@ -42,7 +42,7 @@ class UpdateFinancialPermissionsSeeder extends Seeder
         // Update Sales role - Can view and manage invoices and receipts
         $sales = Role::where('name', 'sales')->first();
         if ($sales) {
-            $salesResources = ['pelanggan', 'supplier', 'transaksi_penjualan', 'delivery_order', 'invoice', 'receipt', 'item', 'province', 'regency', 'district', 'subdistrict'];
+            $salesResources = ['pelanggan', 'supplier', 'transaksi_penjualan', 'delivery_order', 'invoice', 'receipt', 'item', 'province'];
             $this->assignResourcePermissions($sales, $salesResources, ['view', 'view_any', 'create', 'update', 'delete']);
             $this->command->info('Updated Sales role permissions');
         }
@@ -51,9 +51,9 @@ class UpdateFinancialPermissionsSeeder extends Seeder
         $operational = Role::where('name', 'operational')->first();
         if ($operational) {
             // Keep existing operational permissions
-            $operationalResources = ['delivery_order', 'pengiriman_driver', 'kendaraan', 'uang_jalan', 'item', 'province', 'regency', 'district', 'subdistrict'];
+            $operationalResources = ['delivery_order', 'pengiriman_driver', 'kendaraan', 'uang_jalan', 'item', 'province'];
             $this->assignResourcePermissions($operational, $operationalResources, ['view', 'view_any', 'create', 'update', 'delete']);
-            
+
             // Add view-only permissions for financial documents
             $operationalFinancialResources = ['invoice', 'receipt', 'tax_invoice'];
             $this->assignResourcePermissions($operational, $operationalFinancialResources, ['view', 'view_any']);
@@ -95,7 +95,7 @@ class UpdateFinancialPermissionsSeeder extends Seeder
         $existingPermissions = $role->permissions->pluck('id')->toArray();
         $newPermissionIds = collect($permissions)->pluck('id')->toArray();
         $allPermissionIds = array_unique(array_merge($existingPermissions, $newPermissionIds));
-        
+
         $allPermissions = Permission::whereIn('id', $allPermissionIds)->get();
         $role->syncPermissions($allPermissions);
     }

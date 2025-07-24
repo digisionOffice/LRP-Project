@@ -45,6 +45,7 @@ use App\Models\TaxInvoice;
 // Seeders
 use Database\Seeders\ExpenseRequestPostingRulesSeeder;
 use Database\Seeders\InvoicePostingRulesSeeder;
+use Database\Seeders\CleanupRegionalPermissionsSeeder;
 
 class ComprehensiveSeeder extends Seeder
 {
@@ -408,9 +409,6 @@ class ComprehensiveSeeder extends Seeder
 
             // Master Data
             'province' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
-            'regency' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
-            'district' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
-            'subdistrict' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
             'entitas_tipe' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
             'jabatan' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
             'divisi' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
@@ -502,9 +500,6 @@ class ComprehensiveSeeder extends Seeder
             // Master Data
             'item' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
             'province' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
-            'regency' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
-            'district' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
-            'subdistrict' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
 
         ];
 
@@ -520,6 +515,11 @@ class ComprehensiveSeeder extends Seeder
 
         // Create roles with specific permissions
         $this->createRole($resources);
+
+        // Clean up regional permissions (regency, district, subdistrict)
+        $cleanupSeeder = new CleanupRegionalPermissionsSeeder();
+        $cleanupSeeder->setCommand($this->command);
+        $cleanupSeeder->run();
 
         $this->command->info('Roles and permissions created successfully!');
     }
@@ -549,7 +549,7 @@ class ComprehensiveSeeder extends Seeder
             'guard_name' => 'web',
             'deskripsi' => 'Customer, sales, and delivery-related permissions only'
         ]);
-        $salesResources = ['pelanggan', 'supplier', 'transaksi_penjualan', 'delivery_order', 'invoice', 'receipt', 'item', 'province', 'regency', 'district', 'subdistrict'];
+        $salesResources = ['pelanggan', 'supplier', 'transaksi_penjualan', 'delivery_order', 'invoice', 'receipt', 'item', 'province'];
         $this->assignResourcePermissions($sales, $salesResources, ['view', 'view_any', 'create', 'update', 'delete']);
 
         // 4. Operational - Delivery, driver, vehicle, and operational permissions
@@ -558,7 +558,7 @@ class ComprehensiveSeeder extends Seeder
             'guard_name' => 'web',
             'deskripsi' => 'Delivery, driver, vehicle, and operational permissions only'
         ]);
-        $operationalResources = ['delivery_order', 'pengiriman_driver', 'kendaraan', 'uang_jalan', 'item', 'province', 'regency', 'district', 'subdistrict'];
+        $operationalResources = ['delivery_order', 'pengiriman_driver', 'kendaraan', 'uang_jalan', 'item', 'province'];
         $this->assignResourcePermissions($operational, $operationalResources, ['view', 'view_any', 'create', 'update', 'delete']);
 
         // Add view-only permissions for financial documents related to delivery orders

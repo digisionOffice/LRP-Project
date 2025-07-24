@@ -46,9 +46,6 @@ class RolePermissionSeeder extends Seeder
             // Master Data
             'item' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
             'province' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
-            'regency' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
-            'district' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
-            'subdistrict' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
 
             // Documents
             'surat' => ['view', 'view_any', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
@@ -95,7 +92,7 @@ class RolePermissionSeeder extends Seeder
             'guard_name' => 'web',
             'deskripsi' => 'Customer, sales, and delivery-related permissions only'
         ]);
-        $salesResources = ['pelanggan', 'supplier', 'transaksi_penjualan', 'delivery_order', 'item', 'province', 'regency', 'district', 'subdistrict'];
+        $salesResources = ['pelanggan', 'supplier', 'transaksi_penjualan', 'delivery_order', 'item', 'province'];
         $this->assignResourcePermissions($sales, $salesResources, ['view', 'view_any', 'create', 'update', 'delete']);
 
         // 4. Operational - Delivery, driver, vehicle, and operational permissions
@@ -104,7 +101,7 @@ class RolePermissionSeeder extends Seeder
             'guard_name' => 'web',
             'deskripsi' => 'Delivery, driver, vehicle, and operational permissions only'
         ]);
-        $operationalResources = ['delivery_order', 'pengiriman_driver', 'kendaraan', 'uang_jalan', 'item', 'province', 'regency', 'district', 'subdistrict'];
+        $operationalResources = ['delivery_order', 'pengiriman_driver', 'kendaraan', 'uang_jalan', 'item', 'province'];
         $this->assignResourcePermissions($operational, $operationalResources, ['view', 'view_any', 'create', 'update', 'delete']);
 
         // 5. Driver - Limited view and update permissions for deliveries only

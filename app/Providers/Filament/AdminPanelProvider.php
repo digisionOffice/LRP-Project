@@ -31,9 +31,9 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->navigationGroups([
-                NavigationGroup::make()
-                    ->label('Penjualan')
-                    ->icon('heroicon-o-shopping-cart'),
+                // NavigationGroup::make()
+                //     ->label('Penjualan')
+                //     ->icon('heroicon-o-shopping-cart'),
                 // NavigationGroup::make()
                 //     ->label('Akuntansi')
                 //     ->icon('heroicon-o-calculator'),

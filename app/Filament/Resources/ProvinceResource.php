@@ -147,6 +147,8 @@ class ProvinceResource extends Resource
     {
         return [
             RelationManagers\RegenciesRelationManager::class,
+            RelationManagers\DistrictsRelationManager::class,
+            RelationManagers\SubdistrictsRelationManager::class,
         ];
     }
 
