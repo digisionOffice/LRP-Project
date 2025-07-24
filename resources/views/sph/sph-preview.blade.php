@@ -34,8 +34,8 @@
                 <tr>
                     {{-- Column 1: Logo (Left) --}}
                     <td class="w-1/3">
-                        <img src="{{ asset('storage/business-logos/lrp-colored.png') }}" alt="Company Logo"
-                            style="height: 150px;" class="mb-2">
+                        <img src="{{ asset('images/lrp.png') }}" alt="PT. Lintas Riau Prima" style="height: 150px;"
+                            class="mb-2">
                     </td>
                     {{-- Column 2: Empty Spacer (Center) --}}
                     <td class="w-1/3"></td>

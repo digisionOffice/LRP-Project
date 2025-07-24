@@ -29,6 +29,8 @@
 
         .logo {
             height: 120px;
+            max-width: 200px;
+            object-fit: contain;
         }
 
         .partner-text {
@@ -199,10 +201,20 @@
         <table>
             <tr>
                 <td style="width: 33%;">
-                    <div
-                        style="height: 120px; width: 200px; border: 1px solid #ccc; text-align: center; padding-top: 50px; font-size: 12px; color: #666;">
-                        PT. LINTAS RIAU PRIMA
-                    </div>
+                    @php
+                        $logoPath = public_path('images/lrp.png');
+                        $logoExists = file_exists($logoPath);
+                    @endphp
+
+                    @if ($logoExists)
+                        <img src="data:image/png;base64,{{ base64_encode(file_get_contents($logoPath)) }}"
+                            alt="PT. Lintas Riau Prima" class="logo">
+                    @else
+                        <div
+                            style="height: 120px; width: 200px; border: 1px solid #ccc; text-align: center; padding-top: 50px; font-size: 12px; color: #666;">
+                            PT. LINTAS RIAU PRIMA
+                        </div>
+                    @endif
                 </td>
                 <td style="width: 34%;"></td>
                 <td style="width: 33%;" class="partner-text">
