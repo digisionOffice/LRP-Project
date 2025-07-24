@@ -135,15 +135,20 @@
         .terms ol {
             padding-left: 0;
             list-style: none;
+            margin: 0;
         }
 
         .terms li {
             margin-bottom: 8px;
+            padding: 0;
+            display: block;
         }
 
         .terms li span:first-child {
             margin-right: 8px;
             min-width: 15px;
+            display: inline-block;
+            vertical-align: top;
         }
 
         .signature {
@@ -348,20 +353,26 @@
     {{-- Terms and Conditions --}}
     <div class="terms">
         <h2>Syarat dan Ketentuan</h2>
-        <ol>
-            <li><span>1.</span><span>Penawaran harga ini berlaku pada periode {{ $record->sph_date->format('d M Y') }}
-                    - {{ $record->valid_until_date->format('d M Y') }}.</span></li>
-            <li><span>2.</span>
-                <div><span>Pembayaran tagihan CASH hari setelah Dokumen diterima melalui transfer ke Bank BNI</span>
-                    <div style="font-weight: bold; margin-left: 20px;">No Rekening: 217736160 An. PT. Lintas Riau Prima
-                    </div>
-                </div>
-            </li>
-            <li><span>3.</span><span>PO kami terima minimal 3 (Tiga) hari (via email atau WA) sebelum pengiriman.</span>
-            </li>
-            <li><span>4.</span><span>Untuk kondisi mendesak/urgent dapat berkoordinasi langsung sebelum pukul 12.00 Wib.
-                    pada hari yang sama.</span></li>
-        </ol>
+        <div style="margin-bottom: 8px;">
+            <span style="display: inline-block; margin-right: 8px; min-width: 15px; vertical-align: top;">1.</span>
+            <span>Penawaran harga ini berlaku pada periode {{ $record->sph_date->format('d M Y') }} -
+                {{ $record->valid_until_date->format('d M Y') }}.</span>
+        </div>
+        <div style="margin-bottom: 8px;">
+            <span style="display: inline-block; margin-right: 8px; min-width: 15px; vertical-align: top;">2.</span>
+            <span>Pembayaran tagihan CASH hari setelah Dokumen diterima melalui transfer ke Bank BNI<br>
+                <strong style="margin-left: 20px;">No Rekening: 217736160 An. PT. Lintas Riau Prima</strong>
+            </span>
+        </div>
+        <div style="margin-bottom: 8px;">
+            <span style="display: inline-block; margin-right: 8px; min-width: 15px; vertical-align: top;">3.</span>
+            <span>PO kami terima minimal 3 (Tiga) hari (via email atau WA) sebelum pengiriman.</span>
+        </div>
+        <div style="margin-bottom: 8px;">
+            <span style="display: inline-block; margin-right: 8px; min-width: 15px; vertical-align: top;">4.</span>
+            <span>Untuk kondisi mendesak/urgent dapat berkoordinasi langsung sebelum pukul 12.00 Wib. pada hari yang
+                sama.</span>
+        </div>
     </div>
 
     {{-- Signature Section --}}
@@ -380,7 +391,22 @@
         <table>
             <tr>
                 <td style="width: 33%;" class="iso-logos">
-                    {{-- ISO logos will be added here if needed --}}
+                    @php
+                        $isoNamesToDisplay = ['ISO 9001:2015', 'ISO 45001:2018'];
+                        $isoCertifications = \App\Models\IsoCertification::where('is_active', true)
+                            ->whereIn('name', $isoNamesToDisplay)
+                            ->get();
+                    @endphp
+
+                    @foreach ($isoCertifications as $cert)
+                        @php
+                            $logoPath = public_path('storage/' . $cert->logo_path);
+                        @endphp
+                        @if (file_exists($logoPath))
+                            <img src="data:image/jpeg;base64,{{ base64_encode(file_get_contents($logoPath)) }}"
+                                alt="{{ $cert->name }}" style="height: 40px; margin-right: 10px;">
+                        @endif
+                    @endforeach
                 </td>
                 <td style="width: 34%;" class="center">
                     <p><strong>PT. LINTAS RIAU PRIMA</strong></p>
@@ -388,9 +414,9 @@
                     <p>Pekanbaru, Riau. 28144</p>
                 </td>
                 <td style="width: 33%;" class="right">
-                    <p>☎️ 0761-22369</p>
-                    <p>✉️ office@lintasriauprima.com</p>
-                    <p>🌐 www.lintasriauprima.com</p>
+                    <p>Tel: 0761-22369</p>
+                    <p>Email: office@lintasriauprima.com</p>
+                    <p>Web: www.lintasriauprima.com</p>
                 </td>
             </tr>
         </table>
