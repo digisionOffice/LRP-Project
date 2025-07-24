@@ -6,6 +6,7 @@ use App\Support\Formatter;
 use Illuminate\Support\Facades\Log;
 
 // models call
+use App\Models\Sph;
 use App\Models\TransaksiPenjualan;
 use App\Models\ExpenseRequest;
 class MessageService
@@ -502,6 +503,7 @@ class MessageService
     }
 
 
+
     // ==========================================================================================================================================================================
     // expense request ==========================================================================================================================================================
 
@@ -739,4 +741,46 @@ class MessageService
         return $this->starSender->send($managerData->hp, $message, $senderAccount);
     }
 
+
+    // ==========================================================================================================================================================================
+    // SPH request ==============================================================================================================================================================
+
+    /**
+     * Sends a notification about a new SPH requiring approval.
+     *
+     * @param object $managerData The manager/approver data (name, hp).
+     * @param object $creatorData The creator/salesperson data (name).
+     * @param object $sphData The SPH data (id, sph_number, customer_name, total_amount).
+     * @param string|null $senderAccount The account to send from.
+     * @return array|null The API response.
+     */
+    public function sendNewSphNotification(object $managerData, object $creatorData, object $sphData, ?string $senderAccount = null): ?array
+    {
+        if (empty($managerData->hp)) {
+            Log::warning("Cannot send SPH notification: Manager {$managerData->name} has no phone number.");
+            return null;
+        }
+
+        // Generate a link to the view page in Filament
+        $viewUrl = route('filament.admin.resources.sphs.view', ['record' => $sphData->id]);
+
+        $message = "🔔 *Approval Penawaran Harga (SPH) Baru* 🔔\n\n" .
+                   "Halo Bpk/Ibu *{$managerData->name}*,\n" .
+                   "Ada SPH baru dari *{$creatorData->name}* yang membutuhkan persetujuan Anda.\n\n" .
+                   "📝 *Detail SPH:*\n" .
+                   "No. SPH: *{$sphData->sph_number}*\n" .
+                   "Pelanggan: *{$sphData->customer_name}*\n" .
+                   "Total Penawaran: *Rp " . Formatter::number($sphData->total_amount) . "*\n\n" .
+                   "Mohon segera ditinjau dan diproses melalui link berikut:\n" .
+                   $viewUrl . "\n\n" .
+                   "Terima kasih.";
+
+        Log::info("Attempting to send new SPH notification for {$sphData->sph_number} to {$managerData->hp}.");
+
+        return $this->starSender->send(
+            receiverNumber: $managerData->hp,
+            message: $message,
+            senderAccount: $senderAccount
+        );
+    }
 }
