@@ -6,7 +6,7 @@ use App\Filament\Resources\SphResource\Pages;
 use App\Models\Item;
 use App\Models\Pelanggan;
 use App\Models\Sph;
-use App\Services\SphService;
+
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -15,7 +15,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
+
 use Illuminate\Support\HtmlString;
 
 // --- Importing all components for cleaner code ---
@@ -27,7 +27,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Fieldset;
 
@@ -54,13 +54,13 @@ class SphResource extends Resource
                                 DatePicker::make('sph_date')
                                     ->label('Tanggal SPH')
                                     ->default(now())->required()->live()
-                                    ->afterStateUpdated(fn (Set $set, ?string $state) => $set('valid_until_date', $state ? Carbon::parse($state)->addDays(7)->toDateString() : null)),
+                                    ->afterStateUpdated(fn(Set $set, ?string $state) => $set('valid_until_date', $state ? Carbon::parse($state)->addDays(7)->toDateString() : null)),
                                 DatePicker::make('valid_until_date')
                                     ->label('Berlaku Hingga')
                                     ->default(now()->addDays(7))->required(),
-                                
+
                                 Select::make('customer_id')
-                                    ->relationship('customer', 'nama', fn (Builder $query) => $query->orderBy('nama', 'asc'))
+                                    ->relationship('customer', 'nama', fn(Builder $query) => $query->orderBy('nama', 'asc'))
                                     ->searchable()->preload()->required()
                                     ->label('Pelanggan')->reactive()
                                     ->afterStateUpdated(function (Set $set, ?string $state) {
@@ -68,7 +68,7 @@ class SphResource extends Resource
                                         $set('opsional_pic', $customer?->pic_nama);
                                     })
                                     ->columnSpan(2),
-                                
+
                                 TextInput::make('opsional_pic')
                                     ->label('Contact Person (U.p.)')
                                     ->helperText('Isi jika berbeda dari PIC utama pelanggan.'),
@@ -89,7 +89,7 @@ class SphResource extends Resource
                                                 TextInput::make('quantity')->label('Kuantitas')->numeric()->required()->default(1)->live(onBlur: true)
                                                     ->columnSpan(['lg' => 4]),
                                                 TextInput::make('description')->label('Deskripsi Tambahan')->columnSpanFull(),
-                                                
+
                                                 Fieldset::make('Rincian Harga per Unit')
                                                     ->schema([
                                                         ...self::getCalculationFields(),
@@ -165,31 +165,78 @@ class SphResource extends Resource
                 Tables\Columns\TextColumn::make('sph_number')->label('No. SPH')->searchable()->weight('bold'),
                 Tables\Columns\TextColumn::make('customer.nama')->label('Pelanggan')->searchable(),
                 Tables\Columns\TextColumn::make('status')->label('Status')->badge()
-                    ->color(fn (Sph $record) => $record->status_color)
-                    ->formatStateUsing(fn (Sph $record) => $record->status_label),
+                    ->color(fn(Sph $record) => $record->status_color)
+                    ->formatStateUsing(fn(Sph $record) => $record->status_label),
                 Tables\Columns\TextColumn::make('total_amount')->label('Total Penawaran')->money('IDR'),
                 Tables\Columns\TextColumn::make('sph_date')->label('Tanggal SPH')->date('d M Y'),
                 Tables\Columns\TextColumn::make('createdBy.name')->label('Dibuat Oleh'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')->label('Status')->options([
-                    'draft' => 'Draft', 'pending_approval' => 'Menunggu Approval',
-                    'sent' => 'Terkirim', 'accepted' => 'Diterima',
-                    'rejected' => 'Ditolak', 'expired' => 'Kadaluarsa',
+                    'draft' => 'Draft',
+                    'pending_approval' => 'Menunggu Approval',
+                    'sent' => 'Terkirim',
+                    'accepted' => 'Diterima',
+                    'rejected' => 'Ditolak',
+                    'expired' => 'Kadaluarsa',
                 ])->multiple(),
             ])
-            ->actions([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make()])
+            ->actions([
+                Tables\Actions\ViewAction::make(),
+                Tables\Actions\Action::make('download_pdf')
+                    ->label('Download PDF')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('success')
+                    ->action(function (Sph $record) {
+                        try {
+                            $sph = Sph::with([
+                                'customer',
+                                'details.item',
+                                'createdBy'
+                            ])->find($record->id);
+
+                            $filename = 'SPH_' . str_replace(['/', '\\'], '_', $sph->sph_number) . '_' . now()->format('Ymd_His') . '.pdf';
+
+                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('sph.sph-pdf', ['record' => $sph])
+                                ->setPaper('a4', 'portrait')
+                                ->setOptions([
+                                    'isHtml5ParserEnabled' => true,
+                                    'isPhpEnabled' => true,
+                                    'defaultFont' => 'Arial',
+                                    'isRemoteEnabled' => true,
+                                ]);
+
+                            return response()->streamDownload(function () use ($pdf) {
+                                echo $pdf->output();
+                            }, $filename, [
+                                'Content-Type' => 'application/pdf',
+                                'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+                            ]);
+                        } catch (\Exception $e) {
+                            \Illuminate\Support\Facades\Log::error('Failed to generate SPH PDF: ' . $e->getMessage());
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Error generating PDF')
+                                ->body('Failed to generate PDF: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+
+                            return null;
+                        }
+                    }),
+                Tables\Actions\EditAction::make()
+            ])
             ->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()])])
             ->defaultSort('created_at', 'desc');
     }
-    
+
     public static function getRelations(): array
     {
         return [
             //
         ];
     }
-    
+
     public static function getPages(): array
     {
         return [

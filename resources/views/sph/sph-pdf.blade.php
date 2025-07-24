@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,155 +14,195 @@
             margin: 0;
             padding: 20px;
         }
+
         .header {
             margin-bottom: 30px;
         }
+
         .header table {
             width: 100%;
         }
+
         .header td {
             vertical-align: top;
         }
+
         .logo {
             height: 120px;
         }
+
         .partner-text {
             text-align: right;
         }
+
         .partner-text h2 {
             font-size: 16px;
             font-weight: bold;
             margin: 0;
         }
+
         .partner-text p {
             font-size: 10px;
             margin: 5px 0 0 0;
         }
+
         .doc-info {
             margin-bottom: 30px;
         }
+
         .doc-info .date {
             text-align: right;
             margin-bottom: 15px;
         }
+
         .doc-info table {
             font-size: 12px;
         }
+
         .doc-info td {
             padding: 2px 0;
         }
+
         .recipient {
             margin-bottom: 30px;
             font-size: 12px;
         }
+
         .body-text {
             margin-bottom: 25px;
             font-size: 12px;
             line-height: 1.5;
         }
+
         .product-section {
             margin-bottom: 30px;
             font-size: 12px;
         }
+
         .product-section table {
             width: 100%;
         }
+
         .product-section td {
             padding: 2px 0;
             vertical-align: top;
         }
+
         .price-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 30px;
         }
+
         .price-table th,
         .price-table td {
             border: 1px solid #333;
             padding: 8px;
             text-align: left;
         }
+
         .price-table th {
             background-color: #f0f0f0;
             font-weight: bold;
             text-align: center;
         }
+
         .price-table .number {
             text-align: center;
         }
+
         .price-table .amount {
             text-align: right;
         }
+
         .price-table .total-row {
             background-color: #f0f0f0;
             font-weight: bold;
         }
+
         .terms {
             margin-bottom: 30px;
             font-size: 12px;
         }
+
         .terms h2 {
             font-size: 14px;
             margin-bottom: 10px;
         }
+
         .terms ol {
             padding-left: 0;
             list-style: none;
         }
+
         .terms li {
             margin-bottom: 8px;
-            display: flex;
         }
+
         .terms li span:first-child {
             margin-right: 8px;
             min-width: 15px;
         }
+
         .signature {
             margin-top: 40px;
             text-align: right;
         }
+
         .signature-box {
             display: inline-block;
             text-align: center;
         }
+
         .signature-space {
             height: 60px;
             margin: 10px 0;
         }
+
         .footer {
             margin-top: 60px;
             padding-top: 15px;
             border-top: 4px solid #1e40af;
             font-size: 10px;
         }
+
         .footer table {
             width: 100%;
         }
+
         .footer td {
             vertical-align: top;
         }
+
         .footer .center {
             text-align: center;
         }
+
         .footer .right {
             text-align: left;
         }
+
         .iso-logos {
             text-align: left;
         }
+
         .iso-logos img {
             height: 40px;
             margin-right: 10px;
         }
     </style>
 </head>
+
 <body>
     {{-- Header Section --}}
     <div class="header">
         <table>
             <tr>
                 <td style="width: 33%;">
-                    <img src="{{ public_path('storage/business-logos/lrp-colored.png') }}" alt="Company Logo" class="logo">
+                    <div
+                        style="height: 120px; width: 200px; border: 1px solid #ccc; text-align: center; padding-top: 50px; font-size: 12px; color: #666;">
+                        PT. LINTAS RIAU PRIMA
+                    </div>
                 </td>
                 <td style="width: 34%;"></td>
                 <td style="width: 33%;" class="partner-text">
@@ -201,10 +242,10 @@
     <div class="recipient">
         <p>Kepada Yth.</p>
         <p><strong>{{ $record->customer?->nama }}</strong></p>
-        @if($record->opsional_pic)
+        @if ($record->opsional_pic)
             <p>Up: {{ $record->opsional_pic }}</p>
         @elseif($record->customer?->pic_nama)
-             <p>Up: {{ $record->customer->pic_nama }}</p>
+            <p>Up: {{ $record->customer->pic_nama }}</p>
         @endif
         <p>Di –</p>
         <p style="margin-left: 20px;">Tempat</p>
@@ -214,8 +255,10 @@
     <div class="body-text">
         <p style="margin-bottom: 15px;">Salam hormat,</p>
         <p>
-            Sehubungan dengan adanya informasi kebutuhan BBM Pertalite industri untuk {{ $record->customer?->nama }}, maka bersama ini kami kirimkan surat penawaran harga untuk periode 
-            <strong>{{ $record->sph_date->format('d M Y') }}</strong> s/d <strong>{{ $record->valid_until_date->format('d M Y') }}</strong>.
+            Sehubungan dengan adanya informasi kebutuhan BBM Pertalite industri untuk {{ $record->customer?->nama }},
+            maka bersama ini kami kirimkan surat penawaran harga untuk periode
+            <strong>{{ $record->sph_date->format('d M Y') }}</strong> s/d
+            <strong>{{ $record->valid_until_date->format('d M Y') }}</strong>.
         </p>
     </div>
 
@@ -265,7 +308,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($record->details as $idx => $detail)
+                @foreach ($record->details as $idx => $detail)
                     <tr>
                         <td class="number">{{ $idx + 1 }}</td>
                         <td>Dasar BBM</td>
@@ -294,10 +337,18 @@
     <div class="terms">
         <h2>Syarat dan Ketentuan</h2>
         <ol>
-            <li><span>1.</span><span>Penawaran harga ini berlaku pada periode {{ $record->sph_date->format('d M Y') }} - {{ $record->valid_until_date->format('d M Y') }}.</span></li>
-            <li><span>2.</span><div><span>Pembayaran tagihan CASH hari setelah Dokumen diterima melalui transfer ke Bank BNI</span><div style="font-weight: bold; margin-left: 20px;">No Rekening: 217736160 An. PT. Lintas Riau Prima</div></div></li>
-            <li><span>3.</span><span>PO kami terima minimal 3 (Tiga) hari (via email atau WA) sebelum pengiriman.</span></li>
-            <li><span>4.</span><span>Untuk kondisi mendesak/urgent dapat berkoordinasi langsung sebelum pukul 12.00 Wib. pada hari yang sama.</span></li>
+            <li><span>1.</span><span>Penawaran harga ini berlaku pada periode {{ $record->sph_date->format('d M Y') }}
+                    - {{ $record->valid_until_date->format('d M Y') }}.</span></li>
+            <li><span>2.</span>
+                <div><span>Pembayaran tagihan CASH hari setelah Dokumen diterima melalui transfer ke Bank BNI</span>
+                    <div style="font-weight: bold; margin-left: 20px;">No Rekening: 217736160 An. PT. Lintas Riau Prima
+                    </div>
+                </div>
+            </li>
+            <li><span>3.</span><span>PO kami terima minimal 3 (Tiga) hari (via email atau WA) sebelum pengiriman.</span>
+            </li>
+            <li><span>4.</span><span>Untuk kondisi mendesak/urgent dapat berkoordinasi langsung sebelum pukul 12.00 Wib.
+                    pada hari yang sama.</span></li>
         </ol>
     </div>
 
@@ -333,4 +384,5 @@
         </table>
     </div>
 </body>
+
 </html>

@@ -162,7 +162,42 @@ class ViewSph extends ViewRecord
                         ->color('success')
                         ->icon('heroicon-o-arrow-down-tray')
                         ->action(function (Sph $record) {
-                            return $this->downloadPdf($record);
+                            // Same logic as main download action
+                            try {
+                                $sph = Sph::with([
+                                    'customer',
+                                    'details.item',
+                                    'createdBy'
+                                ])->find($record->id);
+
+                                $filename = 'SPH_' . str_replace(['/', '\\'], '_', $sph->sph_number) . '_' . now()->format('Ymd_His') . '.pdf';
+
+                                $pdf = Pdf::loadView('sph.sph-pdf', ['record' => $sph])
+                                    ->setPaper('a4', 'portrait')
+                                    ->setOptions([
+                                        'isHtml5ParserEnabled' => true,
+                                        'isPhpEnabled' => true,
+                                        'defaultFont' => 'Arial',
+                                        'isRemoteEnabled' => true,
+                                    ]);
+
+                                return response()->streamDownload(function () use ($pdf) {
+                                    echo $pdf->output();
+                                }, $filename, [
+                                    'Content-Type' => 'application/pdf',
+                                    'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+                                ]);
+                            } catch (\Exception $e) {
+                                Log::error('Failed to generate SPH PDF from modal: ' . $e->getMessage());
+
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Error generating PDF')
+                                    ->body('Failed to generate PDF: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+
+                                return null;
+                            }
                         })
                 ]),
 
@@ -171,7 +206,53 @@ class ViewSph extends ViewRecord
                 ->color('success')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->action(function (Sph $record) {
-                    return $this->downloadPdf($record);
+                    try {
+                        // Load the record with all necessary relationships
+                        $sph = Sph::with([
+                            'customer',
+                            'details.item',
+                            'createdBy'
+                        ])->find($record->id);
+
+                        // Generate dynamic filename
+                        $filename = 'SPH_' . str_replace(['/', '\\'], '_', $sph->sph_number) . '_' . now()->format('Ymd_His') . '.pdf';
+
+                        // Load the PDF view with the record data
+                        $pdf = Pdf::loadView('sph.sph-pdf', ['record' => $sph])
+                            ->setPaper('a4', 'portrait')
+                            ->setOptions([
+                                'isHtml5ParserEnabled' => true,
+                                'isPhpEnabled' => true,
+                                'defaultFont' => 'Arial',
+                                'isRemoteEnabled' => true,
+                            ]);
+
+                        // Stream the PDF as a download
+                        return response()->streamDownload(function () use ($pdf) {
+                            echo $pdf->output();
+                        }, $filename, [
+                            'Content-Type' => 'application/pdf',
+                            'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+                        ]);
+                    } catch (\Exception $e) {
+                        // Log the error for debugging
+                        Log::error('Failed to generate SPH PDF: ' . $e->getMessage());
+                        Log::error('SPH PDF Error Stack Trace: ' . $e->getTraceAsString());
+                        Log::error('SPH PDF Error Context: ', [
+                            'sph_id' => $record->id,
+                            'sph_number' => $record->sph_number,
+                            'user_id' => \Illuminate\Support\Facades\Auth::id(),
+                        ]);
+
+                        // Show notification to user
+                        \Filament\Notifications\Notification::make()
+                            ->title('Error generating PDF')
+                            ->body('Failed to generate PDF: ' . $e->getMessage())
+                            ->danger()
+                            ->send();
+
+                        return null;
+                    }
                 }),
 
             Actions\EditAction::make()
